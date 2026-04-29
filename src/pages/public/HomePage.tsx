@@ -52,7 +52,10 @@ export function HomePage() {
           <li><a href="#planes">Planes</a></li>
           <li><a href="#faq">FAQ</a></li>
         </ul>
-        <a href="#contacto" className="btn btn-primary">Pedir propuesta <span className="arrow">→</span></a>
+        <div className="nav-actions">
+          <a href="/login" className="btn btn-ghost">Login</a>
+          <a href="#contacto" className="btn btn-primary">Pedir propuesta <span className="arrow">→</span></a>
+        </div>
       </nav>
 
       {/* HERO */}

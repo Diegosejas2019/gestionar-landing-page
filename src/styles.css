@@ -112,6 +112,12 @@ h1, h2, h3, h4 {
   background: rgba(255,255,255,0.04);
 }
 
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -156,6 +162,12 @@ h1, h2, h3, h4 {
 
 @media (max-width: 860px) {
   .nav-links { display: none; }
+  .nav { padding-left: 16px; }
+  .nav-actions .btn { padding: 10px 14px; }
+}
+
+@media (max-width: 460px) {
+  .nav-actions .btn-primary { display: none; }
 }
 
 /* ============ HERO ============ */
