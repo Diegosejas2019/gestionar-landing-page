@@ -111,7 +111,7 @@ La landing incluye:
 - Beneficios.
 - Modulos y servicios.
 - Proceso.
-- Planes.
+- Planes oculto temporalmente en la UI publica.
 - FAQ.
 - Contacto.
 - Footer.

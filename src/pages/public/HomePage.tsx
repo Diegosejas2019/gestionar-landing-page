@@ -49,7 +49,6 @@ export function HomePage() {
           <li><a href="#beneficios">Beneficios</a></li>
           <li><a href="#servicios">Servicios</a></li>
           <li><a href="#proceso">Cómo trabajamos</a></li>
-          <li><a href="#planes">Planes</a></li>
           <li><a href="#faq">FAQ</a></li>
         </ul>
         <div className="nav-actions">
@@ -411,7 +410,7 @@ export function HomePage() {
       </section>
 
       {/* PLANES */}
-      <section className="section" id="planes" style={{ paddingTop: 0 }}>
+      <section className="section" id="planes" hidden style={{ display: 'none' }}>
         <div className="container">
           <div className="section-head reveal">
             <div className="eyebrow"><span className="dot" /> PLANES</div>
@@ -627,7 +626,6 @@ export function HomePage() {
                 <li><a href="#beneficios">Beneficios</a></li>
                 <li><a href="#servicios">Servicios</a></li>
                 <li><a href="#proceso">Cómo trabajamos</a></li>
-                <li><a href="#planes">Planes</a></li>
               </ul>
             </div>
             <div className="footer-col">
