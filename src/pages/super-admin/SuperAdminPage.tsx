@@ -1,5 +1,5 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Building2, Check, LayoutDashboard, LogOut, RefreshCw, Search, Shield, Users } from 'lucide-react';
+import { AlertTriangle, Building2, Check, LayoutDashboard, LifeBuoy, LogOut, RefreshCw, Search, Shield, Users } from 'lucide-react';
 import { superAdminApi } from '../../services/adminService';
 import { isSuperAdminRole } from '../../services/authService';
 
@@ -15,6 +15,12 @@ const featureLabels: Record<string, string> = {
   notices: 'Comunicados',
   expenses: 'Gastos',
   providers: 'Proveedores'
+};
+const ticketStatusLabels: Record<string, string> = {
+  open: 'Abierto',
+  in_progress: 'En progreso',
+  resolved: 'Resuelto',
+  closed: 'Cerrado'
 };
 
 function pick<T>(response: any, key: string, fallback: T): T {
@@ -34,6 +40,7 @@ export function SuperAdminPage() {
   const [selectedOrgId, setSelectedOrgId] = useState('');
   const [members, setMembers] = useState<any[]>([]);
   const [features, setFeatures] = useState<Record<string, boolean>>({});
+  const [supportTickets, setSupportTickets] = useState<any[]>([]);
   const [statusModal, setStatusModal] = useState<{ org: any; nextActive: boolean } | null>(null);
   const [statusReason, setStatusReason] = useState('');
 
@@ -48,20 +55,22 @@ export function SuperAdminPage() {
   async function refresh() {
     setLoading(true);
     try {
-      const [me, orgs] = await Promise.all([
-        superAdminApi.me(),
-        superAdminApi.organizations.list()
-      ]);
-
+      const me = await superAdminApi.me();
       const loggedUser = me?.data?.user;
       if (!isSuperAdminRole(loggedUser?.role)) {
         window.location.assign('/admin');
         return;
       }
 
+      const [orgs, support] = await Promise.all([
+        superAdminApi.organizations.list(),
+        superAdminApi.support.list({ limit: 100 })
+      ]);
+
       const list = pick<any[]>(orgs, 'organizations', []);
       setUser(loggedUser);
       setOrganizations(list);
+      setSupportTickets(pick<any[]>(support, 'tickets', []));
       setSelectedOrgId((current) => current || idOf(list[0] || ''));
       setNotice(null);
     } catch (error) {
@@ -135,6 +144,10 @@ export function SuperAdminPage() {
     run(`feature-${key}`, () => superAdminApi.organizations.updateFeatures(selectedOrgId, { ...features, [key]: value }), 'Feature actualizada.');
   }
 
+  function updateTicket(ticket: any, data: Record<string, unknown>, success: string) {
+    run(`ticket-${idOf(ticket)}`, () => superAdminApi.support.update(idOf(ticket), data), success);
+  }
+
   function openStatusModal(org: any, nextActive: boolean) {
     setSelectedOrgId(idOf(org));
     setStatusReason('');
@@ -165,6 +178,7 @@ export function SuperAdminPage() {
         <nav>
           <button className="active"><Shield size={18} /> <span>SuperAdmin</span></button>
           <button onClick={() => setSelectedOrgId(idOf(organizations[0] || ''))}><Building2 size={18} /> <span>Organizaciones</span></button>
+          <button><LifeBuoy size={18} /> <span>Soporte</span></button>
         </nav>
       </aside>
 
@@ -290,6 +304,28 @@ export function SuperAdminPage() {
                 ['Rol', (member: any) => member.role],
                 ['Estado', (member: any) => member.isActive === false ? 'Inactivo' : 'Activo'],
                 ['Ultimo ingreso', (member: any) => dateLabel(member.lastLogin)]
+              ]}
+            />
+          </Panel>
+
+          <Panel title="Soporte" icon={LifeBuoy}>
+            <Grid
+              loading={loading}
+              rows={supportTickets}
+              searchPlaceholder="Buscar ticket, organizacion, usuario o prioridad"
+              columns={[
+                ['Titulo', (ticket: any) => ticket.title],
+                ['Organizacion', (ticket: any) => ticket.organizationId?.name || '-'],
+                ['Usuario', (ticket: any) => ticket.userId?.name || ticket.userId?.email || '-'],
+                ['Tipo', (ticket: any) => ticket.typeLabel || ticket.type],
+                ['Prioridad', (ticket: any) => ticket.priorityLabel || ticket.priority],
+                ['Estado', (ticket: any) => ticketStatusLabels[ticket.status] || ticket.status],
+                ['Acciones', (ticket: any) => (
+                  <div className="row-actions">
+                    <button onClick={() => updateTicket(ticket, { status: 'in_progress' }, 'Ticket en progreso.')}>En progreso</button>
+                    <button onClick={() => updateTicket(ticket, { status: 'resolved', adminResponse: window.prompt('Respuesta') || '' }, 'Ticket resuelto.')}>Resolver</button>
+                  </div>
+                )]
               ]}
             />
           </Panel>

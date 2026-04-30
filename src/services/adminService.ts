@@ -106,12 +106,6 @@ export const adminApi = {
     delete: (id: string) => apiClient<any>(`/reservations/${id}`, { method: 'DELETE', auth: true })
   },
 
-  support: {
-    list: (params?: Params) => apiClient<any>(`/support-tickets${qs(params)}`, { auth: true }),
-    update: (id: string, data: Payload) => apiClient<any>(`/support-tickets/${id}`, { method: 'PATCH', auth: true, body: body(data) }),
-    delete: (id: string) => apiClient<any>(`/support-tickets/${id}`, { method: 'DELETE', auth: true })
-  },
-
   config: {
     get: () => apiClient<any>('/config', { auth: true }),
     update: (data: Payload) => apiClient<any>('/config', { method: 'PATCH', auth: true, body: body(data) })
@@ -124,6 +118,12 @@ export const adminApi = {
 
 export const superAdminApi = {
   me: () => apiClient<any>('/auth/me', { auth: true }),
+
+  support: {
+    list: (params?: Params) => apiClient<any>(`/support-tickets${qs(params)}`, { auth: true }),
+    update: (id: string, data: Payload) => apiClient<any>(`/support-tickets/${id}`, { method: 'PATCH', auth: true, body: body(data) }),
+    delete: (id: string) => apiClient<any>(`/support-tickets/${id}`, { method: 'DELETE', auth: true })
+  },
 
   organizations: {
     list: () => apiClient<any>('/organizations', { auth: true }),

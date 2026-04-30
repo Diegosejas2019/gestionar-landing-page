@@ -1,12 +1,12 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
 import {
-  Bell, Building2, CalendarCheck, CreditCard, FileText, Home, Landmark, LifeBuoy,
+  Bell, Building2, CalendarCheck, CreditCard, FileText, Home, Landmark,
   LogOut, Megaphone, MessageSquare, RefreshCw, Settings, ShieldCheck, Users, Vote
 } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
 import { isSuperAdminRole } from '../../services/authService';
 
-type TabKey = 'inicio' | 'finanzas' | 'comunidad' | 'operaciones' | 'proveedores' | 'soporte' | 'config';
+type TabKey = 'inicio' | 'finanzas' | 'comunidad' | 'operaciones' | 'proveedores' | 'config';
 type Notice = { type: 'ok' | 'error'; text: string } | null;
 type FeatureKey = 'visits' | 'reservations' | 'votes' | 'claims' | 'notices' | 'expenses' | 'providers';
 type GridFilter = {
@@ -31,7 +31,6 @@ const nav = [
   { key: 'comunidad', label: 'Comunidad', icon: Users },
   { key: 'operaciones', label: 'Operaciones', icon: CalendarCheck },
   { key: 'proveedores', label: 'Proveedores', icon: Landmark },
-  { key: 'soporte', label: 'Soporte', icon: LifeBuoy },
   { key: 'config', label: 'Configuracion', icon: Settings }
 ] as const;
 
@@ -176,7 +175,7 @@ export function AdminPreviewPage() {
   const [state, setState] = useState<any>({
     me: null, config: {}, ownerStats: {}, dashboard: {}, report: {},
     owners: [], units: [], payments: [], notices: [], claims: [], expenses: [],
-    providers: [], votes: [], visits: [], spaces: [], reservations: [], support: [],
+    providers: [], votes: [], visits: [], spaces: [], reservations: [],
     features: defaultFeatures
   });
 
@@ -267,11 +266,6 @@ export function AdminPreviewPage() {
         } else {
           next.providers = [];
         }
-      }
-
-      if (target === 'soporte') {
-        const support = await adminApi.support.list({ limit: 50 });
-        next.support = pick(support, 'tickets', []);
       }
 
       if (target === 'config') {
@@ -716,30 +710,6 @@ export function AdminPreviewPage() {
               ]} />
             </Panel>
           </div>
-        )}
-
-        {tab === 'soporte' && (
-          <Panel title="Tickets de soporte" icon={LifeBuoy}>
-            <Table loading={loading} searchPlaceholder="Buscar ticket, tipo o prioridad" filters={[
-              statusFilter(['open', 'in_progress', 'resolved', 'closed']),
-              {
-                key: 'priority',
-                label: 'Prioridad',
-                allLabel: 'Todas',
-                options: uniqueOptions(state.support, (t: any) => t.priority),
-                match: (row, value) => row.priority === value
-              }
-            ]} rows={state.support} columns={[
-              ['Titulo', (t: any) => t.title],
-              ['Tipo', (t: any) => t.type],
-              ['Prioridad', (t: any) => t.priority],
-              ['Estado', (t: any) => <Status value={t.status} />],
-              ['Acciones', (t: any) => <Actions>
-                <button onClick={() => run(idOf(t), () => adminApi.support.update(idOf(t), { status: 'in_progress' }), 'Ticket en progreso.')}>En progreso</button>
-                <button onClick={() => run(idOf(t), () => adminApi.support.update(idOf(t), { status: 'resolved', adminResponse: window.prompt('Respuesta') || '' }), 'Ticket resuelto.')}>Resolver</button>
-              </Actions>]
-            ]} />
-          </Panel>
         )}
 
         {tab === 'config' && (
