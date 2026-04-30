@@ -117,3 +117,18 @@ export const adminApi = {
     update: (data: Payload) => apiClient<any>('/config', { method: 'PATCH', auth: true, body: body(data) })
   }
 };
+
+export const superAdminApi = {
+  me: () => apiClient<any>('/auth/me', { auth: true }),
+
+  organizations: {
+    list: () => apiClient<any>('/organizations', { auth: true }),
+    create: (data: Payload) => apiClient<any>('/organizations', { method: 'POST', auth: true, body: body(data) }),
+    update: (id: string, data: Payload) => apiClient<any>(`/organizations/${id}`, { method: 'PATCH', auth: true, body: body(data) }),
+    delete: (id: string) => apiClient<any>(`/organizations/${id}`, { method: 'DELETE', auth: true }),
+    members: (id: string, params?: Params) => apiClient<any>(`/organizations/${id}/members${qs(params)}`, { auth: true }),
+    features: (id: string) => apiClient<any>(`/organizations/${id}/features`, { auth: true }),
+    updateFeatures: (id: string, data: Payload) =>
+      apiClient<any>(`/organizations/${id}/features`, { method: 'PUT', auth: true, body: body(data) })
+  }
+};

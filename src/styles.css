@@ -1488,6 +1488,16 @@ footer {
 .admin-table td {
   color: var(--text-dim);
 }
+.admin-table tr.selected-row td {
+  background: var(--green-soft);
+  color: var(--text);
+}
+.admin-table tbody tr {
+  cursor: default;
+}
+.admin-table tbody tr:hover td {
+  background: rgba(255,255,255,.025);
+}
 .row-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1730,6 +1740,30 @@ footer {
 }
 .period-controls input[type="month"] {
   width: 142px;
+}
+.feature-list {
+  display: grid;
+  gap: 10px;
+}
+.feature-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+}
+.feature-toggle span {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.feature-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--green);
 }
 
 @media (max-width: 1120px) {

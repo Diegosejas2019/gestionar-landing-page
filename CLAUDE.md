@@ -73,6 +73,8 @@ src/
       LoginPage.tsx
     admin/
       AdminPreviewPage.tsx
+    super-admin/
+      SuperAdminPage.tsx
 ```
 
 Notas:
@@ -80,6 +82,7 @@ Notas:
 - `AdminPreviewPage.tsx` ya no es solo preview: contiene el dashboard web funcional.
 - El nombre del archivo puede cambiarse mas adelante, pero hoy la ruta `/admin` lo usa directamente.
 - `adminService.ts` centraliza los endpoints del panel admin.
+- `SuperAdminPage.tsx` contiene el dashboard global interno del SaaS.
 
 ## Rutas
 
@@ -88,6 +91,7 @@ Definidas en `src/App.tsx`:
 - `/`: landing publica.
 - `/login`: login administrativo.
 - `/admin`: dashboard privado.
+- `/super-admin`: dashboard global interno del SaaS.
 
 No hay React Router instalado. Mantener routing simple salvo que exista una razon clara para migrar.
 
@@ -142,6 +146,7 @@ localStorage.gestionar_token
 
 El login soporta multi-organizacion:
 
+- Si el usuario tiene rol `super_admin` o alias legacy `superadmin`, no selecciona organizacion y entra a `/super-admin`.
 - Si la API devuelve `requiresOrganizationSelection: true`, se muestra selector de organizacion.
 - La seleccion usa:
 
@@ -151,6 +156,15 @@ POST /auth/select-organization
 
 - Se envia `selectionToken` como Bearer token.
 - Luego se guarda el JWT final en `localStorage.gestionar_token`.
+
+Reglas de rol:
+
+- `owner`: propietario de una organizacion.
+- `admin`: administrador de una organizacion.
+- `super_admin`: perfil global interno del SaaS.
+- `superadmin`: alias legacy aceptado solo por compatibilidad.
+- SuperAdmin no debe entrar a `/admin`.
+- Admin comun no debe entrar a `/super-admin`.
 
 ## API Client
 
@@ -199,6 +213,7 @@ Centraliza endpoints del dashboard:
 - `reservations`
 - `support`
 - `config`
+- `superAdminApi.organizations`
 
 Mantener este archivo como punto unico para llamadas del dashboard.
 
@@ -220,6 +235,7 @@ Autenticacion:
 
 - Si no existe `localStorage.gestionar_token`, redirige a `/login`.
 - Las llamadas protegidas usan `adminApi`.
+- Si el usuario es SuperAdmin, se redirige a `/super-admin`.
 
 Navegacion actual:
 
@@ -316,6 +332,38 @@ Incluye:
 - Grilla de unidades.
 - Eliminacion de unidad.
 
+## Dashboard SuperAdmin
+
+Archivo:
+
+```text
+src/pages/super-admin/SuperAdminPage.tsx
+```
+
+Ruta:
+
+```text
+/super-admin
+```
+
+Reglas:
+
+- Solo acepta usuarios con rol `super_admin` o alias legacy `superadmin`.
+- Es global y no usa contexto de organizacion.
+- No reutiliza permisos del administrador comun.
+- Si un admin comun intenta entrar, se redirige a `/admin`.
+
+Incluye:
+
+- Metricas globales del SaaS.
+- Grilla de organizaciones.
+- Alta de organizacion.
+- Edicion de organizacion seleccionada.
+- Desactivacion de organizacion.
+- Features por organizacion.
+- Miembros de la organizacion seleccionada.
+- Skeletons, busqueda, paginacion y selector de cantidad.
+
 ## Grillas
 
 El dashboard tiene un componente reutilizable `Table` dentro de `AdminPreviewPage.tsx`.
@@ -394,6 +442,13 @@ Autenticacion:
 - `POST /auth/login`
 - `POST /auth/select-organization`
 - `GET /auth/me`
+- `GET /organizations`
+- `POST /organizations`
+- `PATCH /organizations/:id`
+- `DELETE /organizations/:id`
+- `GET /organizations/:id/members`
+- `GET /organizations/:id/features`
+- `PUT /organizations/:id/features`
 
 Dashboard/admin:
 

@@ -1,6 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { ArrowLeft, Building2, LogIn } from 'lucide-react';
-import { login, LoginResponse, selectOrganization } from '../../services/authService';
+import { isSuperAdminRole, login, LoginResponse, selectOrganization } from '../../services/authService';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
@@ -8,6 +8,10 @@ export function LoginPage() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [selection, setSelection] = useState<LoginResponse | null>(null);
+
+  function redirectByRole(role?: string) {
+    window.location.assign(isSuperAdminRole(role) ? '/super-admin' : '/admin');
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -25,7 +29,7 @@ export function LoginPage() {
 
       if (token) {
         localStorage.setItem('gestionar_token', token);
-        window.location.assign('/admin');
+        redirectByRole(response.data?.user?.role);
         return;
       }
 
@@ -47,7 +51,7 @@ export function LoginPage() {
       const token = response.token || response.data?.token;
       if (token) {
         localStorage.setItem('gestionar_token', token);
-        window.location.assign('/admin');
+        redirectByRole(response.data?.user?.role);
         return;
       }
       setMessage('No pudimos seleccionar la organizacion.');

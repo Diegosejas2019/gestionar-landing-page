@@ -37,3 +37,7 @@ export function selectOrganization(membershipId: string, selectionToken: string)
     body: JSON.stringify({ membershipId })
   });
 }
+
+export function isSuperAdminRole(role?: string) {
+  return role === 'super_admin' || role === 'superadmin';
+}

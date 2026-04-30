@@ -4,6 +4,7 @@ import {
   LogOut, Megaphone, MessageSquare, RefreshCw, Settings, ShieldCheck, Users, Vote
 } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
+import { isSuperAdminRole } from '../../services/authService';
 
 type TabKey = 'inicio' | 'finanzas' | 'comunidad' | 'operaciones' | 'proveedores' | 'soporte' | 'config';
 type Notice = { type: 'ok' | 'error'; text: string } | null;
@@ -147,6 +148,7 @@ function uniqueOptions(rows: any[], getValue: (row: any) => string | undefined) 
 export function AdminPreviewPage() {
   const [tab, setTab] = useState<TabKey>('inicio');
   const [loading, setLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
   const [busy, setBusy] = useState('');
   const [notice, setNotice] = useState<Notice>(null);
   const [month, setMonth] = useState(todayMonth());
@@ -255,12 +257,26 @@ export function AdminPreviewPage() {
       window.location.assign('/login');
       return;
     }
-    refresh('inicio');
+    adminApi.me()
+      .then((response) => {
+        const user = response?.data?.user;
+        if (isSuperAdminRole(user?.role)) {
+          window.location.assign('/super-admin');
+          return;
+        }
+        setState((current: any) => ({ ...current, me: user, membership: response?.data?.membership }));
+        setAuthChecked(true);
+      })
+      .catch(() => {
+        localStorage.removeItem('gestionar_token');
+        window.location.assign('/login');
+      });
   }, []);
 
   useEffect(() => {
+    if (!authChecked) return;
     refresh(tab);
-  }, [tab, month, year]);
+  }, [authChecked, tab, month, year]);
 
   async function run(label: string, action: () => Promise<unknown>, success = 'Cambios guardados.') {
     setBusy(label);
