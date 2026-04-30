@@ -164,6 +164,15 @@ function sortPayments(rows: any[] = []) {
   });
 }
 
+function sortExpenses(rows: any[] = []) {
+  const priority: Record<string, number> = { pending: 0, unpaid: 1, paid: 2 };
+  return [...rows].sort((a, b) => {
+    const statusDiff = (priority[a?.status] ?? 9) - (priority[b?.status] ?? 9);
+    if (statusDiff !== 0) return statusDiff;
+    return new Date(b?.createdAt || b?.date || 0).getTime() - new Date(a?.createdAt || a?.date || 0).getTime();
+  });
+}
+
 function orgIdFromSession(me: any, config: any) {
   const membershipOrg = me?.data?.membership?.organization;
   const userOrg = me?.data?.user?.organization;
@@ -252,7 +261,7 @@ export function AdminPreviewPage() {
           adminApi.expenses.list({ limit: 50, month })
         ]);
         next.payments = sortPayments(pick(allPayments, 'payments', []));
-        next.expenses = pick(expenses, 'expenses', []);
+        next.expenses = sortExpenses(pick(expenses, 'expenses', []));
       }
 
       if (target === 'operaciones') {
@@ -533,10 +542,10 @@ export function AdminPreviewPage() {
                 ['Categoria', (e: any) => e.category],
                 ['Monto', (e: any) => money(e.amount)],
                 ['Estado', (e: any) => <Status value={e.status} />],
-                ['Acciones', (e: any) => <Actions>
+                ['Acciones', (e: any) => e.status === 'pending' ? <Actions>
                   <button onClick={() => run(idOf(e), () => adminApi.expenses.paid(idOf(e)), 'Gasto marcado como pagado.')}>Pagar</button>
                   <button onClick={() => run(idOf(e), () => adminApi.expenses.delete(idOf(e)), 'Gasto eliminado.')}>Eliminar</button>
-                </Actions>]
+                </Actions> : null]
               ]} />
             </Panel>
           </div>
