@@ -7,6 +7,13 @@ import { adminApi } from '../../services/adminService';
 
 type TabKey = 'inicio' | 'finanzas' | 'comunidad' | 'operaciones' | 'proveedores' | 'soporte' | 'config';
 type Notice = { type: 'ok' | 'error'; text: string } | null;
+type GridFilter = {
+  key: string;
+  label: string;
+  allLabel?: string;
+  options: Array<{ value: string; label: string }>;
+  match: (row: any, value: string) => boolean;
+};
 
 const todayMonth = () => new Date().toISOString().slice(0, 7);
 const money = (value: unknown) => `$ ${Number(value || 0).toLocaleString('es-AR')}`;
@@ -69,6 +76,72 @@ function Empty({ text = 'Sin datos para mostrar.' }: { text?: string }) {
 
 function Status({ value }: { value?: string }) {
   return <span className={`status-pill ${value || 'idle'}`}>{statusText[value || ''] || value || '-'}</span>;
+}
+
+function statusFilter(statuses: string[]): GridFilter {
+  return {
+    key: 'status',
+    label: 'Estado',
+    allLabel: 'Todos',
+    options: statuses.map((value) => ({ value, label: statusText[value] || value })),
+    match: (row, value) => row.status === value
+  };
+}
+
+function categoryFilter(): GridFilter {
+  const labels: Record<string, string> = {
+    cleaning: 'Limpieza',
+    security: 'Seguridad',
+    maintenance: 'Mantenimiento',
+    utilities: 'Servicios',
+    administration: 'Administracion',
+    other: 'Otros'
+  };
+  return {
+    key: 'category',
+    label: 'Categoria',
+    allLabel: 'Todas',
+    options: Object.entries(labels).map(([value, label]) => ({ value, label })),
+    match: (row, value) => row.category === value
+  };
+}
+
+function tagFilter(tags: string[]): GridFilter {
+  const labels: Record<string, string> = { info: 'Info', warning: 'Advertencia', urgent: 'Urgente' };
+  return {
+    key: 'tag',
+    label: 'Tipo',
+    allLabel: 'Todos',
+    options: tags.map((value) => ({ value, label: labels[value] || value })),
+    match: (row, value) => row.tag === value
+  };
+}
+
+function monthFilter(getValue: (row: any) => string): GridFilter {
+  return {
+    key: 'month',
+    label: 'Periodo',
+    allLabel: 'Todos',
+    options: [{ value: todayMonth(), label: 'Mes actual' }],
+    match: (row, value) => getValue(row) === value
+  };
+}
+
+function dateFilter(getValue: (row: any) => string): GridFilter {
+  const today = new Date().toISOString().slice(0, 10);
+  return {
+    key: 'date',
+    label: 'Fecha',
+    allLabel: 'Todas',
+    options: [{ value: today, label: 'Hoy' }],
+    match: (row, value) => getValue(row) === value
+  };
+}
+
+function uniqueOptions(rows: any[], getValue: (row: any) => string | undefined) {
+  return Array.from(new Set((rows || []).map(getValue).filter(Boolean)))
+    .sort()
+    .map((value) => ({ value: String(value), label: String(value) }));
 }
 
 export function AdminPreviewPage() {
@@ -319,8 +392,6 @@ export function AdminPreviewPage() {
         </header>
 
         {notice && <div className={`admin-notice ${notice.type}`}>{notice.text}</div>}
-        {loading && <div className="admin-loading">Cargando datos...</div>}
-
         {tab === 'inicio' && (
           <>
             <section className="admin-hero">
@@ -332,18 +403,18 @@ export function AdminPreviewPage() {
             </section>
 
             <div className="metric-grid">
-              <Metric label="Recaudacion anual" value={money(totalIncome)} hint={`${state.dashboard?.approved || 0} pagos aprobados`} icon={ShieldCheck} />
-              <Metric label="Pagos pendientes" value={state.dashboard?.pending || 0} hint="Requieren revision" icon={CreditCard} />
-              <Metric label="Propietarios" value={state.ownerStats?.totalOwners || state.owners?.length || 0} hint={`${state.ownerStats?.upToDate || 0} al dia`} icon={Users} />
-              <Metric label="Reclamos abiertos" value={state.claims?.length || 0} hint="Comunidad" icon={MessageSquare} />
+              <Metric loading={loading} label="Recaudacion anual" value={money(totalIncome)} hint={`${state.dashboard?.approved || 0} pagos aprobados`} icon={ShieldCheck} />
+              <Metric loading={loading} label="Pagos pendientes" value={state.dashboard?.pending || 0} hint="Requieren revision" icon={CreditCard} />
+              <Metric loading={loading} label="Propietarios" value={state.ownerStats?.totalOwners || state.owners?.length || 0} hint={`${state.ownerStats?.upToDate || 0} al dia`} icon={Users} />
+              <Metric loading={loading} label="Reclamos abiertos" value={state.claims?.length || 0} hint="Comunidad" icon={MessageSquare} />
             </div>
 
             <div className="admin-grid two">
               <Panel title="Recaudacion mensual" icon={FileText}>
-                <MiniChart rows={state.dashboard?.monthly || []} />
+                <MiniChart loading={loading} rows={state.dashboard?.monthly || []} />
               </Panel>
               <Panel title="Pendientes criticos" icon={Bell}>
-                <CompactList rows={[...state.payments, ...state.claims].slice(0, 7)} />
+                <CompactList loading={loading} rows={[...state.payments, ...state.claims].slice(0, 7)} />
               </Panel>
             </div>
           </>
@@ -353,15 +424,18 @@ export function AdminPreviewPage() {
           <div className="admin-grid">
             <Panel title="Indicadores" icon={CreditCard} action={<YearMonth year={year} setYear={setYear} month={month} setMonth={setMonth} />}>
               <div className="metric-grid compact">
-                <Metric label="Ingresos" value={money(state.report?.income?.total)} hint={month} icon={CreditCard} />
-                <Metric label="Egresos" value={money(state.report?.expenses?.total)} hint="Pagados" icon={FileText} />
-                <Metric label="Saldo" value={money(state.report?.balance)} hint="Mensual acumulado" icon={Landmark} />
+                <Metric loading={loading} label="Ingresos" value={money(state.report?.income?.total)} hint={month} icon={CreditCard} />
+                <Metric loading={loading} label="Egresos" value={money(state.report?.expenses?.total)} hint="Pagados" icon={FileText} />
+                <Metric loading={loading} label="Saldo" value={money(state.report?.balance)} hint="Mensual acumulado" icon={Landmark} />
               </div>
               <button className="btn btn-primary" onClick={downloadReport} disabled={busy === 'pdf'}><FileText size={17} /> Descargar expensas PDF</button>
             </Panel>
 
             <Panel title="Pagos" icon={CreditCard} action={<button className="btn btn-ghost" onClick={() => run('reminders', adminApi.payments.reminders, 'Recordatorios enviados.')}>Enviar recordatorios</button>}>
-              <Table rows={state.payments} columns={[
+              <Table loading={loading} searchPlaceholder="Buscar propietario, unidad o periodo" filters={[
+                statusFilter(['pending', 'approved', 'rejected']),
+                monthFilter((p) => p.month || String(p.createdAt || '').slice(0, 7))
+              ]} rows={state.payments} columns={[
                 ['Propietario', (p: any) => person(p)],
                 ['Unidad', (p: any) => unitLabel(p)],
                 ['Periodo', (p: any) => p.month || dateLabel(p.createdAt)],
@@ -387,7 +461,10 @@ export function AdminPreviewPage() {
             </Panel>
 
             <Panel title="Gastos" icon={FileText}>
-              <Table rows={state.expenses} columns={[
+              <Table loading={loading} searchPlaceholder="Buscar descripcion, categoria o proveedor" filters={[
+                statusFilter(['paid', 'unpaid', 'pending']),
+                categoryFilter()
+              ]} rows={state.expenses} columns={[
                 ['Descripcion', (e: any) => e.description],
                 ['Categoria', (e: any) => e.category],
                 ['Monto', (e: any) => money(e.amount)],
@@ -414,7 +491,15 @@ export function AdminPreviewPage() {
               </form>
             </Panel>
             <Panel title="Propietarios" icon={Users}>
-              <Table rows={state.owners} columns={[
+              <Table loading={loading} searchPlaceholder="Buscar nombre, email o unidad" filters={[
+                {
+                  key: 'debt',
+                  label: 'Deuda',
+                  allLabel: 'Todos',
+                  options: [{ value: 'debtor', label: 'Con deuda' }, { value: 'clear', label: 'Al dia' }],
+                  match: (row, value) => value === 'debtor' ? !!row.isDebtor || Number(row.balance || 0) > 0 : !row.isDebtor && Number(row.balance || 0) <= 0
+                }
+              ]} rows={state.owners} columns={[
                 ['Nombre', (o: any) => o.name],
                 ['Email', (o: any) => o.email],
                 ['Unidades', (o: any) => unitLabel(o)],
@@ -431,7 +516,9 @@ export function AdminPreviewPage() {
               </form>
             </Panel>
             <Panel title="Comunicados" icon={Bell}>
-              <Table rows={state.notices} columns={[
+              <Table loading={loading} searchPlaceholder="Buscar comunicado" filters={[
+                tagFilter(['info', 'warning', 'urgent'])
+              ]} rows={state.notices} columns={[
                 ['Titulo', (n: any) => n.title],
                 ['Tipo', (n: any) => n.tag],
                 ['Fecha', (n: any) => dateLabel(n.createdAt)],
@@ -439,7 +526,9 @@ export function AdminPreviewPage() {
               ]} />
             </Panel>
             <Panel title="Reclamos" icon={MessageSquare}>
-              <Table rows={state.claims} columns={[
+              <Table loading={loading} searchPlaceholder="Buscar reclamo o propietario" filters={[
+                statusFilter(['open', 'in_progress', 'resolved'])
+              ]} rows={state.claims} columns={[
                 ['Titulo', (c: any) => c.title],
                 ['Propietario', (c: any) => person(c)],
                 ['Estado', (c: any) => <Status value={c.status} />],
@@ -464,7 +553,9 @@ export function AdminPreviewPage() {
               </form>
             </Panel>
             <Panel title="Votaciones" icon={Vote}>
-              <Table rows={state.votes} columns={[
+              <Table loading={loading} searchPlaceholder="Buscar votacion" filters={[
+                statusFilter(['open', 'closed'])
+              ]} rows={state.votes} columns={[
                 ['Titulo', (v: any) => v.title],
                 ['Estado', (v: any) => <Status value={v.status} />],
                 ['Cierre', (v: any) => dateLabel(v.endsAt)],
@@ -484,7 +575,15 @@ export function AdminPreviewPage() {
               </form>
             </Panel>
             <Panel title="Espacios" icon={Building2}>
-              <Table rows={state.spaces} columns={[
+              <Table loading={loading} searchPlaceholder="Buscar espacio" filters={[
+                {
+                  key: 'approval',
+                  label: 'Aprobacion',
+                  allLabel: 'Todos',
+                  options: [{ value: 'yes', label: 'Requiere' }, { value: 'no', label: 'Automatica' }],
+                  match: (row, value) => value === 'yes' ? !!row.requiresApproval : !row.requiresApproval
+                }
+              ]} rows={state.spaces} columns={[
                 ['Nombre', (s: any) => s.name],
                 ['Capacidad', (s: any) => s.capacity || '-'],
                 ['Aprobacion', (s: any) => s.requiresApproval ? 'Si' : 'No'],
@@ -492,7 +591,10 @@ export function AdminPreviewPage() {
               ]} />
             </Panel>
             <Panel title="Reservas" icon={CalendarCheck}>
-              <Table rows={state.reservations} columns={[
+              <Table loading={loading} searchPlaceholder="Buscar reserva, espacio o propietario" filters={[
+                statusFilter(['pending', 'approved', 'rejected', 'cancelled']),
+                dateFilter((r) => r.date)
+              ]} rows={state.reservations} columns={[
                 ['Espacio', (r: any) => r.space?.name],
                 ['Propietario', (r: any) => person(r)],
                 ['Fecha', (r: any) => `${r.date || '-'} ${r.startTime || ''}`],
@@ -504,7 +606,10 @@ export function AdminPreviewPage() {
               ]} />
             </Panel>
             <Panel title="Visitas" icon={ShieldCheck}>
-              <Table rows={state.visits} columns={[
+              <Table loading={loading} searchPlaceholder="Buscar visitante o propietario" filters={[
+                statusFilter(['pending', 'approved', 'rejected', 'inside', 'exited']),
+                dateFilter((v) => String(v.expectedDate || '').slice(0, 10))
+              ]} rows={state.visits} columns={[
                 ['Visitante', (v: any) => v.visitorName || v.name],
                 ['Propietario', (v: any) => person(v)],
                 ['Fecha', (v: any) => dateLabel(v.expectedDate)],
@@ -533,7 +638,15 @@ export function AdminPreviewPage() {
               </form>
             </Panel>
             <Panel title="Proveedores" icon={Landmark}>
-              <Table rows={state.providers} columns={[
+              <Table loading={loading} searchPlaceholder="Buscar proveedor, servicio o contacto" filters={[
+                {
+                  key: 'service',
+                  label: 'Servicio',
+                  allLabel: 'Todos',
+                  options: uniqueOptions(state.providers, (p: any) => p.serviceType),
+                  match: (row, value) => row.serviceType === value
+                }
+              ]} rows={state.providers} columns={[
                 ['Nombre', (p: any) => p.name],
                 ['Servicio', (p: any) => p.serviceType],
                 ['Contacto', (p: any) => p.phone || p.email || '-'],
@@ -545,7 +658,16 @@ export function AdminPreviewPage() {
 
         {tab === 'soporte' && (
           <Panel title="Tickets de soporte" icon={LifeBuoy}>
-            <Table rows={state.support} columns={[
+            <Table loading={loading} searchPlaceholder="Buscar ticket, tipo o prioridad" filters={[
+              statusFilter(['open', 'in_progress', 'resolved', 'closed']),
+              {
+                key: 'priority',
+                label: 'Prioridad',
+                allLabel: 'Todas',
+                options: uniqueOptions(state.support, (t: any) => t.priority),
+                match: (row, value) => row.priority === value
+              }
+            ]} rows={state.support} columns={[
               ['Titulo', (t: any) => t.title],
               ['Tipo', (t: any) => t.type],
               ['Prioridad', (t: any) => t.priority],
@@ -589,7 +711,15 @@ export function AdminPreviewPage() {
               </form>
             </Panel>
             <Panel title="Unidades" icon={Building2}>
-              <Table rows={state.units} columns={[
+              <Table loading={loading} searchPlaceholder="Buscar unidad o propietario" filters={[
+                {
+                  key: 'assigned',
+                  label: 'Asignacion',
+                  allLabel: 'Todas',
+                  options: [{ value: 'yes', label: 'Asignadas' }, { value: 'no', label: 'Sin asignar' }],
+                  match: (row, value) => value === 'yes' ? !!row.owner : !row.owner
+                }
+              ]} rows={state.units} columns={[
                 ['Nombre', (u: any) => u.name],
                 ['Propietario', (u: any) => u.owner?.name || '-'],
                 ['Coef.', (u: any) => u.coefficient || '-'],
@@ -604,7 +734,18 @@ export function AdminPreviewPage() {
   );
 }
 
-function Metric({ label, value, hint, icon: Icon }: { label: string; value: string | number; hint: string; icon: any }) {
+function Metric({ label, value, hint, icon: Icon, loading }: { label: string; value: string | number; hint: string; icon: any; loading?: boolean }) {
+  if (loading) {
+    return (
+      <article className="metric-card">
+        <div className="metric-icon skeleton-box" />
+        <span className="skeleton-line short" />
+        <span className="skeleton-line big" />
+        <span className="skeleton-line" />
+      </article>
+    );
+  }
+
   return (
     <article className="metric-card">
       <div className="metric-icon"><Icon size={18} /></div>
@@ -631,25 +772,125 @@ function Actions({ children }: { children: ReactNode }) {
   return <div className="row-actions">{children}</div>;
 }
 
-function Table({ rows, columns }: { rows: any[]; columns: Array<[string, (row: any) => ReactNode]> }) {
-  if (!rows?.length) return <Empty />;
+function Table({
+  rows,
+  columns,
+  loading = false,
+  filters = [],
+  searchPlaceholder = 'Buscar'
+}: {
+  rows: any[];
+  columns: Array<[string, (row: any) => ReactNode]>;
+  loading?: boolean;
+  filters?: GridFilter[];
+  searchPlaceholder?: string;
+}) {
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, pageSize, filterValues, rows]);
+
+  const filteredRows = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    return (rows || []).filter((row) => {
+      const matchesSearch = !normalized || JSON.stringify(row).toLowerCase().includes(normalized);
+      const matchesFilters = filters.every((filter) => {
+        const value = filterValues[filter.key];
+        return !value || filter.match(row, value);
+      });
+      return matchesSearch && matchesFilters;
+    });
+  }, [rows, query, filterValues, filters]);
+
+  const pages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  const safePage = Math.min(page, pages);
+  const visibleRows = filteredRows.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  if (loading) return <TableSkeleton columns={columns.length} />;
+
   return (
-    <div className="admin-table-wrap">
-      <table className="admin-table">
-        <thead><tr>{columns.map(([label]) => <th key={label}>{label}</th>)}</tr></thead>
-        <tbody>
-          {rows.map((row, index) => (
-            <tr key={idOf(row) || index}>
-              {columns.map(([label, render]) => <td key={label}>{render(row)}</td>)}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <>
+      <div className="grid-toolbar">
+        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={searchPlaceholder} />
+        {filters.map((filter) => (
+          <select
+            key={filter.key}
+            value={filterValues[filter.key] || ''}
+            onChange={(event) => setFilterValues((current) => ({ ...current, [filter.key]: event.target.value }))}
+          >
+            <option value="">{filter.allLabel || filter.label}</option>
+            {filter.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        ))}
+      </div>
+
+      {!filteredRows.length ? <Empty text="No hay registros con esos filtros." /> : (
+        <>
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead><tr>{columns.map(([label]) => <th key={label}>{label}</th>)}</tr></thead>
+              <tbody>
+                {visibleRows.map((row, index) => (
+                  <tr key={idOf(row) || index}>
+                    {columns.map(([label, render]) => <td key={label}>{render(row)}</td>)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="grid-footer">
+            <span>{filteredRows.length} registro{filteredRows.length !== 1 ? 's' : ''}</span>
+            <label>
+              Ver
+              <select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))}>
+                {[5, 10, 20, 50].map((size) => <option key={size} value={size}>{size}</option>)}
+              </select>
+            </label>
+            <div className="pager">
+              <button onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={safePage <= 1}>Anterior</button>
+              <span>{safePage} / {pages}</span>
+              <button onClick={() => setPage((current) => Math.min(pages, current + 1))} disabled={safePage >= pages}>Siguiente</button>
+            </div>
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+function TableSkeleton({ columns }: { columns: number }) {
+  return (
+    <div className="table-skeleton">
+      <div className="grid-toolbar skeleton-toolbar"><span /><span /><span /></div>
+      {Array.from({ length: 6 }).map((_, row) => (
+        <div className="skeleton-row" key={row}>
+          {Array.from({ length: Math.max(3, Math.min(columns, 6)) }).map((__, col) => <span key={col} />)}
+        </div>
+      ))}
     </div>
   );
 }
 
-function CompactList({ rows }: { rows: any[] }) {
+function CompactList({ rows, loading = false }: { rows: any[]; loading?: boolean }) {
+  if (loading) {
+    return (
+      <div className="compact-list">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <div key={index} className="compact-skeleton">
+            <span className="skeleton-line" />
+            <span className="skeleton-line short" />
+            <span className="skeleton-pill" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   if (!rows?.length) return <Empty text="No hay pendientes abiertos." />;
   return (
     <div className="compact-list">
@@ -664,7 +905,17 @@ function CompactList({ rows }: { rows: any[] }) {
   );
 }
 
-function MiniChart({ rows }: { rows: any[] }) {
+function MiniChart({ rows, loading = false }: { rows: any[]; loading?: boolean }) {
+  if (loading) {
+    return (
+      <div className="mini-chart skeleton-chart">
+        {Array.from({ length: 12 }).map((_, index) => (
+          <div key={index}><span style={{ height: `${20 + ((index * 17) % 70)}%` }} /><small /></div>
+        ))}
+      </div>
+    );
+  }
+
   if (!rows?.length) return <Empty text="Todavia no hay recaudacion registrada este ano." />;
   const max = Math.max(...rows.map((item) => Number(item.total || 0)), 1);
   return (
