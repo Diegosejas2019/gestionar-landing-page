@@ -155,6 +155,15 @@ function uniqueOptions(rows: any[], getValue: (row: any) => string | undefined) 
     .map((value) => ({ value: String(value), label: String(value) }));
 }
 
+function sortPayments(rows: any[] = []) {
+  const priority: Record<string, number> = { pending: 0, approved: 1, rejected: 2 };
+  return [...rows].sort((a, b) => {
+    const statusDiff = (priority[a?.status] ?? 9) - (priority[b?.status] ?? 9);
+    if (statusDiff !== 0) return statusDiff;
+    return new Date(b?.createdAt || 0).getTime() - new Date(a?.createdAt || 0).getTime();
+  });
+}
+
 function orgIdFromSession(me: any, config: any) {
   const membershipOrg = me?.data?.membership?.organization;
   const userOrg = me?.data?.user?.organization;
@@ -220,7 +229,7 @@ export function AdminPreviewPage() {
         features,
         ownerStats: ownerStats?.data || {},
         dashboard: dashboard?.data || {},
-        payments: pick(payments, 'payments', []),
+        payments: sortPayments(pick(payments, 'payments', [])),
         claims: isEnabled('claims') ? pick(claims, 'claims', []) : [],
         notices: isEnabled('notices') ? pick(notices, 'notices', []) : [],
         report: report?.data || {}
@@ -242,7 +251,7 @@ export function AdminPreviewPage() {
           adminApi.payments.list({ limit: 50 }),
           adminApi.expenses.list({ limit: 50, month })
         ]);
-        next.payments = pick(allPayments, 'payments', []);
+        next.payments = sortPayments(pick(allPayments, 'payments', []));
         next.expenses = pick(expenses, 'expenses', []);
       }
 
@@ -496,10 +505,10 @@ export function AdminPreviewPage() {
                 ['Periodo', (p: any) => p.month || dateLabel(p.createdAt)],
                 ['Monto', (p: any) => money(p.amount)],
                 ['Estado', (p: any) => <Status value={p.status} />],
-                ['Acciones', (p: any) => <Actions>
+                ['Acciones', (p: any) => p.status === 'pending' ? <Actions>
                   <button onClick={() => run(idOf(p), () => adminApi.payments.approve(idOf(p)), 'Pago aprobado.')}>Aprobar</button>
                   <button onClick={() => run(idOf(p), () => adminApi.payments.reject(idOf(p), window.prompt('Motivo de rechazo') || 'Rechazado'), 'Pago rechazado.')}>Rechazar</button>
-                </Actions>]
+                </Actions> : null]
               ]} />
             </Panel>
 
