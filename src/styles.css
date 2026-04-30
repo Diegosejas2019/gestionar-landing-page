@@ -2087,17 +2087,21 @@ footer {
   .login-panel {
     padding: 54px 34px 34px;
   }
-  .admin-shell { grid-template-columns: 1fr; }
+  .admin-shell { grid-template-columns: minmax(0, 1fr); }
   .admin-sidebar {
-    position: static;
+    position: sticky;
+    top: 0;
+    z-index: 30;
     height: auto;
     border-right: 0;
     border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(14px);
   }
   .admin-sidebar nav {
     display: flex;
     overflow-x: auto;
     padding-bottom: 4px;
+    scrollbar-width: thin;
   }
   .admin-sidebar button {
     width: auto;
@@ -2112,11 +2116,65 @@ footer {
 }
 
 @media (max-width: 720px) {
-  .admin-workspace { padding: 18px; }
+  .admin-sidebar {
+    padding: 12px 12px 10px;
+  }
+  .admin-logo {
+    margin: 0 4px 12px;
+    font-size: 18px;
+  }
+  .admin-sidebar nav {
+    gap: 8px;
+    margin: 0 -12px;
+    padding: 0 12px 4px;
+  }
+  .admin-sidebar button {
+    flex: 0 0 auto;
+    min-height: 42px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.025);
+  }
+  .admin-workspace {
+    padding: 14px;
+    overflow-x: hidden;
+  }
   .admin-topbar,
   .admin-hero {
     align-items: stretch;
     flex-direction: column;
+  }
+  .admin-topbar {
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .admin-topbar h1 {
+    font-size: 28px;
+  }
+  .admin-actions {
+    width: 100%;
+  }
+  .admin-actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+  .icon-btn {
+    flex: 0 0 42px;
+  }
+  .admin-busy,
+  .admin-notice {
+    width: 100%;
+  }
+  .admin-hero {
+    padding: 18px;
+    border-radius: 16px;
+  }
+  .admin-hero h2 {
+    font-size: 28px;
+  }
+  .admin-hero .btn {
+    width: 100%;
+    justify-content: center;
   }
   .metric-grid,
   .metric-grid.compact,
@@ -2125,7 +2183,94 @@ footer {
   .admin-form {
     grid-template-columns: 1fr;
   }
-  .admin-table { min-width: 560px; }
+  .metric-grid {
+    gap: 10px;
+  }
+  .metric-card,
+  .admin-panel {
+    border-radius: 14px;
+    padding: 14px;
+  }
+  .panel-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .panel-head .btn,
+  .panel-head button {
+    width: 100%;
+    justify-content: center;
+  }
+  .grid-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .grid-toolbar input,
+  .grid-toolbar select {
+    min-width: 0;
+    width: 100%;
+  }
+  .admin-table-wrap {
+    margin: 0 -4px;
+    padding-bottom: 6px;
+  }
+  .admin-table {
+    min-width: 620px;
+  }
+  .admin-table th,
+  .admin-table td {
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+  .row-actions {
+    min-width: 132px;
+  }
+  .row-actions button {
+    flex: 1 1 58px;
+    padding: 8px;
+  }
+  .grid-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .grid-footer label,
+  .pager {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .pager button {
+    flex: 1;
+  }
+  .period-controls {
+    display: grid;
+    grid-template-columns: 42px 1fr 42px;
+    width: 100%;
+  }
+  .period-controls input,
+  .period-controls input[type="month"] {
+    width: 100%;
+  }
+  .period-controls input[type="month"] {
+    grid-column: 1 / -1;
+  }
+  .mini-chart {
+    grid-template-columns: repeat(12, minmax(54px, 1fr));
+    overflow-x: auto;
+    min-height: 250px;
+    padding-bottom: 6px;
+  }
+  .mini-chart .chart-value {
+    max-height: 58px;
+  }
+  .confirm-modal {
+    padding: 18px;
+  }
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+  .modal-actions .btn,
+  .modal-actions button {
+    width: 100%;
+  }
   .auth-page {
     grid-template-columns: 1fr;
     min-height: 100svh;
