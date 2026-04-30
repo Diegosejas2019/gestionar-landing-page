@@ -115,6 +115,10 @@ export const adminApi = {
   config: {
     get: () => apiClient<any>('/config', { auth: true }),
     update: (data: Payload) => apiClient<any>('/config', { method: 'PATCH', auth: true, body: body(data) })
+  },
+
+  organizations: {
+    features: (id: string) => apiClient<any>(`/organizations/${id}/features`, { auth: true })
   }
 };
 

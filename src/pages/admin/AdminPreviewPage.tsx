@@ -8,6 +8,7 @@ import { isSuperAdminRole } from '../../services/authService';
 
 type TabKey = 'inicio' | 'finanzas' | 'comunidad' | 'operaciones' | 'proveedores' | 'soporte' | 'config';
 type Notice = { type: 'ok' | 'error'; text: string } | null;
+type FeatureKey = 'visits' | 'reservations' | 'votes' | 'claims' | 'notices' | 'expenses' | 'providers';
 type GridFilter = {
   key: string;
   label: string;
@@ -33,6 +34,16 @@ const nav = [
   { key: 'soporte', label: 'Soporte', icon: LifeBuoy },
   { key: 'config', label: 'Configuracion', icon: Settings }
 ] as const;
+
+const defaultFeatures: Record<FeatureKey, boolean> = {
+  visits: false,
+  reservations: false,
+  votes: true,
+  claims: true,
+  notices: true,
+  expenses: true,
+  providers: true
+};
 
 const statusText: Record<string, string> = {
   pending: 'Pendiente',
@@ -145,6 +156,15 @@ function uniqueOptions(rows: any[], getValue: (row: any) => string | undefined) 
     .map((value) => ({ value: String(value), label: String(value) }));
 }
 
+function orgIdFromSession(me: any, config: any) {
+  const membershipOrg = me?.data?.membership?.organization;
+  const userOrg = me?.data?.user?.organization;
+  return config?.orgId
+    || (typeof membershipOrg === 'string' ? membershipOrg : membershipOrg?._id)
+    || (typeof userOrg === 'string' ? userOrg : userOrg?._id)
+    || '';
+}
+
 export function AdminPreviewPage() {
   const [tab, setTab] = useState<TabKey>('inicio');
   const [loading, setLoading] = useState(true);
@@ -156,7 +176,16 @@ export function AdminPreviewPage() {
   const [state, setState] = useState<any>({
     me: null, config: {}, ownerStats: {}, dashboard: {}, report: {},
     owners: [], units: [], payments: [], notices: [], claims: [], expenses: [],
-    providers: [], votes: [], visits: [], spaces: [], reservations: [], support: []
+    providers: [], votes: [], visits: [], spaces: [], reservations: [], support: [],
+    features: defaultFeatures
+  });
+
+  const moduleEnabled = (key: FeatureKey) => state.features?.[key] ?? defaultFeatures[key];
+  const hasOperations = moduleEnabled('votes') || moduleEnabled('reservations') || moduleEnabled('visits');
+  const visibleNav = nav.filter((item) => {
+    if (item.key === 'operaciones') return hasOperations;
+    if (item.key === 'proveedores') return moduleEnabled('providers');
+    return true;
   });
 
   const totalIncome = useMemo(
@@ -167,39 +196,46 @@ export function AdminPreviewPage() {
   async function refresh(target: TabKey = tab) {
     setLoading(true);
     try {
-      const baseCalls = [
+      const [me, config] = await Promise.all([
         adminApi.me(),
-        adminApi.config.get(),
+        adminApi.config.get()
+      ]);
+      const configData = pick(config, 'config', {});
+      const orgId = orgIdFromSession(me, configData);
+      const featuresRes = orgId ? await adminApi.organizations.features(orgId) : null;
+      const features = { ...defaultFeatures, ...pick<Record<string, boolean>>(featuresRes, 'features', {}) };
+      const isEnabled = (key: FeatureKey) => features[key] ?? defaultFeatures[key];
+
+      const [ownerStats, dashboard, payments, report, claims, notices] = await Promise.all([
         adminApi.owners.stats(),
         adminApi.payments.dashboard(year),
         adminApi.payments.list({ limit: 8, status: 'pending' }),
-        adminApi.claims.list({ limit: 8, status: 'open' }),
-        adminApi.notices.list({ limit: 5 }),
-        adminApi.reports.monthly(month)
-      ];
-
-      const [me, config, ownerStats, dashboard, payments, claims, notices, report] = await Promise.all(baseCalls);
+        adminApi.reports.monthly(month),
+        isEnabled('claims') ? adminApi.claims.list({ limit: 8, status: 'open' }) : Promise.resolve(null),
+        isEnabled('notices') ? adminApi.notices.list({ limit: 5 }) : Promise.resolve(null)
+      ]);
       const next: any = {
         me: me?.data?.user,
         membership: me?.data?.membership,
-        config: pick(config, 'config', {}),
+        config: configData,
+        features,
         ownerStats: ownerStats?.data || {},
         dashboard: dashboard?.data || {},
         payments: pick(payments, 'payments', []),
-        claims: pick(claims, 'claims', []),
-        notices: pick(notices, 'notices', []),
+        claims: isEnabled('claims') ? pick(claims, 'claims', []) : [],
+        notices: isEnabled('notices') ? pick(notices, 'notices', []) : [],
         report: report?.data || {}
       };
 
       if (target === 'comunidad' || target === 'inicio') {
         const [owners, allClaims, allNotices] = await Promise.all([
           adminApi.owners.list({ limit: 50 }),
-          adminApi.claims.list({ limit: 50 }),
-          adminApi.notices.list({ limit: 50 })
+          isEnabled('claims') ? adminApi.claims.list({ limit: 50 }) : Promise.resolve(null),
+          isEnabled('notices') ? adminApi.notices.list({ limit: 50 }) : Promise.resolve(null)
         ]);
         next.owners = pick(owners, 'owners', []);
-        next.claims = pick(allClaims, 'claims', next.claims);
-        next.notices = pick(allNotices, 'notices', next.notices);
+        next.claims = isEnabled('claims') ? pick(allClaims, 'claims', next.claims) : [];
+        next.notices = isEnabled('notices') ? pick(allNotices, 'notices', next.notices) : [];
       }
 
       if (target === 'finanzas') {
@@ -213,20 +249,24 @@ export function AdminPreviewPage() {
 
       if (target === 'operaciones') {
         const [votes, visits, spaces, reservations] = await Promise.all([
-          adminApi.votes.list({ limit: 50 }),
-          adminApi.visits.list({ limit: 50 }),
-          adminApi.spaces.list(),
-          adminApi.reservations.list({ limit: 50 })
+          isEnabled('votes') ? adminApi.votes.list({ limit: 50 }) : Promise.resolve(null),
+          isEnabled('visits') ? adminApi.visits.list({ limit: 50 }) : Promise.resolve(null),
+          isEnabled('reservations') ? adminApi.spaces.list() : Promise.resolve(null),
+          isEnabled('reservations') ? adminApi.reservations.list({ limit: 50 }) : Promise.resolve(null)
         ]);
-        next.votes = pick(votes, 'votes', []);
-        next.visits = pick(visits, 'visits', []);
-        next.spaces = pick(spaces, 'spaces', []);
-        next.reservations = pick(reservations, 'reservations', []);
+        next.votes = isEnabled('votes') ? pick(votes, 'votes', []) : [];
+        next.visits = isEnabled('visits') ? pick(visits, 'visits', []) : [];
+        next.spaces = isEnabled('reservations') ? pick(spaces, 'spaces', []) : [];
+        next.reservations = isEnabled('reservations') ? pick(reservations, 'reservations', []) : [];
       }
 
       if (target === 'proveedores') {
-        const providers = await adminApi.providers.list();
-        next.providers = pick(providers, 'providers', []);
+        if (isEnabled('providers')) {
+          const providers = await adminApi.providers.list();
+          next.providers = pick(providers, 'providers', []);
+        } else {
+          next.providers = [];
+        }
       }
 
       if (target === 'soporte') {
@@ -277,6 +317,11 @@ export function AdminPreviewPage() {
     if (!authChecked) return;
     refresh(tab);
   }, [authChecked, tab, month, year]);
+
+  useEffect(() => {
+    if (tab === 'operaciones' && !hasOperations) setTab('inicio');
+    if (tab === 'proveedores' && !moduleEnabled('providers')) setTab('inicio');
+  }, [tab, hasOperations, state.features]);
 
   async function run(label: string, action: () => Promise<unknown>, success = 'Cambios guardados.') {
     setBusy(label);
@@ -387,7 +432,7 @@ export function AdminPreviewPage() {
           <span className="logo-mark" /> Gestion<span className="ar">ar</span>
         </a>
         <nav>
-          {nav.map((item) => (
+          {visibleNav.map((item) => (
             <button key={item.key} className={tab === item.key ? 'active' : ''} onClick={() => setTab(item.key)}>
               <item.icon size={18} /> <span>{item.label}</span>
             </button>
@@ -399,7 +444,7 @@ export function AdminPreviewPage() {
         <header className="admin-topbar">
           <div>
             <span className="admin-kicker">{state.config?.consortiumName || 'Panel web'}</span>
-            <h1>{nav.find((item) => item.key === tab)?.label}</h1>
+            <h1>{visibleNav.find((item) => item.key === tab)?.label || nav.find((item) => item.key === tab)?.label}</h1>
           </div>
           <div className="admin-actions">
             <button className="icon-btn" onClick={() => refresh(tab)} title="Actualizar"><RefreshCw size={18} /></button>
@@ -422,7 +467,7 @@ export function AdminPreviewPage() {
               <Metric loading={loading} label="Recaudacion anual" value={money(totalIncome)} hint={`${state.dashboard?.approved || 0} pagos aprobados`} icon={ShieldCheck} />
               <Metric loading={loading} label="Pagos pendientes" value={state.dashboard?.pending || 0} hint="Requieren revision" icon={CreditCard} />
               <Metric loading={loading} label="Propietarios" value={state.ownerStats?.totalOwners || state.owners?.length || 0} hint={`${state.ownerStats?.upToDate || 0} al dia`} icon={Users} />
-              <Metric loading={loading} label="Reclamos abiertos" value={state.claims?.length || 0} hint="Comunidad" icon={MessageSquare} />
+              {moduleEnabled('claims') && <Metric loading={loading} label="Reclamos abiertos" value={state.claims?.length || 0} hint="Comunidad" icon={MessageSquare} />}
             </div>
 
             <div className="admin-grid two">
@@ -430,7 +475,7 @@ export function AdminPreviewPage() {
                 <MiniChart loading={loading} rows={state.dashboard?.monthly || []} />
               </Panel>
               <Panel title="Pendientes criticos" icon={Bell}>
-                <CompactList loading={loading} rows={[...state.payments, ...state.claims].slice(0, 7)} />
+                <CompactList loading={loading} rows={[...state.payments, ...(moduleEnabled('claims') ? state.claims : [])].slice(0, 7)} />
               </Panel>
             </div>
           </>
@@ -523,15 +568,15 @@ export function AdminPreviewPage() {
                 ['Acciones', (o: any) => <Actions><button onClick={() => run(idOf(o), () => adminApi.owners.delete(idOf(o)), 'Propietario eliminado.')}>Eliminar</button></Actions>]
               ]} />
             </Panel>
-            <Panel title="Nuevo comunicado" icon={Megaphone}>
+            {moduleEnabled('notices') && <Panel title="Nuevo comunicado" icon={Megaphone}>
               <form className="admin-form" onSubmit={submitNotice}>
                 <Field label="Titulo" name="title" required />
                 <SelectField label="Prioridad" name="tag" defaultValue="info"><option value="info">Info</option><option value="warning">Advertencia</option><option value="urgent">Urgente</option></SelectField>
                 <label className="admin-field full"><span>Mensaje</span><textarea name="body" rows={4} required /></label>
                 <button className="btn btn-primary" disabled={busy === 'notice'}>Publicar</button>
               </form>
-            </Panel>
-            <Panel title="Comunicados" icon={Bell}>
+            </Panel>}
+            {moduleEnabled('notices') && <Panel title="Comunicados" icon={Bell}>
               <Table loading={loading} searchPlaceholder="Buscar comunicado" filters={[
                 tagFilter(['info', 'warning', 'urgent'])
               ]} rows={state.notices} columns={[
@@ -540,8 +585,8 @@ export function AdminPreviewPage() {
                 ['Fecha', (n: any) => dateLabel(n.createdAt)],
                 ['Acciones', (n: any) => <Actions><button onClick={() => run(idOf(n), () => adminApi.notices.delete(idOf(n)), 'Comunicado eliminado.')}>Eliminar</button></Actions>]
               ]} />
-            </Panel>
-            <Panel title="Reclamos" icon={MessageSquare}>
+            </Panel>}
+            {moduleEnabled('claims') && <Panel title="Reclamos" icon={MessageSquare}>
               <Table loading={loading} searchPlaceholder="Buscar reclamo o propietario" filters={[
                 statusFilter(['open', 'in_progress', 'resolved'])
               ]} rows={state.claims} columns={[
@@ -553,13 +598,14 @@ export function AdminPreviewPage() {
                   <button onClick={() => run(idOf(c), () => adminApi.claims.status(idOf(c), 'resolved', window.prompt('Nota para el propietario') || ''), 'Reclamo resuelto.')}>Resolver</button>
                 </Actions>]
               ]} />
-            </Panel>
+            </Panel>}
           </div>
         )}
 
         {tab === 'operaciones' && (
           <div className="admin-grid">
-            <Panel title="Nueva votacion" icon={Vote}>
+            {!hasOperations && <Empty text="No hay modulos operativos habilitados para esta organizacion." />}
+            {moduleEnabled('votes') && <Panel title="Nueva votacion" icon={Vote}>
               <form className="admin-form" onSubmit={submitVote}>
                 <Field label="Titulo" name="title" required />
                 <Field label="Cierre" name="endsAt" type="datetime-local" />
@@ -567,8 +613,8 @@ export function AdminPreviewPage() {
                 <label className="admin-field full"><span>Opciones, una por linea</span><textarea name="options" rows={4} required /></label>
                 <button className="btn btn-primary" disabled={busy === 'vote'}>Crear votacion</button>
               </form>
-            </Panel>
-            <Panel title="Votaciones" icon={Vote}>
+            </Panel>}
+            {moduleEnabled('votes') && <Panel title="Votaciones" icon={Vote}>
               <Table loading={loading} searchPlaceholder="Buscar votacion" filters={[
                 statusFilter(['open', 'closed'])
               ]} rows={state.votes} columns={[
@@ -580,8 +626,8 @@ export function AdminPreviewPage() {
                   <button onClick={() => run(idOf(v), () => adminApi.votes.delete(idOf(v)), 'Votacion eliminada.')}>Eliminar</button>
                 </Actions>]
               ]} />
-            </Panel>
-            <Panel title="Nuevo espacio" icon={Building2}>
+            </Panel>}
+            {moduleEnabled('reservations') && <Panel title="Nuevo espacio" icon={Building2}>
               <form className="admin-form" onSubmit={submitSpace}>
                 <Field label="Nombre" name="name" required />
                 <Field label="Capacidad" name="capacity" type="number" />
@@ -589,8 +635,8 @@ export function AdminPreviewPage() {
                 <label className="admin-check"><input name="requiresApproval" type="checkbox" /> Requiere aprobacion</label>
                 <button className="btn btn-primary" disabled={busy === 'space'}>Crear espacio</button>
               </form>
-            </Panel>
-            <Panel title="Espacios" icon={Building2}>
+            </Panel>}
+            {moduleEnabled('reservations') && <Panel title="Espacios" icon={Building2}>
               <Table loading={loading} searchPlaceholder="Buscar espacio" filters={[
                 {
                   key: 'approval',
@@ -605,8 +651,8 @@ export function AdminPreviewPage() {
                 ['Aprobacion', (s: any) => s.requiresApproval ? 'Si' : 'No'],
                 ['Acciones', (s: any) => <Actions><button onClick={() => run(idOf(s), () => adminApi.spaces.delete(idOf(s)), 'Espacio eliminado.')}>Eliminar</button></Actions>]
               ]} />
-            </Panel>
-            <Panel title="Reservas" icon={CalendarCheck}>
+            </Panel>}
+            {moduleEnabled('reservations') && <Panel title="Reservas" icon={CalendarCheck}>
               <Table loading={loading} searchPlaceholder="Buscar reserva, espacio o propietario" filters={[
                 statusFilter(['pending', 'approved', 'rejected', 'cancelled']),
                 dateFilter((r) => r.date)
@@ -620,8 +666,8 @@ export function AdminPreviewPage() {
                   <button onClick={() => run(idOf(r), () => adminApi.reservations.status(idOf(r), 'rejected'), 'Reserva rechazada.')}>Rechazar</button>
                 </Actions>]
               ]} />
-            </Panel>
-            <Panel title="Visitas" icon={ShieldCheck}>
+            </Panel>}
+            {moduleEnabled('visits') && <Panel title="Visitas" icon={ShieldCheck}>
               <Table loading={loading} searchPlaceholder="Buscar visitante o propietario" filters={[
                 statusFilter(['pending', 'approved', 'rejected', 'inside', 'exited']),
                 dateFilter((v) => String(v.expectedDate || '').slice(0, 10))
@@ -637,7 +683,7 @@ export function AdminPreviewPage() {
                   <button onClick={() => run(idOf(v), () => adminApi.visits.status(idOf(v), 'exited'), 'Visita egresada.')}>Egreso</button>
                 </Actions>]
               ]} />
-            </Panel>
+            </Panel>}
           </div>
         )}
 

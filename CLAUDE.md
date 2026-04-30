@@ -213,6 +213,7 @@ Centraliza endpoints del dashboard:
 - `reservations`
 - `support`
 - `config`
+- `organizations.features`
 - `superAdminApi.organizations`
 
 Mantener este archivo como punto unico para llamadas del dashboard.
@@ -246,6 +247,29 @@ Navegacion actual:
 - Proveedores
 - Soporte
 - Configuracion
+
+La navegacion y los paneles respetan los modulos configurados en `GET /organizations/:id/features`.
+Defaults conocidos:
+
+- `visits`: deshabilitado por defecto.
+- `reservations`: deshabilitado por defecto.
+- `votes`: habilitado por defecto.
+- `claims`: habilitado por defecto.
+- `notices`: habilitado por defecto.
+- `expenses`: habilitado por defecto.
+- `providers`: habilitado por defecto.
+
+Reglas actuales:
+
+- SuperAdmin habilita/deshabilita modulos por organizacion desde `/super-admin`.
+- Admin no puede editar modulos.
+- Admin carga las features de su organizacion antes de pedir endpoints modulares.
+- Si `visits` esta apagado, no se muestra el panel de Visitas ni se llama a `/visits`.
+- Si `reservations` esta apagado, no se muestran Espacios/Reservas ni se llaman `/spaces` o `/reservations`.
+- Si `votes` esta apagado, no se muestran formularios/listas de Votaciones.
+- Si `claims` esta apagado, no se muestran metricas/listas/acciones de Reclamos.
+- Si `notices` esta apagado, no se muestran Comunicados ni el formulario de publicacion.
+- Si no hay modulos operativos activos, el tab Operaciones se oculta.
 
 ### Inicio
 
@@ -574,7 +598,7 @@ npm run build
 
 Ultimo estado conocido:
 
-- Build correcto despues de agregar dashboard, grillas, skeletons, filtros y fallback productivo de API.
+- Build correcto despues de agregar dashboard, grillas, skeletons, filtros, SuperAdmin y gating por modulos de organizacion.
 
 ## Pendientes Posibles
 

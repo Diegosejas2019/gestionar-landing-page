@@ -7,6 +7,15 @@ type Notice = { type: 'ok' | 'error'; text: string } | null;
 
 const idOf = (row: any) => String(row?._id || row?.id || '');
 const dateLabel = (value: unknown) => value ? new Date(String(value)).toLocaleDateString('es-AR') : '-';
+const featureLabels: Record<string, string> = {
+  visits: 'Visitas',
+  reservations: 'Reservas',
+  votes: 'Votaciones',
+  claims: 'Reclamos',
+  notices: 'Comunicados',
+  expenses: 'Gastos',
+  providers: 'Proveedores'
+};
 
 function pick<T>(response: any, key: string, fallback: T): T {
   return response?.data?.[key] ?? fallback;
@@ -262,7 +271,7 @@ export function SuperAdminPage() {
               <div className="feature-list">
                 {Object.entries(features).map(([key, enabled]) => (
                   <label key={key} className="feature-toggle">
-                    <span>{key}</span>
+                    <span>{featureLabels[key] || key}</span>
                     <input type="checkbox" checked={enabled} onChange={(event) => updateFeature(key, event.target.checked)} />
                   </label>
                 ))}
