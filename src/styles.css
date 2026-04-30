@@ -1290,6 +1290,36 @@ footer {
   border-color: rgba(255,150,135,.35);
   background: rgba(255,90,70,.08);
 }
+.admin-busy {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  border: 1px solid rgba(156,242,123,.28);
+  background: rgba(156,242,123,.08);
+  color: var(--green);
+  padding: 10px 13px;
+  border-radius: 12px;
+  margin-bottom: 18px;
+  font: 700 13px 'Inter', system-ui, sans-serif;
+}
+.action-spinner {
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  border: 2px solid rgba(156,242,123,.24);
+  border-top-color: var(--green);
+  animation: action-spin .8s linear infinite;
+  flex: 0 0 auto;
+}
+.admin-shell.is-busy .row-actions button,
+.admin-shell.is-busy .admin-form button[type='submit'] {
+  pointer-events: none;
+  opacity: .62;
+}
+@keyframes action-spin {
+  to { transform: rotate(360deg); }
+}
 .admin-hero {
   display: flex;
   align-items: flex-end;

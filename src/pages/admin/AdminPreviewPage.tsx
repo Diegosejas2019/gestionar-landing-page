@@ -438,7 +438,7 @@ export function AdminPreviewPage() {
   }
 
   return (
-    <main className="admin-shell">
+    <main className={`admin-shell${busy ? ' is-busy' : ''}`}>
       <aside className="admin-sidebar">
         <a className="logo admin-logo" href="/">
           <span className="logo-mark" /> Gestion<span className="ar">ar</span>
@@ -464,6 +464,7 @@ export function AdminPreviewPage() {
           </div>
         </header>
 
+        {busy && <BusyBanner />}
         {notice && <div className={`admin-notice ${notice.type}`}>{notice.text}</div>}
         {tab === 'inicio' && (
           <>
@@ -820,6 +821,15 @@ function Panel({ title, icon: Icon, action, children }: { title: string; icon: a
 
 function Actions({ children }: { children: ReactNode }) {
   return <div className="row-actions">{children}</div>;
+}
+
+function BusyBanner() {
+  return (
+    <div className="admin-busy" role="status" aria-live="polite">
+      <span className="action-spinner" />
+      Ejecutando accion...
+    </div>
+  );
 }
 
 function Table({

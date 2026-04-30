@@ -170,7 +170,7 @@ export function SuperAdminPage() {
   }
 
   return (
-    <main className="admin-shell">
+    <main className={`admin-shell${busy ? ' is-busy' : ''}`}>
       <aside className="admin-sidebar">
         <a className="logo admin-logo" href="/">
           <span className="logo-mark" /> Gestion<span className="ar">ar</span>
@@ -194,6 +194,7 @@ export function SuperAdminPage() {
           </div>
         </header>
 
+        {busy && <BusyBanner />}
         {notice && <div className={`admin-notice ${notice.type}`}>{notice.text}</div>}
 
         <section className="admin-hero">
@@ -416,6 +417,15 @@ function Panel({ title, icon: Icon, children }: { title: string; icon: any; chil
 
 function Empty({ text }: { text: string }) {
   return <div className="admin-empty">{text}</div>;
+}
+
+function BusyBanner() {
+  return (
+    <div className="admin-busy" role="status" aria-live="polite">
+      <span className="action-spinner" />
+      Ejecutando accion...
+    </div>
+  );
 }
 
 function Grid({
