@@ -126,6 +126,8 @@ export const superAdminApi = {
     create: (data: Payload) => apiClient<any>('/organizations', { method: 'POST', auth: true, body: body(data) }),
     update: (id: string, data: Payload) => apiClient<any>(`/organizations/${id}`, { method: 'PATCH', auth: true, body: body(data) }),
     delete: (id: string) => apiClient<any>(`/organizations/${id}`, { method: 'DELETE', auth: true }),
+    status: (id: string, data: Payload) =>
+      apiClient<any>(`/super-admin/organizations/${id}/status`, { method: 'PATCH', auth: true, body: body(data) }),
     members: (id: string, params?: Params) => apiClient<any>(`/organizations/${id}/members${qs(params)}`, { auth: true }),
     features: (id: string) => apiClient<any>(`/organizations/${id}/features`, { auth: true }),
     updateFeatures: (id: string, data: Payload) =>

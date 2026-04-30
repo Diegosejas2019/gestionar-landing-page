@@ -1518,6 +1518,14 @@ footer {
   border-color: rgba(156,242,123,.32);
   color: var(--green);
 }
+.row-actions .danger-action {
+  color: #ffb4a9;
+  border-color: rgba(255,90,70,.26);
+}
+.row-actions .danger-action:hover {
+  color: #ffd0c8;
+  border-color: rgba(255,90,70,.48);
+}
 .row-actions button:disabled,
 .period-controls button:disabled,
 .pager button:disabled {
@@ -1764,6 +1772,76 @@ footer {
   width: 18px;
   height: 18px;
   accent-color: var(--green);
+}
+.org-status-note {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255,90,70,.25);
+  background: rgba(255,90,70,.08);
+  border-radius: 12px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.org-status-note strong {
+  color: #ffb4a9;
+}
+.danger-outline {
+  color: #ffb4a9 !important;
+  border-color: rgba(255,90,70,.35) !important;
+}
+.danger-button {
+  background: #ff6f61;
+  color: #210f0d;
+}
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(0,0,0,.62);
+  backdrop-filter: blur(10px);
+}
+.confirm-modal {
+  width: min(520px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 30px 90px rgba(0,0,0,.45);
+}
+.confirm-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 16px;
+}
+.confirm-icon.danger {
+  color: #ffb4a9;
+  background: rgba(255,90,70,.12);
+}
+.confirm-icon.ok {
+  color: var(--green);
+  background: var(--green-soft);
+}
+.confirm-modal h2 {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+.confirm-modal p {
+  color: var(--text-dim);
+  margin-bottom: 16px;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
 }
 
 @media (max-width: 1120px) {

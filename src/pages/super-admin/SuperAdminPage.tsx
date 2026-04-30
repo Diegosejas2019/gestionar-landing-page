@@ -1,5 +1,5 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
-import { Building2, Check, LayoutDashboard, LogOut, RefreshCw, Search, Shield, Users } from 'lucide-react';
+import { AlertTriangle, Building2, Check, LayoutDashboard, LogOut, RefreshCw, Search, Shield, Users } from 'lucide-react';
 import { superAdminApi } from '../../services/adminService';
 import { isSuperAdminRole } from '../../services/authService';
 
@@ -25,6 +25,8 @@ export function SuperAdminPage() {
   const [selectedOrgId, setSelectedOrgId] = useState('');
   const [members, setMembers] = useState<any[]>([]);
   const [features, setFeatures] = useState<Record<string, boolean>>({});
+  const [statusModal, setStatusModal] = useState<{ org: any; nextActive: boolean } | null>(null);
+  const [statusReason, setStatusReason] = useState('');
 
   const selectedOrg = useMemo(
     () => organizations.find((org) => idOf(org) === selectedOrgId),
@@ -124,6 +126,27 @@ export function SuperAdminPage() {
     run(`feature-${key}`, () => superAdminApi.organizations.updateFeatures(selectedOrgId, { ...features, [key]: value }), 'Feature actualizada.');
   }
 
+  function openStatusModal(org: any, nextActive: boolean) {
+    setSelectedOrgId(idOf(org));
+    setStatusReason('');
+    setStatusModal({ org, nextActive });
+  }
+
+  async function confirmStatusChange() {
+    if (!statusModal) return;
+    const nextActive = statusModal.nextActive;
+    await run(
+      nextActive ? 'reactivate-org' : 'deactivate-org',
+      () => superAdminApi.organizations.status(idOf(statusModal.org), {
+        isActive: nextActive,
+        reason: statusReason.trim() || undefined,
+      }),
+      nextActive ? 'Organizacion reactivada correctamente.' : 'Organizacion desactivada correctamente.'
+    );
+    setStatusModal(null);
+    setStatusReason('');
+  }
+
   return (
     <main className="admin-shell">
       <aside className="admin-sidebar">
@@ -195,7 +218,14 @@ export function SuperAdminPage() {
                 ['Slug', (org: any) => org.slug],
                 ['Tipo', (org: any) => org.businessType],
                 ['Estado', (org: any) => org.isActive === false ? 'Inactiva' : 'Activa'],
-                ['Creada', (org: any) => dateLabel(org.createdAt)]
+                ['Creada', (org: any) => dateLabel(org.createdAt)],
+                ['Accion', (org: any) => (
+                  <div className="row-actions">
+                    {org.isActive === false
+                      ? <button onClick={(event) => { event.stopPropagation(); openStatusModal(org, true); }}>Reactivar</button>
+                      : <button className="danger-action" onClick={(event) => { event.stopPropagation(); openStatusModal(org, false); }}>Desactivar</button>}
+                  </div>
+                )]
               ]}
             />
           </Panel>
@@ -212,8 +242,17 @@ export function SuperAdminPage() {
                   <option value="true">Activa</option>
                   <option value="false">Inactiva</option>
                 </SelectField>
+                {selectedOrg.isActive === false && (
+                  <div className="org-status-note">
+                    <strong>Organizacion inactiva</strong>
+                    <span>Desactivada: {dateLabel(selectedOrg.deactivatedAt)}</span>
+                    {selectedOrg.deactivationReason && <span>Motivo: {selectedOrg.deactivationReason}</span>}
+                  </div>
+                )}
                 <button className="btn btn-primary" disabled={busy === 'update-org'}>Guardar cambios</button>
-                <button className="btn btn-ghost" type="button" disabled={busy === 'delete-org'} onClick={() => run('delete-org', () => superAdminApi.organizations.delete(selectedOrgId), 'Organizacion desactivada.')}>Desactivar organizacion</button>
+                {selectedOrg.isActive === false
+                  ? <button className="btn btn-primary" type="button" disabled={busy === 'reactivate-org'} onClick={() => openStatusModal(selectedOrg, true)}>Reactivar organizacion</button>
+                  : <button className="btn btn-ghost danger-outline" type="button" disabled={busy === 'deactivate-org'} onClick={() => openStatusModal(selectedOrg, false)}>Desactivar organizacion</button>}
               </form>
             ) : <Empty text="Selecciona una organizacion." />}
           </Panel>
@@ -247,6 +286,36 @@ export function SuperAdminPage() {
           </Panel>
         </div>
       </section>
+
+      {statusModal && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <section className="confirm-modal">
+            <div className={`confirm-icon ${statusModal.nextActive ? 'ok' : 'danger'}`}>
+              {statusModal.nextActive ? <Check size={22} /> : <AlertTriangle size={22} />}
+            </div>
+            <h2>{statusModal.nextActive ? 'Reactivar organizacion' : 'Desactivar organizacion'}</h2>
+            <p>
+              {statusModal.nextActive
+                ? 'Esta accion restaurara el acceso de administradores y propietarios a esta organizacion si no fueron bloqueados manualmente.'
+                : 'Esta accion bloqueara el acceso de administradores y propietarios a esta organizacion, pero no eliminara sus datos.'}
+            </p>
+            <label className="admin-field full">
+              <span>Motivo opcional</span>
+              <textarea rows={4} value={statusReason} onChange={(event) => setStatusReason(event.target.value)} placeholder="Ej: falta de pago, reactivacion comercial..." />
+            </label>
+            <div className="modal-actions">
+              <button className="btn btn-ghost" onClick={() => setStatusModal(null)}>Cancelar</button>
+              <button
+                className={statusModal.nextActive ? 'btn btn-primary' : 'btn danger-button'}
+                onClick={confirmStatusChange}
+                disabled={busy === 'deactivate-org' || busy === 'reactivate-org'}
+              >
+                {statusModal.nextActive ? 'Reactivar organizacion' : 'Desactivar organizacion'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }

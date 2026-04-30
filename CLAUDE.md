@@ -359,7 +359,8 @@ Incluye:
 - Grilla de organizaciones.
 - Alta de organizacion.
 - Edicion de organizacion seleccionada.
-- Desactivacion de organizacion.
+- Desactivacion/reactivacion de organizacion con confirmacion y motivo opcional.
+- Estado actual, fecha de desactivacion y motivo en el detalle.
 - Features por organizacion.
 - Miembros de la organizacion seleccionada.
 - Skeletons, busqueda, paginacion y selector de cantidad.
@@ -446,6 +447,7 @@ Autenticacion:
 - `POST /organizations`
 - `PATCH /organizations/:id`
 - `DELETE /organizations/:id`
+- `PATCH /super-admin/organizations/:id/status`
 - `GET /organizations/:id/members`
 - `GET /organizations/:id/features`
 - `PUT /organizations/:id/features`
