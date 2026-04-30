@@ -1826,20 +1826,44 @@ footer {
   font-size: 13px;
 }
 .mini-chart {
-  height: 260px;
+  min-height: 300px;
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   gap: 8px;
   align-items: end;
 }
-.mini-chart div {
+.mini-chart div,
+.mini-chart button {
   height: 100%;
   display: grid;
-  grid-template-rows: 1fr auto;
-  gap: 8px;
+  grid-template-rows: auto 1fr auto auto;
+  gap: 7px;
   align-items: end;
 }
-.mini-chart span {
+.mini-chart button {
+  min-width: 0;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  padding: 6px 4px;
+  cursor: pointer;
+}
+.mini-chart button:hover,
+.mini-chart button.active {
+  border-color: rgba(156,242,123,.32);
+  background: rgba(156,242,123,.07);
+}
+.mini-chart .chart-value {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  color: var(--text-dim);
+  font: 700 10px 'Inter', system-ui, sans-serif;
+  justify-self: center;
+  max-height: 74px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mini-chart .chart-bar {
   width: 100%;
   min-height: 8px;
   border-radius: 8px 8px 3px 3px;
@@ -1849,6 +1873,13 @@ footer {
   color: var(--text-faint);
   font-size: 11px;
   text-align: center;
+}
+.mini-chart em {
+  color: var(--text-faint);
+  font-size: 10px;
+  font-style: normal;
+  text-align: center;
+  white-space: nowrap;
 }
 .skeleton-line,
 .skeleton-box,

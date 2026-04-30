@@ -19,6 +19,10 @@ type GridFilter = {
 
 const todayMonth = () => new Date().toISOString().slice(0, 7);
 const money = (value: unknown) => `$ ${Number(value || 0).toLocaleString('es-AR')}`;
+const shortMonth = (value: string) => {
+  const [, month] = value.split('-');
+  return ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][Number(month) - 1] || value;
+};
 const idOf = (row: any) => String(row?._id || row?.id || '');
 const person = (row: any) => row?.owner?.name || row?.user?.name || row?.name || 'Sin nombre';
 const unitLabel = (row: any) => row?.owner?.unit || row?.unit || row?.units?.join(', ') || '-';
@@ -128,12 +132,12 @@ function tagFilter(tags: string[]): GridFilter {
   };
 }
 
-function monthFilter(getValue: (row: any) => string): GridFilter {
+function monthFilter(getValue: (row: any) => string, optionMonth = todayMonth()): GridFilter {
   return {
     key: 'month',
     label: 'Periodo',
     allLabel: 'Todos',
-    options: [{ value: todayMonth(), label: 'Mes actual' }],
+    options: [{ value: optionMonth, label: optionMonth }],
     match: (row, value) => getValue(row) === value
   };
 }
@@ -170,6 +174,21 @@ function sortExpenses(rows: any[] = []) {
     const statusDiff = (priority[a?.status] ?? 9) - (priority[b?.status] ?? 9);
     if (statusDiff !== 0) return statusDiff;
     return new Date(b?.createdAt || b?.date || 0).getTime() - new Date(a?.createdAt || a?.date || 0).getTime();
+  });
+}
+
+function revenueMonths(rows: any[] = [], selectedYear: number) {
+  const byMonth = new Map(rows.map((item) => [String(item._id), item]));
+  return Array.from({ length: 12 }, (_, index) => {
+    const key = `${selectedYear}-${String(index + 1).padStart(2, '0')}`;
+    return {
+      _id: key,
+      total: 0,
+      count: 0,
+      pending: 0,
+      rejected: 0,
+      ...byMonth.get(key)
+    };
   });
 }
 
@@ -257,7 +276,7 @@ export function AdminPreviewPage() {
 
       if (target === 'finanzas') {
         const [allPayments, expenses] = await Promise.all([
-          adminApi.payments.list({ limit: 50 }),
+          adminApi.payments.list({ limit: 100, effectiveMonth: month }),
           adminApi.expenses.list({ limit: 50, month })
         ]);
         next.payments = sortPayments(pick(allPayments, 'payments', []));
@@ -485,7 +504,15 @@ export function AdminPreviewPage() {
 
             <div className="admin-grid two">
               <Panel title="Recaudacion mensual" icon={FileText}>
-                <MiniChart loading={loading} rows={state.dashboard?.monthly || []} />
+                <MiniChart
+                  loading={loading}
+                  rows={revenueMonths(state.dashboard?.monthly || [], state.dashboard?.year || year)}
+                  selectedMonth={month}
+                  onSelect={(selected) => {
+                    setMonth(selected);
+                    setTab('finanzas');
+                  }}
+                />
               </Panel>
               <Panel title="Pendientes criticos" icon={Bell}>
                 <CompactList loading={loading} rows={[...state.payments, ...(moduleEnabled('claims') ? state.claims : [])].slice(0, 7)} />
@@ -508,7 +535,7 @@ export function AdminPreviewPage() {
             <Panel title="Pagos" icon={CreditCard} action={<button className="btn btn-ghost" onClick={() => run('reminders', adminApi.payments.reminders, 'Recordatorios enviados.')}>Enviar recordatorios</button>}>
               <Table loading={loading} searchPlaceholder="Buscar propietario, unidad o periodo" filters={[
                 statusFilter(['pending', 'approved', 'rejected']),
-                monthFilter((p) => p.month || String(p.createdAt || '').slice(0, 7))
+                monthFilter((p) => p.month || String(p.createdAt || '').slice(0, 7), month)
               ]} rows={state.payments} columns={[
                 ['Propietario', (p: any) => person(p)],
                 ['Unidad', (p: any) => unitLabel(p)],
@@ -965,7 +992,17 @@ function CompactList({ rows, loading = false }: { rows: any[]; loading?: boolean
   );
 }
 
-function MiniChart({ rows, loading = false }: { rows: any[]; loading?: boolean }) {
+function MiniChart({
+  rows,
+  loading = false,
+  selectedMonth,
+  onSelect
+}: {
+  rows: any[];
+  loading?: boolean;
+  selectedMonth?: string;
+  onSelect?: (month: string) => void;
+}) {
   if (loading) {
     return (
       <div className="mini-chart skeleton-chart">
@@ -981,10 +1018,18 @@ function MiniChart({ rows, loading = false }: { rows: any[]; loading?: boolean }
   return (
     <div className="mini-chart">
       {rows.map((item) => (
-        <div key={item._id} title={`${item._id}: ${money(item.total)}`}>
-          <span style={{ height: `${Math.max(8, (Number(item.total || 0) / max) * 100)}%` }} />
-          <small>{String(item._id).slice(5)}</small>
-        </div>
+        <button
+          key={item._id}
+          type="button"
+          className={selectedMonth === item._id ? 'active' : ''}
+          title={`${item._id}: ${money(item.total)} aprobados, ${item.pending || 0} pendientes`}
+          onClick={() => onSelect?.(item._id)}
+        >
+          <span className="chart-value">{money(item.total)}</span>
+          <span className="chart-bar" style={{ height: `${Number(item.total || 0) > 0 ? Math.max(8, (Number(item.total || 0) / max) * 100) : 4}%` }} />
+          <small>{shortMonth(String(item._id))}</small>
+          <em>{item.count || 0} pagos</em>
+        </button>
       ))}
     </div>
   );
