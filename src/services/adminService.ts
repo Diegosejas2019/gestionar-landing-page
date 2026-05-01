@@ -66,6 +66,20 @@ export const adminApi = {
     delete: (id: string) => apiClient<any>(`/expenses/${id}`, { method: 'DELETE', auth: true })
   },
 
+  employees: {
+    list: (params?: Params) => apiClient<any>(`/employees${qs(params)}`, { auth: true }),
+    create: (data: Payload) => apiClient<any>('/employees', { method: 'POST', auth: true, body: body(data) }),
+    update: (id: string, data: Payload) => apiClient<any>(`/employees/${id}`, { method: 'PATCH', auth: true, body: body(data) }),
+    delete: (id: string) => apiClient<any>(`/employees/${id}`, { method: 'DELETE', auth: true })
+  },
+
+  salaries: {
+    list: (params?: Params) => apiClient<any>(`/salaries${qs(params)}`, { auth: true }),
+    create: (data: Payload) => apiClient<any>('/salaries', { method: 'POST', auth: true, body: body(data) }),
+    update: (id: string, data: Payload) => apiClient<any>(`/salaries/${id}`, { method: 'PATCH', auth: true, body: body(data) }),
+    delete: (id: string) => apiClient<any>(`/salaries/${id}`, { method: 'DELETE', auth: true })
+  },
+
   providers: {
     list: (params?: Params) => apiClient<any>(`/providers${qs(params)}`, { auth: true }),
     create: (data: Payload) => apiClient<any>('/providers', { method: 'POST', auth: true, body: body(data) }),

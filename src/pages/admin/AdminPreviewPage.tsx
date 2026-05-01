@@ -1,12 +1,12 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
 import {
   Bell, Building2, CalendarCheck, CreditCard, FileText, Home, Landmark,
-  LogOut, Megaphone, MessageSquare, RefreshCw, Settings, ShieldCheck, Users, Vote
+  LogOut, Megaphone, MessageSquare, RefreshCw, Settings, ShieldCheck, UserRoundCog, Users, Vote, WalletCards
 } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
 import { isSuperAdminRole } from '../../services/authService';
 
-type TabKey = 'inicio' | 'finanzas' | 'comunidad' | 'operaciones' | 'proveedores' | 'config';
+type TabKey = 'inicio' | 'finanzas' | 'personal' | 'comunidad' | 'operaciones' | 'proveedores' | 'config';
 type Notice = { type: 'ok' | 'error'; text: string } | null;
 type FeatureKey = 'visits' | 'reservations' | 'votes' | 'claims' | 'notices' | 'expenses' | 'providers';
 type GridFilter = {
@@ -32,6 +32,7 @@ const formObject = (event: FormEvent<HTMLFormElement>) => Object.fromEntries(new
 const nav = [
   { key: 'inicio', label: 'Inicio', icon: Home },
   { key: 'finanzas', label: 'Finanzas', icon: CreditCard },
+  { key: 'personal', label: 'Personal', icon: UserRoundCog },
   { key: 'comunidad', label: 'Comunidad', icon: Users },
   { key: 'operaciones', label: 'Operaciones', icon: CalendarCheck },
   { key: 'proveedores', label: 'Proveedores', icon: Landmark },
@@ -60,7 +61,21 @@ const statusText: Record<string, string> = {
   exited: 'Salio',
   paid: 'Pagado',
   unpaid: 'Impago',
-  closed: 'Cerrado'
+  closed: 'Cerrado',
+  active: 'Activo'
+};
+
+const roleLabels: Record<string, string> = {
+  security: 'Seguridad',
+  cleaning: 'Limpieza',
+  admin: 'Administracion',
+  maintenance: 'Mantenimiento',
+  other: 'Otro'
+};
+
+const paymentMethodLabels: Record<string, string> = {
+  cash: 'Efectivo',
+  transfer: 'Transferencia'
 };
 
 function pick<T>(response: any, key: string, fallback: T): T {
@@ -153,6 +168,11 @@ function dateFilter(getValue: (row: any) => string): GridFilter {
   };
 }
 
+function roleLabel(employee: any) {
+  if (!employee) return '-';
+  return employee.role === 'other' && employee.customRole ? employee.customRole : (roleLabels[employee.role] || employee.role || '-');
+}
+
 function uniqueOptions(rows: any[], getValue: (row: any) => string | undefined) {
   return Array.from(new Set((rows || []).map(getValue).filter(Boolean)))
     .sort()
@@ -212,7 +232,7 @@ export function AdminPreviewPage() {
   const [state, setState] = useState<any>({
     me: null, config: {}, ownerStats: {}, dashboard: {}, report: {},
     owners: [], units: [], payments: [], notices: [], claims: [], expenses: [],
-    providers: [], votes: [], visits: [], spaces: [], reservations: [],
+    employees: [], salaries: [], providers: [], votes: [], visits: [], spaces: [], reservations: [],
     features: defaultFeatures
   });
 
@@ -281,6 +301,15 @@ export function AdminPreviewPage() {
         ]);
         next.payments = sortPayments(pick(allPayments, 'payments', []));
         next.expenses = sortExpenses(pick(expenses, 'expenses', []));
+      }
+
+      if (target === 'personal') {
+        const [employees, salaries] = await Promise.all([
+          adminApi.employees.list({ isActive: '', limit: 200 }),
+          adminApi.salaries.list({ limit: 200, period: month })
+        ]);
+        next.employees = pick(employees, 'employees', []);
+        next.salaries = pick(salaries, 'salaries', []);
       }
 
       if (target === 'operaciones') {
@@ -410,6 +439,65 @@ export function AdminPreviewPage() {
     const data = formObject(event);
     run('provider', () => adminApi.providers.create(data), 'Proveedor creado.');
     event.currentTarget.reset();
+  }
+
+  function submitEmployee(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = formObject(event);
+    run('employee', () => adminApi.employees.create({
+      name: data.name,
+      role: data.role,
+      customRole: data.customRole || undefined,
+      documentNumber: data.documentNumber || undefined,
+      phone: data.phone || undefined,
+      email: data.email || undefined,
+      startDate: data.startDate || undefined,
+      notes: data.notes || undefined
+    }), 'Empleado creado.');
+    event.currentTarget.reset();
+  }
+
+  function submitSalary(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = formObject(event);
+    run('salary', () => adminApi.salaries.create({
+      employeeId: data.employeeId,
+      period: data.period,
+      baseAmount: Number(data.baseAmount || 0),
+      extraAmount: Number(data.extraAmount || 0),
+      deductions: Number(data.deductions || 0),
+      paymentMethod: data.paymentMethod || undefined,
+      notes: data.notes || undefined
+    }), 'Liquidacion creada.');
+    event.currentTarget.reset();
+  }
+
+  function editEmployee(employee: any) {
+    const name = window.prompt('Nombre del empleado', employee.name || '');
+    if (name === null) return;
+    const phone = window.prompt('Telefono', employee.phone || '');
+    if (phone === null) return;
+    const email = window.prompt('Email', employee.email || '');
+    if (email === null) return;
+    run(idOf(employee), () => adminApi.employees.update(idOf(employee), {
+      name: name.trim(),
+      phone: phone.trim() || undefined,
+      email: email.trim() || undefined
+    }), 'Empleado actualizado.');
+  }
+
+  function editSalary(salary: any) {
+    const baseAmount = window.prompt('Monto base', String(salary.baseAmount ?? 0));
+    if (baseAmount === null) return;
+    const extraAmount = window.prompt('Extras', String(salary.extraAmount ?? 0));
+    if (extraAmount === null) return;
+    const deductions = window.prompt('Descuentos', String(salary.deductions ?? 0));
+    if (deductions === null) return;
+    run(idOf(salary), () => adminApi.salaries.update(idOf(salary), {
+      baseAmount: Number(baseAmount || 0),
+      extraAmount: Number(extraAmount || 0),
+      deductions: Number(deductions || 0)
+    }), 'Liquidacion actualizada.');
   }
 
   function submitVote(event: FormEvent<HTMLFormElement>) {
@@ -574,6 +662,111 @@ export function AdminPreviewPage() {
                   <button onClick={() => run(idOf(e), () => adminApi.expenses.paid(idOf(e)), 'Gasto marcado como pagado.')}>Pagar</button>
                   <button onClick={() => run(idOf(e), () => adminApi.expenses.delete(idOf(e)), 'Gasto eliminado.')}>Eliminar</button>
                 </Actions> : null]
+              ]} />
+            </Panel>
+          </div>
+        )}
+
+        {tab === 'personal' && (
+          <div className="admin-grid">
+            <Panel title="Nuevo empleado" icon={UserRoundCog}>
+              <form className="admin-form" onSubmit={submitEmployee}>
+                <Field label="Nombre" name="name" required />
+                <SelectField label="Rol" name="role" defaultValue="maintenance">
+                  {Object.entries(roleLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </SelectField>
+                <Field label="Rol personalizado" name="customRole" placeholder="Jardinero" />
+                <Field label="DNI" name="documentNumber" />
+                <Field label="Telefono" name="phone" />
+                <Field label="Email" name="email" type="email" />
+                <Field label="Fecha de inicio" name="startDate" type="date" />
+                <label className="admin-field full"><span>Notas</span><textarea name="notes" rows={2} /></label>
+                <button className="btn btn-primary" disabled={busy === 'employee'}>Crear empleado</button>
+              </form>
+            </Panel>
+
+            <Panel title="Nueva liquidacion" icon={WalletCards}>
+              <form className="admin-form" onSubmit={submitSalary}>
+                <SelectField label="Empleado" name="employeeId">
+                  <option value="">Seleccionar</option>
+                  {state.employees.filter((employee: any) => employee.isActive).map((employee: any) => (
+                    <option key={idOf(employee)} value={idOf(employee)}>{employee.name} ({roleLabel(employee)})</option>
+                  ))}
+                </SelectField>
+                <Field label="Periodo" name="period" type="month" defaultValue={month} required />
+                <Field label="Monto base" name="baseAmount" type="number" required />
+                <Field label="Extras" name="extraAmount" type="number" defaultValue={0} />
+                <Field label="Descuentos" name="deductions" type="number" defaultValue={0} />
+                <SelectField label="Metodo de pago" name="paymentMethod">
+                  <option value="">Sin especificar</option>
+                  <option value="cash">Efectivo</option>
+                  <option value="transfer">Transferencia</option>
+                </SelectField>
+                <label className="admin-field full"><span>Notas</span><textarea name="notes" rows={2} /></label>
+                <button className="btn btn-primary" disabled={busy === 'salary'}>Crear liquidacion</button>
+              </form>
+            </Panel>
+
+            <Panel title="Empleados" icon={UserRoundCog}>
+              <Table loading={loading} searchPlaceholder="Buscar empleado, rol o DNI" filters={[
+                {
+                  key: 'role',
+                  label: 'Rol',
+                  allLabel: 'Todos los roles',
+                  options: Object.entries(roleLabels).map(([value, label]) => ({ value, label })),
+                  match: (row, value) => row.role === value
+                },
+                {
+                  key: 'active',
+                  label: 'Estado',
+                  allLabel: 'Todos',
+                  options: [{ value: 'yes', label: 'Activos' }, { value: 'no', label: 'Dados de baja' }],
+                  match: (row, value) => value === 'yes' ? !!row.isActive : !row.isActive
+                }
+              ]} rows={state.employees} columns={[
+                ['Nombre', (e: any) => e.name],
+                ['Rol', (e: any) => roleLabel(e)],
+                ['DNI', (e: any) => e.documentNumber || '-'],
+                ['Telefono', (e: any) => e.phone || '-'],
+                ['Inicio', (e: any) => dateLabel(e.startDate)],
+                ['Estado', (e: any) => <Status value={e.isActive ? 'active' : 'cancelled'} />],
+                ['Acciones', (e: any) => <Actions>
+                  <button onClick={() => editEmployee(e)}>Editar</button>
+                  {e.isActive
+                    ? <button className="danger-action" onClick={() => run(idOf(e), () => adminApi.employees.delete(idOf(e)), 'Empleado dado de baja.')}>Baja</button>
+                    : <button onClick={() => run(idOf(e), () => adminApi.employees.update(idOf(e), { isActive: true, endDate: null }), 'Empleado reactivado.')}>Reactivar</button>}
+                </Actions>]
+              ]} />
+            </Panel>
+
+            <Panel
+              title="Sueldos"
+              icon={WalletCards}
+              action={<div className="period-controls"><input type="month" value={month} onChange={(event) => setMonth(event.target.value)} /></div>}
+            >
+              <div className="metric-grid compact">
+                <Metric loading={loading} label="Pendiente" value={money(state.salaries.filter((s: any) => s.status === 'pending').reduce((sum: number, s: any) => sum + Number(s.totalAmount || 0), 0))} hint={month} icon={WalletCards} />
+                <Metric loading={loading} label="Pagado" value={money(state.salaries.filter((s: any) => s.status === 'paid').reduce((sum: number, s: any) => sum + Number(s.totalAmount || 0), 0))} hint="Sincroniza gastos" icon={ShieldCheck} />
+                <Metric loading={loading} label="Liquidaciones" value={state.salaries.length || 0} hint="Periodo visible" icon={FileText} />
+              </div>
+              <Table loading={loading} searchPlaceholder="Buscar empleado o periodo" filters={[
+                statusFilter(['pending', 'paid', 'cancelled']),
+                monthFilter((s) => s.period || '', month)
+              ]} rows={state.salaries} columns={[
+                ['Periodo', (s: any) => s.period],
+                ['Empleado', (s: any) => s.employee?.name || '-'],
+                ['Rol', (s: any) => roleLabel(s.employee)],
+                ['Base', (s: any) => money(s.baseAmount)],
+                ['Extras', (s: any) => money(s.extraAmount)],
+                ['Desc.', (s: any) => money(s.deductions)],
+                ['Total', (s: any) => money(s.totalAmount)],
+                ['Metodo', (s: any) => paymentMethodLabels[s.paymentMethod] || '-'],
+                ['Estado', (s: any) => <Status value={s.status} />],
+                ['Acciones', (s: any) => <Actions>
+                  {s.status === 'pending' && <button onClick={() => editSalary(s)}>Editar</button>}
+                  {s.status === 'pending' && <button onClick={() => run(idOf(s), () => adminApi.salaries.update(idOf(s), { status: 'paid', paymentDate: new Date().toISOString().slice(0, 10) }), 'Sueldo marcado como pagado.')}>Pagar</button>}
+                  {s.status !== 'cancelled' && <button className="danger-action" onClick={() => run(idOf(s), () => adminApi.salaries.delete(idOf(s)), 'Liquidacion cancelada.')}>Cancelar</button>}
+                </Actions>]
               ]} />
             </Panel>
           </div>
