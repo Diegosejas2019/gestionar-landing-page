@@ -25,7 +25,14 @@ const shortMonth = (value: string) => {
 };
 const idOf = (row: any) => String(row?._id || row?.id || '');
 const person = (row: any) => row?.owner?.name || row?.user?.name || row?.name || 'Sin nombre';
-const unitLabel = (row: any) => row?.owner?.unit || row?.unit || row?.units?.join(', ') || '-';
+const unitNames = (row: any) => {
+  const units = row?.owner?.units || row?.units;
+  if (Array.isArray(units) && units.length) {
+    return units.map((unit: any) => typeof unit === 'string' ? unit : unit?.name).filter(Boolean);
+  }
+  return [row?.owner?.unit, row?.unit].filter(Boolean);
+};
+const unitLabel = (row: any) => unitNames(row).join(', ') || '-';
 const dateLabel = (value: unknown) => value ? new Date(String(value)).toLocaleDateString('es-AR') : '-';
 const formObject = (event: FormEvent<HTMLFormElement>) => Object.fromEntries(new FormData(event.currentTarget).entries());
 
@@ -75,7 +82,9 @@ const roleLabels: Record<string, string> = {
 
 const paymentMethodLabels: Record<string, string> = {
   cash: 'Efectivo',
-  transfer: 'Transferencia'
+  transfer: 'Transferencia',
+  manual: 'Manual',
+  mercadopago: 'MercadoPago'
 };
 
 function pick<T>(response: any, key: string, fallback: T): T {
@@ -97,6 +106,16 @@ function SelectField(props: { label: string; name: string; defaultValue?: string
       <span>{props.label}</span>
       <select name={props.name} defaultValue={props.defaultValue}>{props.children}</select>
     </label>
+  );
+}
+
+function PaymentChannel({ payment }: { payment: any }) {
+  const label = paymentMethodLabels[payment?.paymentMethod] || payment?.paymentMethod || '-';
+  const isMpPending = payment?.paymentMethod === 'mercadopago' && payment?.mpStatus === 'approved' && payment?.status === 'pending';
+  return (
+    <span className={`channel-pill ${isMpPending ? 'mp-pending' : ''}`}>
+      {label}{isMpPending ? ' acreditado' : ''}
+    </span>
   );
 }
 
@@ -229,6 +248,8 @@ export function AdminPreviewPage() {
   const [notice, setNotice] = useState<Notice>(null);
   const [month, setMonth] = useState(todayMonth());
   const [year, setYear] = useState(new Date().getFullYear());
+  const [ownerUnitFilter, setOwnerUnitFilter] = useState('');
+  const [ownerSelectedUnitIds, setOwnerSelectedUnitIds] = useState<Set<string>>(new Set());
   const [state, setState] = useState<any>({
     me: null, config: {}, ownerStats: {}, dashboard: {}, report: {},
     owners: [], units: [], payments: [], notices: [], claims: [], expenses: [],
@@ -248,6 +269,31 @@ export function AdminPreviewPage() {
     () => (state.dashboard?.monthly || []).reduce((sum: number, item: any) => sum + Number(item.total || 0), 0),
     [state.dashboard]
   );
+  const availableOwnerUnits = useMemo(
+    () => [...(state.units || [])]
+      .filter((unit: any) => !unit.owner && unit.status !== 'occupied')
+      .sort((a: any, b: any) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { numeric: true, sensitivity: 'base' })),
+    [state.units]
+  );
+  const filteredOwnerUnits = useMemo(() => {
+    const query = ownerUnitFilter.trim().toLowerCase();
+    return query
+      ? availableOwnerUnits.filter((unit: any) => String(unit.name || '').toLowerCase().includes(query))
+      : availableOwnerUnits;
+  }, [availableOwnerUnits, ownerUnitFilter]);
+  const selectedOwnerUnits = useMemo(
+    () => availableOwnerUnits.filter((unit: any) => ownerSelectedUnitIds.has(idOf(unit))),
+    [availableOwnerUnits, ownerSelectedUnitIds]
+  );
+
+  function toggleOwnerUnit(unitId: string) {
+    setOwnerSelectedUnitIds((current) => {
+      const next = new Set(current);
+      if (next.has(unitId)) next.delete(unitId);
+      else next.add(unitId);
+      return next;
+    });
+  }
 
   async function refresh(target: TabKey = tab) {
     setLoading(true);
@@ -284,12 +330,14 @@ export function AdminPreviewPage() {
       };
 
       if (target === 'comunidad' || target === 'inicio') {
-        const [owners, allClaims, allNotices] = await Promise.all([
+        const [owners, units, allClaims, allNotices] = await Promise.all([
           adminApi.owners.list({ limit: 50 }),
+          adminApi.units.list({ limit: 200 }),
           isEnabled('claims') ? adminApi.claims.list({ limit: 50 }) : Promise.resolve(null),
           isEnabled('notices') ? adminApi.notices.list({ limit: 50 }) : Promise.resolve(null)
         ]);
         next.owners = pick(owners, 'owners', []);
+        next.units = pick(units, 'units', []);
         next.claims = isEnabled('claims') ? pick(allClaims, 'claims', next.claims) : [];
         next.notices = isEnabled('notices') ? pick(allNotices, 'notices', next.notices) : [];
       }
@@ -415,9 +463,17 @@ export function AdminPreviewPage() {
 
   function submitOwner(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
     const data = formObject(event);
-    run('owner', () => adminApi.owners.create(data), 'Propietario creado.');
-    event.currentTarget.reset();
+    run('owner', async () => {
+      await adminApi.owners.create({
+        ...data,
+        unitIds: [...ownerSelectedUnitIds]
+      });
+      setOwnerSelectedUnitIds(new Set());
+      setOwnerUnitFilter('');
+      form.reset();
+    }, 'Propietario creado con unidades seleccionadas.');
   }
 
   function submitNotice(event: FormEvent<HTMLFormElement>) {
@@ -524,7 +580,7 @@ export function AdminPreviewPage() {
     const data = formObject(event);
     run('unit', () => adminApi.units.create({
       name: data.name,
-      owner: data.owner || undefined,
+      ownerId: data.owner || undefined,
       coefficient: data.coefficient ? Number(data.coefficient) : undefined,
       customFee: data.customFee ? Number(data.customFee) : undefined
     }), 'Unidad creada.');
@@ -585,7 +641,7 @@ export function AdminPreviewPage() {
 
             <div className="metric-grid">
               <Metric loading={loading} label="Recaudacion anual" value={money(totalIncome)} hint={`${state.dashboard?.approved || 0} pagos aprobados`} icon={ShieldCheck} />
-              <Metric loading={loading} label="Pagos pendientes" value={state.dashboard?.pending || 0} hint="Requieren revision" icon={CreditCard} />
+              <Metric loading={loading} label="Pagos pendientes" value={state.dashboard?.pending || 0} hint="MP acreditado queda en revision" icon={CreditCard} />
               <Metric loading={loading} label="Propietarios" value={state.ownerStats?.totalOwners || state.owners?.length || 0} hint={`${state.ownerStats?.upToDate || 0} al dia`} icon={Users} />
               {moduleEnabled('claims') && <Metric loading={loading} label="Reclamos abiertos" value={state.claims?.length || 0} hint="Comunidad" icon={MessageSquare} />}
             </div>
@@ -629,6 +685,7 @@ export function AdminPreviewPage() {
                 ['Unidad', (p: any) => unitLabel(p)],
                 ['Periodo', (p: any) => p.month || dateLabel(p.createdAt)],
                 ['Monto', (p: any) => money(p.amount)],
+                ['Canal', (p: any) => <PaymentChannel payment={p} />],
                 ['Estado', (p: any) => <Status value={p.status} />],
                 ['Acciones', (p: any) => p.status === 'pending' ? <Actions>
                   <button onClick={() => run(idOf(p), () => adminApi.payments.approve(idOf(p)), 'Pago aprobado.')}>Aprobar</button>
@@ -779,8 +836,45 @@ export function AdminPreviewPage() {
                 <Field label="Nombre" name="name" required />
                 <Field label="Email" name="email" type="email" required />
                 <Field label="Telefono" name="phone" />
-                <Field label="Unidad legacy" name="unit" placeholder="Lote 12" />
                 <Field label="Contrasena temporal" name="password" type="password" required />
+                <div className="admin-field full">
+                  <span>Unidades</span>
+                  <div className="unit-picker">
+                    <input
+                      type="search"
+                      placeholder="Buscar unidad disponible"
+                      value={ownerUnitFilter}
+                      onChange={(event) => setOwnerUnitFilter(event.target.value)}
+                    />
+                    {selectedOwnerUnits.length > 0 && (
+                      <div className="unit-picker-chips">
+                        {selectedOwnerUnits.map((unit: any) => (
+                          <button type="button" key={idOf(unit)} onClick={() => toggleOwnerUnit(idOf(unit))}>
+                            {unit.name} ×
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <div className="unit-picker-list">
+                      {filteredOwnerUnits.length ? filteredOwnerUnits.slice(0, 24).map((unit: any) => {
+                        const unitId = idOf(unit);
+                        const selected = ownerSelectedUnitIds.has(unitId);
+                        return (
+                          <button
+                            type="button"
+                            key={unitId}
+                            className={selected ? 'selected' : ''}
+                            onClick={() => toggleOwnerUnit(unitId)}
+                          >
+                            <input type="checkbox" tabIndex={-1} checked={selected} readOnly />
+                            <span>{unit.name}</span>
+                          </button>
+                        );
+                      }) : <Empty text="No hay unidades disponibles con ese filtro." />}
+                    </div>
+                    <small>{availableOwnerUnits.length} disponibles · {state.units.length - availableOwnerUnits.length} ocupadas.</small>
+                  </div>
+                </div>
                 <button className="btn btn-primary" disabled={busy === 'owner'}>Crear propietario</button>
               </form>
             </Panel>

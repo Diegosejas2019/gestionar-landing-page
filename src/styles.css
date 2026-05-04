@@ -1620,6 +1620,75 @@ footer {
   border-color: var(--green);
   box-shadow: 0 0 0 3px var(--green-soft);
 }
+.unit-picker {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  background: var(--bg);
+}
+.unit-picker input[type='search'] {
+  min-height: 42px;
+}
+.unit-picker-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.unit-picker-chips button,
+.channel-pill {
+  border: 1px solid rgba(90, 210, 128, .28);
+  background: rgba(90, 210, 128, .12);
+  color: var(--green);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font: 700 12px 'Inter', system-ui, sans-serif;
+}
+.unit-picker-list {
+  display: grid;
+  gap: 8px;
+  max-height: 230px;
+  overflow: auto;
+}
+.unit-picker-list button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 10px 12px;
+  text-align: left;
+}
+.unit-picker-list button.selected {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+.unit-picker-list input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--green);
+  pointer-events: none;
+}
+.unit-picker small {
+  color: var(--text-faint);
+}
+.channel-pill {
+  display: inline-flex;
+  white-space: nowrap;
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+}
+.channel-pill.mp-pending {
+  border-color: rgba(90, 210, 128, .35);
+  color: var(--green);
+  background: rgba(90, 210, 128, .12);
+}
 .admin-check {
   display: flex;
   align-items: center;
