@@ -7,7 +7,7 @@ import {
 import { adminApi } from '../../services/adminService';
 import { isSuperAdminRole } from '../../services/authService';
 
-type TabKey = 'inicio' | 'finanzas' | 'personal' | 'comunidad' | 'operaciones' | 'proveedores' | 'config';
+type TabKey = 'inicio' | 'finanzas' | 'personal' | 'propietarios' | 'comunicados' | 'reclamos' | 'operaciones' | 'proveedores' | 'config';
 type Notice = { type: 'ok' | 'error'; text: string } | null;
 type FeatureKey = 'visits' | 'reservations' | 'votes' | 'claims' | 'notices' | 'expenses' | 'providers';
 type GridFilter = {
@@ -276,7 +276,9 @@ const tabCrumbs: Record<string, string[]> = {
   inicio: ['Inicio'],
   finanzas: ['Finanzas', 'Cobranza'],
   personal: ['Administración', 'Personal'],
-  comunidad: ['Comunidad'],
+  propietarios: ['Comunidad', 'Propietarios'],
+  comunicados: ['Comunidad', 'Comunicados'],
+  reclamos: ['Comunidad', 'Reclamos'],
   operaciones: ['Operaciones'],
   proveedores: ['Administración', 'Proveedores'],
   config: ['Administración', 'Configuración'],
@@ -378,7 +380,7 @@ export function AdminPreviewPage() {
         report: report?.data || {}
       };
 
-      if (target === 'comunidad' || target === 'inicio') {
+      if (target === 'propietarios' || target === 'comunicados' || target === 'reclamos' || target === 'inicio') {
         const [owners, units, allClaims, allNotices] = await Promise.all([
           adminApi.owners.list({ limit: 50 }),
           adminApi.units.list({ limit: 200 }),
@@ -721,8 +723,17 @@ export function AdminPreviewPage() {
           </button>
 
           <div className="admin-nav-group-label">Comunidad</div>
-          <button className={tab === 'comunidad' ? 'active' : ''} onClick={() => setTab('comunidad')}>
-            <Users size={16} /> <span>Comunidad</span>
+          <button className={tab === 'propietarios' ? 'active' : ''} onClick={() => setTab('propietarios')}>
+            <Users size={16} /> <span>Propietarios</span>
+          </button>
+          <button className={tab === 'comunicados' ? 'active' : ''} onClick={() => setTab('comunicados')}>
+            <Megaphone size={16} /> <span>Comunicados</span>
+          </button>
+          <button className={tab === 'reclamos' ? 'active' : ''} onClick={() => setTab('reclamos')}>
+            <MessageSquare size={16} /> <span>Reclamos</span>
+            {(state.claims?.filter((c: any) => c.status === 'open').length ?? 0) > 0 && (
+              <span className="admin-nav-badge">{state.claims.filter((c: any) => c.status === 'open').length}</span>
+            )}
           </button>
 
           {hasOperations && (
@@ -824,7 +835,7 @@ export function AdminPreviewPage() {
               claims={state.claims}
               loading={loading}
               onFinanzas={() => setTab('finanzas')}
-              onComunidad={() => setTab('comunidad')}
+              onComunidad={() => setTab('reclamos')}
             />
 
             <div className="admin-grid two">
@@ -1039,7 +1050,7 @@ export function AdminPreviewPage() {
           </>
         )}
 
-        {tab === 'comunidad' && (
+        {tab === 'propietarios' && (
           <>
             <div className="admin-page-head">
               <div>
@@ -1059,129 +1070,222 @@ export function AdminPreviewPage() {
                 delta={state.owners?.filter((o: any) => o.isDebtor).length > 0 ? { text: `${state.owners.filter((o: any) => o.isDebtor).length} morosos`, trend: 'neg' } : undefined} />
               <Metric loading={loading} label="Unidades" value={state.units?.length || 0} hint={`${state.units?.filter((u: any) => u.owner).length || 0} asignadas`} icon={Building2} />
             </div>
-            <div className="admin-grid">
-            <Panel title="Nuevo propietario" icon={Users}>
-              <form className="admin-form" onSubmit={submitOwner}>
-                <Field label="Nombre" name="name" required />
-                <Field label="Email" name="email" type="email" required />
-                <Field label="Telefono" name="phone" />
-                <Field label="Contrasena temporal" name="password" type="password" required />
-                <div className="admin-field full">
-                  <span>Unidades</span>
-                  <div className="unit-picker">
-                    <input
-                      type="search"
-                      placeholder="Buscar unidad disponible"
-                      value={ownerUnitFilter}
-                      onChange={(event) => setOwnerUnitFilter(event.target.value)}
-                    />
-                    {selectedOwnerUnits.length > 0 && (
-                      <div className="unit-picker-chips">
-                        {selectedOwnerUnits.map((unit: any) => (
-                          <button type="button" key={idOf(unit)} onClick={() => toggleOwnerUnit(idOf(unit))}>
-                            {unit.name} ×
-                          </button>
-                        ))}
+            <div className="com-layout">
+              <div className="com-main">
+                <div className="card" style={{ overflow: 'hidden' }}>
+                  <Table loading={loading} searchPlaceholder="Buscar nombre, email o unidad" filters={[
+                    {
+                      key: 'debt',
+                      label: 'Estado',
+                      allLabel: 'Todos',
+                      options: [{ value: 'debtor', label: 'Con deuda' }, { value: 'clear', label: 'Al día' }],
+                      match: (row, value) => value === 'debtor' ? !!row.isDebtor || Number(row.balance || 0) > 0 : !row.isDebtor && Number(row.balance || 0) <= 0
+                    }
+                  ]} rows={state.owners} columns={[
+                    ['Propietario', (o: any) => (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div className="owner-avatar">{adminInitials(o.name)}</div>
+                        <div>
+                          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-bright)' }}>{o.name}</div>
+                          <div style={{ fontSize: 11, color: 'var(--muted)' }}>{o.email}</div>
+                        </div>
                       </div>
-                    )}
-                    <div className="unit-picker-list">
-                      {filteredOwnerUnits.length ? filteredOwnerUnits.slice(0, 24).map((unit: any) => {
-                        const unitId = idOf(unit);
-                        const selected = ownerSelectedUnitIds.has(unitId);
-                        return (
-                          <button
-                            type="button"
-                            key={unitId}
-                            className={selected ? 'selected' : ''}
-                            onClick={() => toggleOwnerUnit(unitId)}
-                          >
-                            <input type="checkbox" tabIndex={-1} checked={selected} readOnly />
-                            <span>{unit.name}</span>
-                          </button>
-                        );
-                      }) : <Empty text="No hay unidades disponibles con ese filtro." />}
+                    )],
+                    ['Unidades', (o: any) => <span style={{ fontSize: 12 }}>{unitLabel(o)}</span>],
+                    ['Teléfono', (o: any) => <span style={{ fontSize: 11.5, color: 'var(--muted)', fontFamily: 'monospace' }}>{o.phone || '—'}</span>],
+                    ['Estado', (o: any) => <Status value={o.isDebtor || Number(o.balance || 0) > 0 ? 'pending' : 'approved'} />],
+                    ['Saldo', (o: any) => (
+                      <span style={{ fontFamily: 'monospace', fontSize: 12.5, color: Number(o.balance || 0) > 0 ? 'var(--neg)' : 'var(--muted)' }}>
+                        {Number(o.balance || 0) > 0 ? money(o.balance) : '—'}
+                      </span>
+                    )],
+                    ['', (o: any) => <Actions><button onClick={() => run(idOf(o), () => adminApi.owners.delete(idOf(o)), 'Propietario eliminado.')}>Eliminar</button></Actions>]
+                  ]} />
+                </div>
+                <Panel title="Unidades" icon={Building2}>
+                  <Table loading={loading} searchPlaceholder="Buscar unidad o propietario" filters={[
+                    {
+                      key: 'assigned',
+                      label: 'Asignacion',
+                      allLabel: 'Todas',
+                      options: [{ value: 'yes', label: 'Asignadas' }, { value: 'no', label: 'Sin asignar' }],
+                      match: (row, value) => value === 'yes' ? !!row.owner : !row.owner
+                    }
+                  ]} rows={state.units} columns={[
+                    ['Nombre', (u: any) => u.name],
+                    ['Propietario', (u: any) => u.owner?.name || '—'],
+                    ['Coef.', (u: any) => u.coefficient || '1'],
+                    ['Cuota', (u: any) => money(u.finalFee || u.customFee)],
+                    ['', (u: any) => <Actions><button onClick={() => run(idOf(u), () => adminApi.units.delete(idOf(u)), 'Unidad eliminada.')}>Eliminar</button></Actions>]
+                  ]} />
+                </Panel>
+              </div>
+              <div className="com-side">
+                <Panel title="Nuevo propietario" icon={Users}>
+                  <form className="admin-form" onSubmit={submitOwner}>
+                    <Field label="Nombre" name="name" required />
+                    <Field label="Email" name="email" type="email" required />
+                    <Field label="Telefono" name="phone" />
+                    <Field label="Contrasena temporal" name="password" type="password" required />
+                    <div className="admin-field full">
+                      <span>Unidades</span>
+                      <div className="unit-picker">
+                        <input
+                          type="search"
+                          placeholder="Buscar unidad disponible"
+                          value={ownerUnitFilter}
+                          onChange={(event) => setOwnerUnitFilter(event.target.value)}
+                        />
+                        {selectedOwnerUnits.length > 0 && (
+                          <div className="unit-picker-chips">
+                            {selectedOwnerUnits.map((unit: any) => (
+                              <button type="button" key={idOf(unit)} onClick={() => toggleOwnerUnit(idOf(unit))}>
+                                {unit.name} ×
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        <div className="unit-picker-list">
+                          {filteredOwnerUnits.length ? filteredOwnerUnits.slice(0, 24).map((unit: any) => {
+                            const unitId = idOf(unit);
+                            const selected = ownerSelectedUnitIds.has(unitId);
+                            return (
+                              <button
+                                type="button"
+                                key={unitId}
+                                className={selected ? 'selected' : ''}
+                                onClick={() => toggleOwnerUnit(unitId)}
+                              >
+                                <input type="checkbox" tabIndex={-1} checked={selected} readOnly />
+                                <span>{unit.name}</span>
+                              </button>
+                            );
+                          }) : <Empty text="No hay unidades disponibles con ese filtro." />}
+                        </div>
+                        <small>{availableOwnerUnits.length} disponibles · {state.units.length - availableOwnerUnits.length} ocupadas.</small>
+                      </div>
                     </div>
-                    <small>{availableOwnerUnits.length} disponibles · {state.units.length - availableOwnerUnits.length} ocupadas.</small>
+                    <button className="btn btn-primary" disabled={busy === 'owner'}>Crear propietario</button>
+                  </form>
+                </Panel>
+                <Panel title="Nueva unidad" icon={Building2}>
+                  <form className="admin-form" onSubmit={submitUnit}>
+                    <Field label="Nombre" name="name" required />
+                    <SelectField label="Propietario" name="owner"><option value="">Sin asignar</option>{state.owners.map((owner: any) => <option key={idOf(owner)} value={idOf(owner)}>{owner.name}</option>)}</SelectField>
+                    <Field label="Coeficiente" name="coefficient" type="number" />
+                    <Field label="Cuota custom" name="customFee" type="number" />
+                    <button className="btn btn-primary" disabled={busy === 'unit'}>Crear unidad</button>
+                  </form>
+                </Panel>
+              </div>
+            </div>
+          </>
+        )}
+
+        {tab === 'comunicados' && (
+          <>
+            <div className="admin-page-head">
+              <div>
+                <div className="admin-page-kicker"><span className="dot" />Comunidad</div>
+                <h1 className="admin-page-title">Comunicados</h1>
+                <div className="admin-page-sub">{state.notices?.length || 0} comunicados · {state.config?.consortiumName || 'Tu organización'}</div>
+              </div>
+              <div className="admin-page-actions">
+                <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
+              </div>
+            </div>
+            {moduleEnabled('notices') ? (
+              <div className="com-layout">
+                <div className="com-main">
+                  {loading ? (
+                    <Empty text="Cargando comunicados…" />
+                  ) : !state.notices?.length ? (
+                    <Empty text="No hay comunicados publicados." />
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {state.notices.map((n: any) => (
+                        <div key={idOf(n)} className="notice-card">
+                          <div className="notice-card-head">
+                            <Status value={n.tag === 'urgent' ? 'rejected' : n.tag === 'warning' ? 'pending' : 'approved'} />
+                            <span className="notice-card-tag">{n.tag === 'urgent' ? 'Urgente' : n.tag === 'warning' ? 'Advertencia' : 'Info'}</span>
+                            <span className="notice-card-date">{dateLabel(n.createdAt)}</span>
+                          </div>
+                          <h3 className="notice-card-title">{n.title}</h3>
+                          {n.body && <p className="notice-card-body">{n.body}</p>}
+                          <div className="notice-card-foot">
+                            <button className="btn btn-ghost btn-sm" onClick={() => run(idOf(n), () => adminApi.notices.delete(idOf(n)), 'Comunicado eliminado.')}>Eliminar</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="com-side">
+                  <Panel title="Nuevo comunicado" icon={Megaphone}>
+                    <form className="admin-form" onSubmit={submitNotice}>
+                      <Field label="Titulo" name="title" required />
+                      <SelectField label="Prioridad" name="tag" defaultValue="info">
+                        <option value="info">Info</option>
+                        <option value="warning">Advertencia</option>
+                        <option value="urgent">Urgente</option>
+                      </SelectField>
+                      <label className="admin-field full"><span>Mensaje</span><textarea name="body" rows={4} required /></label>
+                      <button className="btn btn-primary" disabled={busy === 'notice'}>Publicar</button>
+                    </form>
+                  </Panel>
+                  <div className="card">
+                    <div className="card-h"><h3>Resumen</h3></div>
+                    <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {(['info', 'warning', 'urgent'] as const).map((tag) => {
+                        const count = (state.notices || []).filter((n: any) => n.tag === tag).length;
+                        const label = tag === 'urgent' ? 'Urgentes' : tag === 'warning' ? 'Advertencias' : 'Informativos';
+                        const tone = tag === 'urgent' ? 'var(--neg)' : tag === 'warning' ? 'var(--warn)' : 'var(--acc)';
+                        return (
+                          <div key={tag} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: 12.5, color: 'var(--text)' }}>{label}</span>
+                            <span style={{ fontSize: 13, fontWeight: 600, fontFamily: 'monospace', color: tone }}>{count}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-                <button className="btn btn-primary" disabled={busy === 'owner'}>Crear propietario</button>
-              </form>
-            </Panel>
-            <Panel title="Propietarios" icon={Users}>
-              <Table loading={loading} searchPlaceholder="Buscar nombre, email o unidad" filters={[
-                {
-                  key: 'debt',
-                  label: 'Deuda',
-                  allLabel: 'Todos',
-                  options: [{ value: 'debtor', label: 'Con deuda' }, { value: 'clear', label: 'Al dia' }],
-                  match: (row, value) => value === 'debtor' ? !!row.isDebtor || Number(row.balance || 0) > 0 : !row.isDebtor && Number(row.balance || 0) <= 0
-                }
-              ]} rows={state.owners} columns={[
-                ['Nombre', (o: any) => o.name],
-                ['Email', (o: any) => o.email],
-                ['Unidades', (o: any) => unitLabel(o)],
-                ['Saldo', (o: any) => money(o.balance)],
-                ['Acciones', (o: any) => <Actions><button onClick={() => run(idOf(o), () => adminApi.owners.delete(idOf(o)), 'Propietario eliminado.')}>Eliminar</button></Actions>]
-              ]} />
-            </Panel>
-            <Panel title="Nueva unidad" icon={Building2}>
-              <form className="admin-form" onSubmit={submitUnit}>
-                <Field label="Nombre" name="name" required />
-                <SelectField label="Propietario" name="owner"><option value="">Sin asignar</option>{state.owners.map((owner: any) => <option key={idOf(owner)} value={idOf(owner)}>{owner.name}</option>)}</SelectField>
-                <Field label="Coeficiente" name="coefficient" type="number" />
-                <Field label="Cuota custom" name="customFee" type="number" />
-                <button className="btn btn-primary" disabled={busy === 'unit'}>Crear unidad</button>
-              </form>
-            </Panel>
-            <Panel title="Unidades" icon={Building2}>
-              <Table loading={loading} searchPlaceholder="Buscar unidad o propietario" filters={[
-                {
-                  key: 'assigned',
-                  label: 'Asignacion',
-                  allLabel: 'Todas',
-                  options: [{ value: 'yes', label: 'Asignadas' }, { value: 'no', label: 'Sin asignar' }],
-                  match: (row, value) => value === 'yes' ? !!row.owner : !row.owner
-                }
-              ]} rows={state.units} columns={[
-                ['Nombre', (u: any) => u.name],
-                ['Propietario', (u: any) => u.owner?.name || '-'],
-                ['Coef.', (u: any) => u.coefficient || '-'],
-                ['Cuota', (u: any) => money(u.finalFee || u.customFee)],
-                ['Acciones', (u: any) => <Actions><button onClick={() => run(idOf(u), () => adminApi.units.delete(idOf(u)), 'Unidad eliminada.')}>Eliminar</button></Actions>]
-              ]} />
-            </Panel>
-            {moduleEnabled('notices') && <Panel title="Nuevo comunicado" icon={Megaphone}>
-              <form className="admin-form" onSubmit={submitNotice}>
-                <Field label="Titulo" name="title" required />
-                <SelectField label="Prioridad" name="tag" defaultValue="info"><option value="info">Info</option><option value="warning">Advertencia</option><option value="urgent">Urgente</option></SelectField>
-                <label className="admin-field full"><span>Mensaje</span><textarea name="body" rows={4} required /></label>
-                <button className="btn btn-primary" disabled={busy === 'notice'}>Publicar</button>
-              </form>
-            </Panel>}
-            {moduleEnabled('notices') && <Panel title="Comunicados" icon={Bell}>
-              <Table loading={loading} searchPlaceholder="Buscar comunicado" filters={[
-                tagFilter(['info', 'warning', 'urgent'])
-              ]} rows={state.notices} columns={[
-                ['Titulo', (n: any) => n.title],
-                ['Tipo', (n: any) => n.tag],
-                ['Fecha', (n: any) => dateLabel(n.createdAt)],
-                ['Acciones', (n: any) => <Actions><button onClick={() => run(idOf(n), () => adminApi.notices.delete(idOf(n)), 'Comunicado eliminado.')}>Eliminar</button></Actions>]
-              ]} />
-            </Panel>}
-            {moduleEnabled('claims') && <Panel title="Reclamos" icon={MessageSquare}>
-              <Table loading={loading} searchPlaceholder="Buscar reclamo o propietario" filters={[
-                statusFilter(['open', 'in_progress', 'resolved'])
-              ]} rows={state.claims} columns={[
-                ['Titulo', (c: any) => c.title],
-                ['Propietario', (c: any) => person(c)],
-                ['Estado', (c: any) => <Status value={c.status} />],
-                ['Acciones', (c: any) => <Actions>
-                  <button onClick={() => run(idOf(c), () => adminApi.claims.status(idOf(c), 'in_progress'), 'Reclamo en progreso.')}>En progreso</button>
-                  <button onClick={() => run(idOf(c), () => adminApi.claims.status(idOf(c), 'resolved', window.prompt('Nota para el propietario') || ''), 'Reclamo resuelto.')}>Resolver</button>
-                </Actions>]
-              ]} />
-            </Panel>}
+              </div>
+            ) : <Empty text="El módulo de comunicados no está habilitado para esta organización." />}
+          </>
+        )}
+
+        {tab === 'reclamos' && (
+          <>
+            <div className="admin-page-head">
+              <div>
+                <div className="admin-page-kicker"><span className="dot" />Comunidad</div>
+                <h1 className="admin-page-title">Reclamos</h1>
+                <div className="admin-page-sub">
+                  {(state.claims || []).filter((c: any) => c.status === 'open').length} abiertos · {(state.claims || []).filter((c: any) => c.status === 'in_progress').length} en progreso · {state.config?.consortiumName || 'Tu organización'}
+                </div>
+              </div>
+              <div className="admin-page-actions">
+                <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
+              </div>
             </div>
+            <div className="metric-grid">
+              <Metric loading={loading} label="Abiertos" value={(state.claims || []).filter((c: any) => c.status === 'open').length} hint="Sin asignar" icon={MessageSquare}
+                delta={(state.claims || []).filter((c: any) => c.status === 'open').length > 0 ? { text: 'Requieren atención', trend: 'neg' } : undefined} />
+              <Metric loading={loading} label="En progreso" value={(state.claims || []).filter((c: any) => c.status === 'in_progress').length} hint="En gestión" icon={RefreshCw} />
+              <Metric loading={loading} label="Resueltos" value={(state.claims || []).filter((c: any) => c.status === 'resolved').length} hint="Cerrados" icon={ShieldCheck}
+                delta={(state.claims || []).filter((c: any) => c.status === 'resolved').length > 0 ? { text: 'Resueltos', trend: 'pos' } : undefined} />
+              <Metric loading={loading} label="Total" value={(state.claims || []).length} hint="Histórico" icon={FileText} />
+            </div>
+            {moduleEnabled('claims') ? (
+              <ClaimKanban
+                claims={state.claims || []}
+                loading={loading}
+                onInProgress={(id) => run(id, () => adminApi.claims.status(id, 'in_progress'), 'Reclamo en progreso.')}
+                onResolve={(id) => run(id, () => adminApi.claims.status(id, 'resolved', window.prompt('Nota para el propietario') || ''), 'Reclamo resuelto.')}
+                onDelete={(id) => run(id, () => adminApi.claims.delete(id), 'Reclamo eliminado.')}
+              />
+            ) : <Empty text="El módulo de reclamos no está habilitado para esta organización." />}
           </>
         )}
 
@@ -1887,6 +1991,73 @@ function CobroStrip({ payments, loading }: { payments: any[]; loading: boolean }
           col.pct > 0 && <div key={i} className="cobro-bar-seg" style={{ flex: col.pct, background: barColors[i] }} />
         ))}
       </div>
+    </div>
+  );
+}
+
+function ClaimKanban({ claims, loading, onInProgress, onResolve, onDelete }: {
+  claims: any[]; loading: boolean;
+  onInProgress: (id: string) => void;
+  onResolve: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  if (loading) return <Empty text="Cargando reclamos…" />;
+  if (!claims.length) return <Empty text="No hay reclamos registrados." />;
+
+  const claimCategoryLabel: Record<string, string> = {
+    infrastructure: 'Infraestructura', security: 'Seguridad', noise: 'Ruido',
+    cleaning: 'Limpieza', billing: 'Facturación', other: 'Otro',
+  };
+
+  const cols: Array<{ key: string; label: string; tone: string }> = [
+    { key: 'open', label: 'Abierto', tone: 'warn' },
+    { key: 'in_progress', label: 'En progreso', tone: 'info' },
+    { key: 'resolved', label: 'Resuelto', tone: 'pos' },
+  ];
+
+  return (
+    <div className="kanban-board">
+      {cols.map((col) => {
+        const items = claims.filter((c) => c.status === col.key);
+        return (
+          <div key={col.key} className="kanban-col">
+            <div className="kanban-col-head">
+              <span className={`pill ${col.tone}`}><span className="d" />{col.label}</span>
+              <span className="kanban-col-count">{items.length}</span>
+            </div>
+            <div className="kanban-cards">
+              {items.length === 0 ? (
+                <div className="kanban-empty">Sin reclamos</div>
+              ) : items.map((c) => (
+                <div key={idOf(c)} className="kanban-card">
+                  <div className="kanban-card-cat">
+                    <span className="pill muted">{claimCategoryLabel[c.category] || c.category}</span>
+                    <span className="kanban-card-time">{dateLabel(c.createdAt)}</span>
+                  </div>
+                  <div className="kanban-card-title">{c.title}</div>
+                  {c.description && <p className="kanban-card-desc">{c.description}</p>}
+                  <div className="kanban-card-from">
+                    <div className="owner-avatar sm">{adminInitials(person(c))}</div>
+                    <span>{person(c)}</span>
+                  </div>
+                  {c.adminNote && <p className="kanban-card-note">{c.adminNote}</p>}
+                  <div className="kanban-card-actions">
+                    {col.key === 'open' && (
+                      <button className="btn btn-ghost btn-sm" onClick={() => onInProgress(idOf(c))}>En progreso</button>
+                    )}
+                    {col.key !== 'resolved' && (
+                      <button className="btn btn-primary btn-sm" onClick={() => onResolve(idOf(c))}>Resolver</button>
+                    )}
+                    {col.key === 'resolved' && (
+                      <button className="btn btn-ghost btn-sm" onClick={() => onDelete(idOf(c))}>Eliminar</button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
