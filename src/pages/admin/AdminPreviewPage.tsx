@@ -1,7 +1,8 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
 import {
-  Bell, Building2, CalendarCheck, ChevronDown, CreditCard, FileText, Home, Inbox, Landmark,
-  LogOut, Megaphone, MessageSquare, RefreshCw, Search, Settings, ShieldCheck, UserRoundCog, Users, Vote, WalletCards
+  AlertTriangle, Bell, Building2, CalendarCheck, CheckCircle2, ChevronDown, CreditCard, FileText,
+  Home, Inbox, Landmark, LogOut, Megaphone, MessageSquare, RefreshCw, Search, Settings,
+  ShieldCheck, TrendingUp, UserRoundCog, Users, Vote, WalletCards
 } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
 import { isSuperAdminRole } from '../../services/authService';
@@ -818,20 +819,29 @@ export function AdminPreviewPage() {
                 delta={(state.claims?.length ?? 0) > 0 ? { text: `${state.claims.length} pendientes`, trend: 'neg' } : undefined} />}
             </div>
 
+            <AttentionHero
+              payments={state.payments}
+              claims={state.claims}
+              loading={loading}
+              onFinanzas={() => setTab('finanzas')}
+              onComunidad={() => setTab('comunidad')}
+            />
+
             <div className="admin-grid two">
-              <Panel title="Recaudacion mensual" icon={FileText}>
-                <MiniChart
+              <Panel title="Flujo de recaudacion" icon={TrendingUp} sub="Últimos 12 meses · pagos aprobados">
+                <CashflowSVG
                   loading={loading}
                   rows={revenueMonths(state.dashboard?.monthly || [], state.dashboard?.year || year)}
-                  selectedMonth={month}
-                  onSelect={(selected) => {
-                    setMonth(selected);
-                    setTab('finanzas');
-                  }}
+                  onSelect={(selected) => { setMonth(selected); setTab('finanzas'); }}
                 />
               </Panel>
-              <Panel title="Pendientes criticos" icon={Bell}>
-                <CompactList loading={loading} rows={[...state.payments, ...(moduleEnabled('claims') ? state.claims : [])].slice(0, 7)} />
+              <Panel title="Actividad reciente" icon={Bell} sub="Últimas acciones registradas">
+                <ActivityFeed
+                  payments={state.payments}
+                  claims={state.claims}
+                  notices={state.notices}
+                  loading={loading}
+                />
               </Panel>
             </div>
           </>
@@ -860,6 +870,7 @@ export function AdminPreviewPage() {
                 delta={(state.dashboard?.pending ?? 0) > 0 ? { text: `${state.dashboard.pending} sin aprobar`, trend: 'neg' } : undefined} />
             </div>
 
+            <CobroStrip payments={state.payments} loading={loading} />
             <div className="admin-grid">
             <Panel title="Pagos" icon={CreditCard}>
               <Table loading={loading} searchPlaceholder="Buscar propietario, unidad o periodo" filters={[
@@ -1652,6 +1663,230 @@ function MiniChart({
           <em>{item.count || 0} pagos</em>
         </button>
       ))}
+    </div>
+  );
+}
+
+function AttentionHero({ payments, claims, loading, onFinanzas, onComunidad }: {
+  payments: any[]; claims: any[]; loading: boolean;
+  onFinanzas: () => void; onComunidad: () => void;
+}) {
+  const pendingPayments = (payments || []).filter((p) => p.status === 'pending');
+  const openClaims = (claims || []).filter((c) => c.status === 'open');
+
+  const items: Array<{ tone: string; title: string; sub: string; cta: string; onClick: () => void }> = [];
+  if (pendingPayments.length > 0) {
+    const total = pendingPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
+    items.push({
+      tone: 'neg',
+      title: `Aprobar ${pendingPayments.length} pago${pendingPayments.length !== 1 ? 's' : ''} en revisión`,
+      sub: `${money(total)} acumulado · incluye pagos de MercadoPago`,
+      cta: 'Revisar',
+      onClick: onFinanzas,
+    });
+  }
+  if (openClaims.length > 0) {
+    items.push({
+      tone: 'warn',
+      title: `${openClaims.length} reclamo${openClaims.length !== 1 ? 's' : ''} abierto${openClaims.length !== 1 ? 's' : ''} sin resolver`,
+      sub: `Comunidad esperando respuesta · revisá el estado de cada uno`,
+      cta: 'Ver',
+      onClick: onComunidad,
+    });
+  }
+
+  if (loading || items.length === 0) return null;
+
+  return (
+    <div className="attention-hero">
+      <div className="attention-hero-head">
+        <div className="admin-page-kicker" style={{ marginBottom: 4 }}><span className="dot" />Requiere tu atención</div>
+        <h2>{items.length === 1 ? '1 cosa para resolver hoy' : `${items.length} cosas para resolver hoy`}</h2>
+        <p>El sistema identificó lo que mueve la aguja en cobranza y operación.</p>
+      </div>
+      <div className="attention-items">
+        {items.map((item, i) => (
+          <div key={i} className="attention-item">
+            <div className={`attention-item-icon ${item.tone}`}>
+              {item.tone === 'neg' ? <AlertTriangle size={14} /> : <Bell size={14} />}
+            </div>
+            <div className="attention-item-body">
+              <b>{item.title}</b>
+              <span>{item.sub}</span>
+            </div>
+            <button className="btn btn-ghost btn-sm" onClick={item.onClick}>{item.cta}</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CashflowSVG({ rows, loading, onSelect }: {
+  rows: any[]; loading: boolean; onSelect?: (month: string) => void;
+}) {
+  if (loading) {
+    return (
+      <div className="mini-chart skeleton-chart">
+        {Array.from({ length: 12 }).map((_, i) => (
+          <div key={i}><span style={{ height: `${20 + ((i * 17) % 70)}%` }} /><small /></div>
+        ))}
+      </div>
+    );
+  }
+  if (!rows?.length) return <Empty text="Sin datos de recaudación aún." />;
+
+  const values = rows.map((r) => Number(r.total || 0));
+  const max = Math.max(...values, 1);
+  const labels = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const W = 640, H = 160, pad = 28;
+  const step = (W - pad) / (rows.length - 1 || 1);
+  const pts = values.map((v, i) => [i * step + pad / 2, H - 20 - (v / max) * (H - 36)]);
+  const line = pts.map(([x, y]) => `${x},${y}`).join(' ');
+  const area = `M ${pad / 2} ${H - 20} L ${pts.map(([x, y]) => `${x} ${y}`).join(' L ')} L ${(rows.length - 1) * step + pad / 2} ${H - 20} Z`;
+  const lastIdx = rows.length - 1;
+
+  return (
+    <div className="cf-chart-wrap">
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', overflow: 'visible' }}>
+        <defs>
+          <linearGradient id="cf-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--acc-1)" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="var(--acc-1)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {[0, 0.33, 0.66, 1].map((p, i) => (
+          <line key={i} x1={pad / 2} y1={16 + p * (H - 36)} x2={W - pad / 2} y2={16 + p * (H - 36)}
+            stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+        ))}
+        <path d={area} fill="url(#cf-grad)" />
+        <polyline points={line} fill="none" stroke="var(--acc-1)" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+        {pts.map(([x, y], i) => (
+          <circle key={i} cx={x} cy={y} r={i === lastIdx ? 3.5 : 0} fill="var(--acc-1)" stroke="var(--surface)" strokeWidth="2" />
+        ))}
+        {rows.map((r, i) => {
+          const isLast = i === lastIdx;
+          const [x] = pts[i];
+          return (
+            <g key={i} style={{ cursor: 'pointer' }} onClick={() => onSelect?.(String(r._id))}>
+              <rect x={x - step / 2} y={0} width={step} height={H} fill="transparent" />
+              <text x={x} y={H - 4} fontSize="9.5" fill={isLast ? 'var(--acc-1)' : 'var(--ink-3)'}
+                textAnchor="middle" fontFamily="var(--font-mono)" fontWeight={isLast ? '600' : '400'}>
+                {labels[i]}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+function ActivityFeed({ payments, claims, notices, loading }: {
+  payments: any[]; claims: any[]; notices: any[]; loading: boolean;
+}) {
+  if (loading) {
+    return (
+      <div className="compact-list">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="compact-skeleton">
+            <span className="skeleton-line" /><span className="skeleton-line short" /><span className="skeleton-pill" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  type FeedItem = { tone: string; icon: ReactNode; who: string; what: string; amount?: string; when: string };
+  const items: FeedItem[] = [];
+
+  const approvedPayments = (payments || []).filter((p) => p.status === 'approved').slice(0, 3);
+  approvedPayments.forEach((p) => {
+    items.push({
+      tone: 'pos',
+      icon: <CheckCircle2 size={12} />,
+      who: person(p),
+      what: `pagó expensas${p.month ? ` ${p.month}` : ''}`,
+      amount: money(p.amount),
+      when: dateLabel(p.updatedAt || p.createdAt),
+    });
+  });
+
+  const recentClaims = (claims || []).filter((c) => c.status === 'open').slice(0, 2);
+  recentClaims.forEach((c) => {
+    items.push({
+      tone: 'warn',
+      icon: <AlertTriangle size={12} />,
+      who: person(c),
+      what: `envió un reclamo: ${c.title || c.description || ''}`,
+      when: dateLabel(c.createdAt),
+    });
+  });
+
+  const recentNotices = (notices || []).slice(0, 2);
+  recentNotices.forEach((n) => {
+    items.push({
+      tone: 'info',
+      icon: <Megaphone size={12} />,
+      who: 'Comunicado',
+      what: n.title || '',
+      when: dateLabel(n.createdAt),
+    });
+  });
+
+  if (!items.length) return <Empty text="Sin actividad reciente." />;
+
+  return (
+    <div className="activity-feed">
+      {items.map((it, i) => (
+        <div key={i} className="activity-item">
+          <div className={`activity-icon ${it.tone}`}>{it.icon}</div>
+          <div className="activity-body">
+            <span className="act-text"><b>{it.who}</b> {it.what}</span>
+            {it.amount && <span className="act-amount">{it.amount}</span>}
+            <span className="act-time">{it.when}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CobroStrip({ payments, loading }: { payments: any[]; loading: boolean }) {
+  if (loading || !payments?.length) return null;
+
+  const approved = payments.filter((p) => p.status === 'approved');
+  const pending = payments.filter((p) => p.status === 'pending');
+  const rejected = payments.filter((p) => p.status === 'rejected');
+  const total = payments.length;
+
+  const cols = [
+    { label: 'Pagado', tone: 'pos', count: approved.length, amount: money(approved.reduce((s, p) => s + Number(p.amount || 0), 0)), pct: Math.round((approved.length / total) * 100) },
+    { label: 'Pendiente', tone: 'warn', count: pending.length, amount: money(pending.reduce((s, p) => s + Number(p.amount || 0), 0)), pct: Math.round((pending.length / total) * 100) },
+    { label: 'Rechazado', tone: 'neg', count: rejected.length, amount: money(rejected.reduce((s, p) => s + Number(p.amount || 0), 0)), pct: Math.round((rejected.length / total) * 100) },
+    { label: 'Total', tone: 'muted', count: total, amount: money(payments.reduce((s, p) => s + Number(p.amount || 0), 0)), pct: 100 },
+  ];
+
+  const barColors = ['var(--pos)', 'var(--warn)', 'var(--neg)', 'var(--line-2)'];
+
+  return (
+    <div className="cobro-strip">
+      <div className="cobro-strip-cols">
+        {cols.map((col, i) => (
+          <div key={i} className="cobro-col">
+            <div className="cobro-col-label">
+              <span className={`pill ${col.tone}`}><span className="d" />{col.label} <span style={{ fontFamily: 'var(--font-mono)', opacity: .7 }}>{col.pct}%</span></span>
+            </div>
+            <div className="cobro-col-count">{col.count}</div>
+            <div className="cobro-col-amount">{col.amount}</div>
+          </div>
+        ))}
+      </div>
+      <div className="cobro-bar">
+        {cols.map((col, i) => (
+          col.pct > 0 && <div key={i} className="cobro-bar-seg" style={{ flex: col.pct, background: barColors[i] }} />
+        ))}
+      </div>
     </div>
   );
 }
