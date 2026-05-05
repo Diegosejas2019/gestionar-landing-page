@@ -838,17 +838,30 @@ export function AdminPreviewPage() {
         )}
 
         {tab === 'finanzas' && (
-          <div className="admin-grid">
-            <Panel title="Indicadores" icon={CreditCard} action={<YearMonth year={year} setYear={setYear} month={month} setMonth={setMonth} />}>
-              <div className="metric-grid compact">
-                <Metric loading={loading} label="Ingresos" value={money(state.report?.income?.total)} hint={month} icon={CreditCard} />
-                <Metric loading={loading} label="Egresos" value={money(state.report?.expenses?.total)} hint="Pagados" icon={FileText} />
-                <Metric loading={loading} label="Saldo" value={money(state.report?.balance)} hint="Mensual acumulado" icon={Landmark} />
+          <>
+            <div className="admin-page-head">
+              <div>
+                <div className="admin-page-kicker"><span className="dot" />Finanzas</div>
+                <h1 className="admin-page-title">Pagos y gastos</h1>
+                <div className="admin-page-sub">Cobranza de expensas, egresos y conciliación · {state.config?.consortiumName || 'Tu organización'}</div>
               </div>
-              <button className="btn btn-primary" onClick={downloadReport} disabled={busy === 'pdf'}><FileText size={17} /> Descargar expensas PDF</button>
-            </Panel>
+              <div className="admin-page-actions">
+                <YearMonth year={year} setYear={setYear} month={month} setMonth={setMonth} />
+                <button className="btn btn-ghost" onClick={downloadReport} disabled={busy === 'pdf'}><FileText size={14} />PDF expensas</button>
+                <button className="btn btn-primary" onClick={() => run('reminders', adminApi.payments.reminders, 'Recordatorios enviados.')}><Bell size={14} />Recordatorios</button>
+              </div>
+            </div>
 
-            <Panel title="Pagos" icon={CreditCard} action={<button className="btn btn-ghost" onClick={() => run('reminders', adminApi.payments.reminders, 'Recordatorios enviados.')}>Enviar recordatorios</button>}>
+            <div className="metric-grid">
+              <Metric loading={loading} label="Ingresos del mes" value={money(state.report?.income?.total)} hint={month} icon={CreditCard} />
+              <Metric loading={loading} label="Egresos del mes" value={money(state.report?.expenses?.total)} hint="Gastos pagados" icon={FileText} />
+              <Metric loading={loading} label="Resultado" value={money(state.report?.balance)} hint="Saldo mensual" icon={Landmark} />
+              <Metric loading={loading} label="Pendientes" value={state.dashboard?.pending || 0} hint="Por revisar" icon={Bell}
+                delta={(state.dashboard?.pending ?? 0) > 0 ? { text: `${state.dashboard.pending} sin aprobar`, trend: 'neg' } : undefined} />
+            </div>
+
+            <div className="admin-grid">
+            <Panel title="Pagos" icon={CreditCard}>
               <Table loading={loading} searchPlaceholder="Buscar propietario, unidad o periodo" filters={[
                 statusFilter(['pending', 'approved', 'rejected']),
                 monthFilter((p) => p.month || String(p.createdAt || '').slice(0, 7), month)
@@ -893,11 +906,29 @@ export function AdminPreviewPage() {
                 </Actions> : null]
               ]} />
             </Panel>
-          </div>
+            </div>
+          </>
         )}
 
         {tab === 'personal' && (
-          <div className="admin-grid">
+          <>
+            <div className="admin-page-head">
+              <div>
+                <div className="admin-page-kicker"><span className="dot" />Administración</div>
+                <h1 className="admin-page-title">Personal</h1>
+                <div className="admin-page-sub">{state.employees?.filter((e: any) => e.isActive).length || 0} colaboradores activos · {state.config?.consortiumName || 'Tu organización'}</div>
+              </div>
+              <div className="admin-page-actions">
+                <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
+              </div>
+            </div>
+            <div className="metric-grid">
+              <Metric loading={loading} label="Empleados activos" value={state.employees?.filter((e: any) => e.isActive).length || 0} hint="Colaboradores" icon={UserRoundCog} />
+              <Metric loading={loading} label="Sueldos pendientes" value={money(state.salaries.filter((s: any) => s.status === 'pending').reduce((sum: number, s: any) => sum + Number(s.totalAmount || 0), 0))} hint={month} icon={WalletCards} />
+              <Metric loading={loading} label="Sueldos pagados" value={money(state.salaries.filter((s: any) => s.status === 'paid').reduce((sum: number, s: any) => sum + Number(s.totalAmount || 0), 0))} hint="Período visible" icon={ShieldCheck} />
+              <Metric loading={loading} label="Liquidaciones" value={state.salaries.length || 0} hint="Período visible" icon={FileText} />
+            </div>
+            <div className="admin-grid">
             <Panel title="Nuevo empleado" icon={UserRoundCog}>
               <form className="admin-form" onSubmit={submitEmployee}>
                 <Field label="Nombre" name="name" required />
@@ -973,11 +1004,6 @@ export function AdminPreviewPage() {
               icon={WalletCards}
               action={<div className="period-controls"><input type="month" value={month} onChange={(event) => setMonth(event.target.value)} /></div>}
             >
-              <div className="metric-grid compact">
-                <Metric loading={loading} label="Pendiente" value={money(state.salaries.filter((s: any) => s.status === 'pending').reduce((sum: number, s: any) => sum + Number(s.totalAmount || 0), 0))} hint={month} icon={WalletCards} />
-                <Metric loading={loading} label="Pagado" value={money(state.salaries.filter((s: any) => s.status === 'paid').reduce((sum: number, s: any) => sum + Number(s.totalAmount || 0), 0))} hint="Sincroniza gastos" icon={ShieldCheck} />
-                <Metric loading={loading} label="Liquidaciones" value={state.salaries.length || 0} hint="Periodo visible" icon={FileText} />
-              </div>
               <Table loading={loading} searchPlaceholder="Buscar empleado o periodo" filters={[
                 statusFilter(['pending', 'paid', 'cancelled']),
                 monthFilter((s) => s.period || '', month)
@@ -998,11 +1024,31 @@ export function AdminPreviewPage() {
                 </Actions>]
               ]} />
             </Panel>
-          </div>
+            </div>
+          </>
         )}
 
         {tab === 'comunidad' && (
-          <div className="admin-grid">
+          <>
+            <div className="admin-page-head">
+              <div>
+                <div className="admin-page-kicker"><span className="dot" />Comunidad</div>
+                <h1 className="admin-page-title">Propietarios</h1>
+                <div className="admin-page-sub">{state.owners?.length || 0} propietarios · {state.units?.length || 0} unidades · {state.config?.consortiumName || 'Tu organización'}</div>
+              </div>
+              <div className="admin-page-actions">
+                <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
+              </div>
+            </div>
+            <div className="metric-grid">
+              <Metric loading={loading} label="Total propietarios" value={state.owners?.length || 0} hint="Registrados" icon={Users} />
+              <Metric loading={loading} label="Al día" value={state.ownerStats?.upToDate || 0} hint="Sin deuda activa" icon={ShieldCheck}
+                delta={(state.ownerStats?.upToDate ?? 0) > 0 ? { text: `${Math.round(((state.ownerStats?.upToDate || 0) / Math.max(state.owners?.length || 1, 1)) * 100)}% de la comunidad`, trend: 'pos' } : undefined} />
+              <Metric loading={loading} label="Con deuda" value={(state.owners?.filter((o: any) => o.isDebtor || Number(o.balance || 0) > 0).length) || 0} hint="Deudores activos" icon={CreditCard}
+                delta={state.owners?.filter((o: any) => o.isDebtor).length > 0 ? { text: `${state.owners.filter((o: any) => o.isDebtor).length} morosos`, trend: 'neg' } : undefined} />
+              <Metric loading={loading} label="Unidades" value={state.units?.length || 0} hint={`${state.units?.filter((u: any) => u.owner).length || 0} asignadas`} icon={Building2} />
+            </div>
+            <div className="admin-grid">
             <Panel title="Nuevo propietario" icon={Users}>
               <form className="admin-form" onSubmit={submitOwner}>
                 <Field label="Nombre" name="name" required />
@@ -1124,11 +1170,23 @@ export function AdminPreviewPage() {
                 </Actions>]
               ]} />
             </Panel>}
-          </div>
+            </div>
+          </>
         )}
 
         {tab === 'operaciones' && (
-          <div className="admin-grid">
+          <>
+            <div className="admin-page-head">
+              <div>
+                <div className="admin-page-kicker"><span className="dot" />Operaciones</div>
+                <h1 className="admin-page-title">Operaciones</h1>
+                <div className="admin-page-sub">Votaciones, reservas y visitas · {state.config?.consortiumName || 'Tu organización'}</div>
+              </div>
+              <div className="admin-page-actions">
+                <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
+              </div>
+            </div>
+            <div className="admin-grid">
             {!hasOperations && <Empty text="No hay modulos operativos habilitados para esta organizacion." />}
             {moduleEnabled('votes') && <Panel title="Nueva votacion" icon={Vote}>
               <form className="admin-form" onSubmit={submitVote}>
@@ -1209,11 +1267,23 @@ export function AdminPreviewPage() {
                 </Actions>]
               ]} />
             </Panel>}
-          </div>
+            </div>
+          </>
         )}
 
         {tab === 'proveedores' && (
-          <div className="admin-grid two">
+          <>
+            <div className="admin-page-head">
+              <div>
+                <div className="admin-page-kicker"><span className="dot" />Administración</div>
+                <h1 className="admin-page-title">Proveedores</h1>
+                <div className="admin-page-sub">{state.providers?.length || 0} proveedores registrados · {state.config?.consortiumName || 'Tu organización'}</div>
+              </div>
+              <div className="admin-page-actions">
+                <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
+              </div>
+            </div>
+            <div className="admin-grid two">
             <Panel title="Nuevo proveedor" icon={Landmark}>
               <form className="admin-form" onSubmit={submitProvider}>
                 <Field label="Nombre" name="name" required />
@@ -1240,11 +1310,23 @@ export function AdminPreviewPage() {
                 ['Acciones', (p: any) => <Actions><button onClick={() => run(idOf(p), () => adminApi.providers.delete(idOf(p)), 'Proveedor eliminado.')}>Eliminar</button></Actions>]
               ]} />
             </Panel>
-          </div>
+            </div>
+          </>
         )}
 
         {tab === 'config' && (
-          <div className="admin-grid two">
+          <>
+            <div className="admin-page-head">
+              <div>
+                <div className="admin-page-kicker"><span className="dot" />Administración</div>
+                <h1 className="admin-page-title">Configuración</h1>
+                <div className="admin-page-sub">{state.config?.consortiumName || 'Tu organización'} · Ajustes generales del consorcio</div>
+              </div>
+              <div className="admin-page-actions">
+                <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
+              </div>
+            </div>
+            <div className="admin-grid two">
             <Panel title="Configuracion general" icon={Settings}>
               <form className="admin-form" onSubmit={submitConfig}>
                 <Field label="Nombre" name="consortiumName" defaultValue={state.config?.consortiumName} />
@@ -1320,7 +1402,8 @@ export function AdminPreviewPage() {
                 </Actions>]
               ]} />
             </Panel>
-          </div>
+            </div>
+          </>
         )}
       </section>
     </main>
