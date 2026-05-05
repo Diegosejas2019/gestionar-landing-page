@@ -293,6 +293,7 @@ function orgLogoText(name: string) {
 
 export function AdminPreviewPage() {
   const [tab, setTab] = useState<TabKey>('inicio');
+  const [finSubTab, setFinSubTab] = useState<'cobranza' | 'egresos'>('cobranza');
   const [loading, setLoading] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
   const [busy, setBusy] = useState('');
@@ -873,62 +874,111 @@ export function AdminPreviewPage() {
               </div>
             </div>
 
-            <div className="metric-grid">
-              <Metric loading={loading} label="Ingresos del mes" value={money(state.report?.income?.total)} hint={month} icon={CreditCard} />
-              <Metric loading={loading} label="Egresos del mes" value={money(state.report?.expenses?.total)} hint="Gastos pagados" icon={FileText} />
-              <Metric loading={loading} label="Resultado" value={money(state.report?.balance)} hint="Saldo mensual" icon={Landmark} />
-              <Metric loading={loading} label="Pendientes" value={state.dashboard?.pending || 0} hint="Por revisar" icon={Bell}
+            <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+              <Metric loading={loading} label="Recaudado" value={money(state.report?.income?.total)} hint={month} icon={CreditCard}
+                delta={state.payments?.filter((p: any) => p.status === 'approved').length > 0 ? { text: `${state.payments.filter((p: any) => p.status === 'approved').length} pagos aprobados`, trend: 'pos' } : undefined} />
+              <Metric loading={loading} label="Por cobrar" value={money(state.payments?.filter((p: any) => p.status === 'pending').reduce((s: number, p: any) => s + Number(p.amount || 0), 0))} hint="Pendientes de revisión" icon={Bell}
                 delta={(state.dashboard?.pending ?? 0) > 0 ? { text: `${state.dashboard.pending} sin aprobar`, trend: 'neg' } : undefined} />
+              <Metric loading={loading} label="Egresos del mes" value={money(state.report?.expenses?.total)} hint="Gastos del período" icon={FileText} />
+              <Metric loading={loading} label="Resultado" value={money(state.report?.balance)} hint="Saldo mensual" icon={Landmark}
+                delta={state.report?.income?.total ? { text: `${state.report.balance >= 0 ? '+' : ''}${Math.round(((state.report.balance || 0) / (state.report.income.total || 1)) * 100)}% margen`, trend: (state.report.balance ?? 0) >= 0 ? 'pos' : 'neg' } : undefined} />
+              <Metric loading={loading} label="Próx. vencimiento" value={`Día ${state.config?.dueDayOfMonth || '—'}`} hint="Día de cobro mensual" icon={CalendarCheck} />
             </div>
 
-            <CobroStrip payments={state.payments} loading={loading} />
-            <div className="admin-grid">
-            <Panel title="Pagos" icon={CreditCard}>
-              <Table loading={loading} searchPlaceholder="Buscar propietario, unidad o periodo" filters={[
-                statusFilter(['pending', 'approved', 'rejected']),
-                monthFilter((p) => p.month || String(p.createdAt || '').slice(0, 7), month)
-              ]} rows={state.payments} columns={[
-                ['Propietario', (p: any) => person(p)],
-                ['Unidad', (p: any) => unitLabel(p)],
-                ['Periodo', (p: any) => p.month || dateLabel(p.createdAt)],
-                ['Monto', (p: any) => money(p.amount)],
-                ['Canal', (p: any) => <PaymentChannel payment={p} />],
-                ['Estado', (p: any) => <Status value={p.status} />],
-                ['Acciones', (p: any) => p.status === 'pending' ? <Actions>
-                  <button onClick={() => run(idOf(p), () => adminApi.payments.approve(idOf(p)), 'Pago aprobado.')}>Aprobar</button>
-                  <button onClick={() => run(idOf(p), () => adminApi.payments.reject(idOf(p), window.prompt('Motivo de rechazo') || 'Rechazado'), 'Pago rechazado.')}>Rechazar</button>
-                </Actions> : null]
-              ]} />
-            </Panel>
-
-            <Panel title="Registrar gasto" icon={FileText}>
-              <form className="admin-form" onSubmit={submitExpense}>
-                <Field label="Descripcion" name="description" required />
-                <Field label="Monto" name="amount" type="number" required />
-                <Field label="Fecha" name="date" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required />
-                <SelectField label="Categoria" name="category" defaultValue="maintenance">
-                  <option value="cleaning">Limpieza</option><option value="security">Seguridad</option><option value="maintenance">Mantenimiento</option><option value="utilities">Servicios</option><option value="administration">Administracion</option><option value="other">Otros</option>
-                </SelectField>
-                <button className="btn btn-primary" disabled={busy === 'expense'}>Guardar gasto</button>
-              </form>
-            </Panel>
-
-            <Panel title="Gastos" icon={FileText}>
-              <Table loading={loading} searchPlaceholder="Buscar descripcion, categoria o proveedor" filters={[
-                statusFilter(['paid', 'unpaid', 'pending']),
-                categoryFilter()
-              ]} rows={state.expenses} columns={[
-                ['Descripcion', (e: any) => e.description],
-                ['Categoria', (e: any) => e.category],
-                ['Monto', (e: any) => money(e.amount)],
-                ['Estado', (e: any) => <Status value={e.status} />],
-                ['Acciones', (e: any) => e.status === 'pending' ? <Actions>
-                  <button onClick={() => run(idOf(e), () => adminApi.expenses.paid(idOf(e)), 'Gasto marcado como pagado.')}>Pagar</button>
-                  <button onClick={() => run(idOf(e), () => adminApi.expenses.delete(idOf(e)), 'Gasto eliminado.')}>Eliminar</button>
-                </Actions> : null]
-              ]} />
-            </Panel>
+            {/* Sub-tab bar */}
+            <div className="fin-tabs-bar">
+              <div className="fin-tabs">
+                <button className={`fin-tab${finSubTab === 'cobranza' ? ' is-active' : ''}`} onClick={() => setFinSubTab('cobranza')}>
+                  Cobranza <span className="fin-tab-count">{state.payments?.length || 0}</span>
+                </button>
+                <button className={`fin-tab${finSubTab === 'egresos' ? ' is-active' : ''}`} onClick={() => setFinSubTab('egresos')}>
+                  Egresos <span className="fin-tab-count">{state.expenses?.length || 0}</span>
+                </button>
+              </div>
+              {finSubTab === 'cobranza' && (
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <span className="chip is-active">{month} <ChevronDown size={12} /></span>
+                  <span className="chip">Estado <ChevronDown size={12} /></span>
+                </div>
+              )}
             </div>
+
+            {finSubTab === 'cobranza' && (
+              <>
+                <CobroStrip payments={state.payments} loading={loading} />
+                <div className="admin-panel">
+                  <div className="fin-table-toolbar">
+                    <input className="admin-search-input" placeholder="Buscar propietario, unidad o comprobante…" />
+                    <span className="fin-table-count">{state.payments?.length || 0} resultados</span>
+                    <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+                      <button className="btn btn-ghost btn-sm" onClick={() => refresh(tab)}><RefreshCw size={12} />Actualizar</button>
+                    </div>
+                  </div>
+                  <Table loading={loading} searchPlaceholder="Buscar propietario, unidad o comprobante" filters={[
+                    statusFilter(['pending', 'approved', 'rejected']),
+                    monthFilter((p) => p.month || String(p.createdAt || '').slice(0, 7), month)
+                  ]} rows={state.payments} columns={[
+                    ['Unidad', (p: any) => <span className="fin-lote">{unitLabel(p) || p.owner?.unit || '—'}</span>],
+                    ['Propietario', (p: any) => (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div className="owner-avatar sm">{adminInitials(person(p))}</div>
+                        <div>
+                          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-bright)' }}>{person(p)}</div>
+                          <div style={{ fontSize: 11, color: 'var(--muted)' }}>{p.owner?.email || ''}</div>
+                        </div>
+                      </div>
+                    )],
+                    ['Período', (p: any) => <span className="fin-mono">{p.month || dateLabel(p.createdAt)}</span>],
+                    ['Estado', (p: any) => <Status value={p.status} />],
+                    ['Canal', (p: any) => <PaymentChannel payment={p} />],
+                    ['Monto', (p: any) => <span className="fin-mono fin-strong">{money(p.amount)}</span>],
+                    ['Acciones', (p: any) => p.status === 'pending' ? <Actions>
+                      <button onClick={() => run(idOf(p), () => adminApi.payments.approve(idOf(p)), 'Pago aprobado.')}>Aprobar</button>
+                      <button onClick={() => run(idOf(p), () => adminApi.payments.reject(idOf(p), window.prompt('Motivo de rechazo') || 'Rechazado'), 'Pago rechazado.')}>Rechazar</button>
+                    </Actions> : null]
+                  ]} />
+                </div>
+              </>
+            )}
+
+            {finSubTab === 'egresos' && (
+              <div className="com-layout">
+                <div className="com-main">
+                  <div className="admin-panel">
+                    <Table loading={loading} searchPlaceholder="Buscar descripción, categoría o proveedor" filters={[
+                      statusFilter(['paid', 'pending']),
+                      categoryFilter()
+                    ]} rows={state.expenses} columns={[
+                      ['Descripción', (e: any) => <span style={{ fontWeight: 500, color: 'var(--text-bright)', fontSize: 13 }}>{e.description}</span>],
+                      ['Categoría', (e: any) => {
+                        const catLabels: Record<string, string> = { cleaning: 'Limpieza', security: 'Seguridad', maintenance: 'Mantenimiento', utilities: 'Servicios', administration: 'Administración', other: 'Otros' };
+                        return <span className="fin-cat">{catLabels[e.category] || e.category}</span>;
+                      }],
+                      ['Fecha', (e: any) => <span className="fin-mono">{dateLabel(e.date)}</span>],
+                      ['Monto', (e: any) => <span className="fin-mono fin-strong">{money(e.amount)}</span>],
+                      ['Estado', (e: any) => <Status value={e.status} />],
+                      ['Acciones', (e: any) => e.status === 'pending' ? <Actions>
+                        <button onClick={() => run(idOf(e), () => adminApi.expenses.paid(idOf(e)), 'Gasto marcado como pagado.')}>Pagar</button>
+                        <button onClick={() => run(idOf(e), () => adminApi.expenses.delete(idOf(e)), 'Gasto eliminado.')}>Eliminar</button>
+                      </Actions> : null]
+                    ]} />
+                  </div>
+                </div>
+                <div className="com-side">
+                  <Panel title="Registrar gasto" icon={FileText}>
+                    <form className="admin-form" onSubmit={submitExpense}>
+                      <Field label="Descripcion" name="description" required />
+                      <Field label="Monto" name="amount" type="number" required />
+                      <Field label="Fecha" name="date" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required />
+                      <SelectField label="Categoria" name="category" defaultValue="maintenance">
+                        <option value="cleaning">Limpieza</option><option value="security">Seguridad</option><option value="maintenance">Mantenimiento</option><option value="utilities">Servicios</option><option value="administration">Administracion</option><option value="other">Otros</option>
+                      </SelectField>
+                      <button className="btn btn-primary" disabled={busy === 'expense'}>Guardar gasto</button>
+                    </form>
+                  </Panel>
+                </div>
+              </div>
+            )}
           </>
         )}
 
