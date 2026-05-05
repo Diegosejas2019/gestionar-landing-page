@@ -145,7 +145,17 @@ function Empty({ text = 'Sin datos para mostrar.' }: { text?: string }) {
 }
 
 function Status({ value }: { value?: string }) {
-  return <span className={`status-pill ${value || 'idle'}`}>{statusText[value || ''] || value || '-'}</span>;
+  const tone = (value === 'approved' || value === 'paid' || value === 'resolved' || value === 'exited' || value === 'active') ? 'pos'
+    : (value === 'rejected' || value === 'cancelled') ? 'neg'
+    : (value === 'pending' || value === 'open' || value === 'in_progress' || value === 'inside') ? 'warn'
+    : (value === 'closed') ? 'muted'
+    : '';
+  return (
+    <span className={`pill ${tone}`}>
+      <span className="d" />
+      {statusText[value || ''] || value || '-'}
+    </span>
+  );
 }
 
 function statusFilter(statuses: string[]): GridFilter {
@@ -783,19 +793,19 @@ export function AdminPreviewPage() {
         {notice && <div className={`admin-notice ${notice.type}`}>{notice.text}</div>}
         {tab === 'inicio' && (
           <>
-            <section className="admin-hero">
-              <div className="admin-hero-greeting">
-                <span className="admin-kicker">Vista general</span>
-                <h2>Buen día, {state.me?.name?.split(' ')[0] || 'admin'}</h2>
-                <p className="admin-hero-sub">
+            <div className="admin-page-head">
+              <div>
+                <div className="admin-page-kicker"><span className="dot" />Vista general</div>
+                <h1 className="admin-page-title">Buen día, {state.me?.name?.split(' ')[0] || 'admin'}</h1>
+                <div className="admin-page-sub">
                   {state.config?.consortiumName || 'Tu organización'} · {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
-                </p>
+                </div>
               </div>
-              <div className="admin-hero-actions">
-                <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={15} /> Actualizar</button>
-                <button className="btn btn-primary" onClick={() => setTab('finanzas')}><CreditCard size={16} /> Revisar pagos</button>
+              <div className="admin-page-actions">
+                <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
+                <button className="btn btn-primary" onClick={() => setTab('finanzas')}><CreditCard size={14} />Revisar pagos</button>
               </div>
-            </section>
+            </div>
 
             <div className="metric-grid">
               <Metric loading={loading} label="Recaudacion anual" value={money(totalIncome)} hint={`${state.dashboard?.approved || 0} pagos aprobados`} icon={ShieldCheck}
@@ -1317,41 +1327,44 @@ export function AdminPreviewPage() {
   );
 }
 
-function Metric({ label, value, hint, delta, icon: Icon, loading }: {
+function Metric({ label, value, hint, delta, icon: _Icon, loading }: {
   label: string; value: string | number; hint: string;
   delta?: { text: string; trend: 'pos' | 'neg' | 'neutral' };
   icon: any; loading?: boolean
 }) {
   if (loading) {
     return (
-      <article className="metric-card">
-        <div className="metric-icon skeleton-box" />
-        <span className="skeleton-line short" />
-        <span className="skeleton-line big" />
-        <span className="skeleton-line" />
+      <article className="metric">
+        <div className="skeleton-line short" style={{ marginBottom: 8 }} />
+        <div className="skeleton-line big" />
+        <div className="skeleton-line" style={{ width: '55%', marginTop: 6 }} />
       </article>
     );
   }
 
   return (
-    <article className="metric-card">
-      <div className="metric-icon"><Icon size={18} /></div>
-      <small>{label}</small>
-      <b>{value}</b>
-      {delta && <span className={`metric-delta ${delta.trend}`}>{delta.text}</span>}
-      <span>{hint}</span>
+    <article className="metric">
+      <div className="m-label">{label}</div>
+      <div className="m-value">{value}</div>
+      {delta && <div className={`m-delta ${delta.trend}`}>{delta.text}</div>}
+      {hint && <div className="m-meta">{hint}</div>}
     </article>
   );
 }
 
-function Panel({ title, icon: Icon, action, children }: { title: string; icon: any; action?: ReactNode; children: ReactNode }) {
+function Panel({ title, sub, icon: _Icon, action, children }: { title: string; sub?: string; icon: any; action?: ReactNode; children: ReactNode }) {
   return (
-    <section className="admin-panel">
-      <div className="panel-head">
-        <h2><Icon size={18} /> {title}</h2>
-        {action}
+    <section className="card">
+      <div className="card-h">
+        <div>
+          <h3>{title}</h3>
+          {sub && <div className="card-sub">{sub}</div>}
+        </div>
+        {action && <div style={{ flexShrink: 0 }}>{action}</div>}
       </div>
-      {children}
+      <div className="card-body">
+        {children}
+      </div>
     </section>
   );
 }
@@ -1427,8 +1440,8 @@ function Table({
 
       {!filteredRows.length ? <Empty text="No hay registros con esos filtros." /> : (
         <>
-          <div className="admin-table-wrap">
-            <table className="admin-table">
+          <div className="tbl-wrap">
+            <table className="tbl">
               <thead><tr>{columns.map(([label]) => <th key={label}>{label}</th>)}</tr></thead>
               <tbody>
                 {visibleRows.map((row, index) => (
