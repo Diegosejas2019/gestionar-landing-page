@@ -900,6 +900,32 @@ export function AdminPreviewPage() {
                 ['Acciones', (o: any) => <Actions><button onClick={() => run(idOf(o), () => adminApi.owners.delete(idOf(o)), 'Propietario eliminado.')}>Eliminar</button></Actions>]
               ]} />
             </Panel>
+            <Panel title="Nueva unidad" icon={Building2}>
+              <form className="admin-form" onSubmit={submitUnit}>
+                <Field label="Nombre" name="name" required />
+                <SelectField label="Propietario" name="owner"><option value="">Sin asignar</option>{state.owners.map((owner: any) => <option key={idOf(owner)} value={idOf(owner)}>{owner.name}</option>)}</SelectField>
+                <Field label="Coeficiente" name="coefficient" type="number" />
+                <Field label="Cuota custom" name="customFee" type="number" />
+                <button className="btn btn-primary" disabled={busy === 'unit'}>Crear unidad</button>
+              </form>
+            </Panel>
+            <Panel title="Unidades" icon={Building2}>
+              <Table loading={loading} searchPlaceholder="Buscar unidad o propietario" filters={[
+                {
+                  key: 'assigned',
+                  label: 'Asignacion',
+                  allLabel: 'Todas',
+                  options: [{ value: 'yes', label: 'Asignadas' }, { value: 'no', label: 'Sin asignar' }],
+                  match: (row, value) => value === 'yes' ? !!row.owner : !row.owner
+                }
+              ]} rows={state.units} columns={[
+                ['Nombre', (u: any) => u.name],
+                ['Propietario', (u: any) => u.owner?.name || '-'],
+                ['Coef.', (u: any) => u.coefficient || '-'],
+                ['Cuota', (u: any) => money(u.finalFee || u.customFee)],
+                ['Acciones', (u: any) => <Actions><button onClick={() => run(idOf(u), () => adminApi.units.delete(idOf(u)), 'Unidad eliminada.')}>Eliminar</button></Actions>]
+              ]} />
+            </Panel>
             {moduleEnabled('notices') && <Panel title="Nuevo comunicado" icon={Megaphone}>
               <form className="admin-form" onSubmit={submitNotice}>
                 <Field label="Titulo" name="title" required />
@@ -1070,32 +1096,6 @@ export function AdminPreviewPage() {
                 <Field label="CBU" name="bankCbu" defaultValue={state.config?.bankCbu} />
                 <button className="btn btn-primary" disabled={busy === 'config'}>Guardar configuracion</button>
               </form>
-            </Panel>
-            <Panel title="Nueva unidad" icon={Building2}>
-              <form className="admin-form" onSubmit={submitUnit}>
-                <Field label="Nombre" name="name" required />
-                <SelectField label="Propietario" name="owner"><option value="">Sin asignar</option>{state.owners.map((owner: any) => <option key={idOf(owner)} value={idOf(owner)}>{owner.name}</option>)}</SelectField>
-                <Field label="Coeficiente" name="coefficient" type="number" />
-                <Field label="Cuota custom" name="customFee" type="number" />
-                <button className="btn btn-primary" disabled={busy === 'unit'}>Crear unidad</button>
-              </form>
-            </Panel>
-            <Panel title="Unidades" icon={Building2}>
-              <Table loading={loading} searchPlaceholder="Buscar unidad o propietario" filters={[
-                {
-                  key: 'assigned',
-                  label: 'Asignacion',
-                  allLabel: 'Todas',
-                  options: [{ value: 'yes', label: 'Asignadas' }, { value: 'no', label: 'Sin asignar' }],
-                  match: (row, value) => value === 'yes' ? !!row.owner : !row.owner
-                }
-              ]} rows={state.units} columns={[
-                ['Nombre', (u: any) => u.name],
-                ['Propietario', (u: any) => u.owner?.name || '-'],
-                ['Coef.', (u: any) => u.coefficient || '-'],
-                ['Cuota', (u: any) => money(u.finalFee || u.customFee)],
-                ['Acciones', (u: any) => <Actions><button onClick={() => run(idOf(u), () => adminApi.units.delete(idOf(u)), 'Unidad eliminada.')}>Eliminar</button></Actions>]
-              ]} />
             </Panel>
           </div>
         )}
