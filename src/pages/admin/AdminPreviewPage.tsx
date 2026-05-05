@@ -1,6 +1,6 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
 import {
-  Bell, Building2, CalendarCheck, CreditCard, FileText, Home, Landmark,
+  Bell, Building2, CalendarCheck, CreditCard, FileText, Home, Inbox, Landmark,
   LogOut, Megaphone, MessageSquare, RefreshCw, Settings, ShieldCheck, UserRoundCog, Users, Vote, WalletCards
 } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
@@ -120,7 +120,12 @@ function PaymentChannel({ payment }: { payment: any }) {
 }
 
 function Empty({ text = 'Sin datos para mostrar.' }: { text?: string }) {
-  return <div className="admin-empty">{text}</div>;
+  return (
+    <div className="admin-empty">
+      <Inbox size={28} />
+      <span>{text}</span>
+    </div>
+  );
 }
 
 function Status({ value }: { value?: string }) {
@@ -1266,15 +1271,30 @@ function CompactList({ rows, loading = false }: { rows: any[]; loading?: boolean
   }
 
   if (!rows?.length) return <Empty text="No hay pendientes abiertos." />;
+  const iconColor: Record<string, { bg: string; color: string }> = {
+    pending: { bg: 'rgba(245,194,101,0.12)', color: '#f5c265' },
+    open: { bg: 'rgba(245,194,101,0.12)', color: '#f5c265' },
+    in_progress: { bg: 'rgba(124,198,240,0.12)', color: '#7cc6f0' },
+    approved: { bg: 'rgba(110,232,151,0.12)', color: '#6ee897' },
+    rejected: { bg: 'rgba(240,138,138,0.12)', color: '#f08a8a' },
+  };
   return (
     <div className="compact-list">
-      {rows.map((row, index) => (
-        <div key={idOf(row) || index}>
-          <b>{row.title || person(row)}</b>
-          <span>{row.amount ? money(row.amount) : row.description || row.month || dateLabel(row.createdAt)}</span>
-          <Status value={row.status} />
-        </div>
-      ))}
+      {rows.map((row, index) => {
+        const ic = iconColor[row.status] || { bg: 'rgba(255,255,255,0.06)', color: 'var(--text-faint)' };
+        return (
+          <div key={idOf(row) || index}>
+            <div className="compact-list-icon" style={{ background: ic.bg, color: ic.color }}>
+              {row.amount ? <CreditCard size={15} /> : <MessageSquare size={15} />}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <b>{row.title || person(row)}</b>
+              <span>{row.amount ? money(row.amount) : row.description || row.month || dateLabel(row.createdAt)}</span>
+            </div>
+            <div className="compact-list-trail"><Status value={row.status} /></div>
+          </div>
+        );
+      })}
     </div>
   );
 }
