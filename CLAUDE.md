@@ -20,7 +20,7 @@ La landing y el dashboard usan los endpoints reales de `consorcio-api`. No se de
 - CSS propio en `src/styles.css`.
 - Iconos con `lucide-react`.
 - Routing simple por `window.location.pathname` en `src/App.tsx`.
-
+<!--  -->
 Scripts:
 
 ```bash
@@ -111,7 +111,7 @@ La landing incluye:
 - Beneficios.
 - Modulos y servicios.
 - Proceso.
-- Planes oculto temporalmente en la UI publica.
+- Planes.
 - FAQ.
 - Contacto.
 - Footer.
@@ -211,9 +211,8 @@ Centraliza endpoints del dashboard:
 - `visits`
 - `spaces`
 - `reservations`
+- `support`
 - `config`
-- `organizations.features`
-- `superAdminApi.support`
 - `superAdminApi.organizations`
 
 Mantener este archivo como punto unico para llamadas del dashboard.
@@ -245,31 +244,8 @@ Navegacion actual:
 - Comunidad
 - Operaciones
 - Proveedores
+- Soporte
 - Configuracion
-
-La navegacion y los paneles respetan los modulos configurados en `GET /organizations/:id/features`.
-Defaults conocidos:
-
-- `visits`: deshabilitado por defecto.
-- `reservations`: deshabilitado por defecto.
-- `votes`: habilitado por defecto.
-- `claims`: habilitado por defecto.
-- `notices`: habilitado por defecto.
-- `expenses`: habilitado por defecto.
-- `providers`: habilitado por defecto.
-
-Reglas actuales:
-
-- SuperAdmin habilita/deshabilita modulos por organizacion desde `/super-admin`.
-- Solo SuperAdmin ve y gestiona la seccion Soporte.
-- Admin no puede editar modulos.
-- Admin carga las features de su organizacion antes de pedir endpoints modulares.
-- Si `visits` esta apagado, no se muestra el panel de Visitas ni se llama a `/visits`.
-- Si `reservations` esta apagado, no se muestran Espacios/Reservas ni se llaman `/spaces` o `/reservations`.
-- Si `votes` esta apagado, no se muestran formularios/listas de Votaciones.
-- Si `claims` esta apagado, no se muestran metricas/listas/acciones de Reclamos.
-- Si `notices` esta apagado, no se muestran Comunicados ni el formulario de publicacion.
-- Si no hay modulos operativos activos, el tab Operaciones se oculta.
 
 ### Inicio
 
@@ -334,6 +310,14 @@ Incluye:
 - Grilla de proveedores.
 - Eliminacion de proveedor.
 
+### Soporte
+
+Incluye:
+
+- Grilla de tickets de soporte.
+- Cambiar ticket a en progreso.
+- Resolver ticket con respuesta.
+
 ### Configuracion
 
 Incluye:
@@ -379,7 +363,6 @@ Incluye:
 - Estado actual, fecha de desactivacion y motivo en el detalle.
 - Features por organizacion.
 - Miembros de la organizacion seleccionada.
-- Soporte global: grilla de tickets de todas las organizaciones y acciones de seguimiento/resolucion.
 - Skeletons, busqueda, paginacion y selector de cantidad.
 
 ## Grillas
@@ -508,6 +491,8 @@ Dashboard/admin:
 - `DELETE /spaces/:id`
 - `GET /reservations`
 - `PATCH /reservations/:id/status`
+- `GET /support-tickets`
+- `PATCH /support-tickets/:id`
 - `GET /config`
 - `PATCH /config`
 
@@ -589,7 +574,7 @@ npm run build
 
 Ultimo estado conocido:
 
-- Build correcto despues de agregar dashboard, grillas, skeletons, filtros, SuperAdmin y gating por modulos de organizacion.
+- Build correcto despues de agregar dashboard, grillas, skeletons, filtros y fallback productivo de API.
 
 ## Pendientes Posibles
 
