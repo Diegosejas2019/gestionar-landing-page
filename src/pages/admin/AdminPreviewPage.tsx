@@ -907,13 +907,6 @@ export function AdminPreviewPage() {
               <>
                 <CobroStrip payments={state.payments} loading={loading} />
                 <div className="admin-panel">
-                  <div className="fin-table-toolbar">
-                    <input className="admin-search-input" placeholder="Buscar propietario, unidad o comprobante…" />
-                    <span className="fin-table-count">{state.payments?.length || 0} resultados</span>
-                    <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-                      <button className="btn btn-ghost btn-sm" onClick={() => refresh(tab)}><RefreshCw size={12} />Actualizar</button>
-                    </div>
-                  </div>
                   <Table loading={loading} searchPlaceholder="Buscar propietario, unidad o comprobante" filters={[
                     statusFilter(['pending', 'approved', 'rejected']),
                     monthFilter((p) => p.month || String(p.createdAt || '').slice(0, 7), month)
