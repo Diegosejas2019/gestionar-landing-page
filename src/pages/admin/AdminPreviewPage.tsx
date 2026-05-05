@@ -87,6 +87,22 @@ const paymentMethodLabels: Record<string, string> = {
   mercadopago: 'MercadoPago'
 };
 
+const documentCategoryLabels: Record<string, string> = {
+  regulation: 'Reglamento',
+  map: 'Mapa',
+  rules: 'Normas de convivencia',
+  assembly: 'Asamblea',
+  insurance: 'Seguro',
+  payment: 'Pagos',
+  contract: 'Contrato',
+  other: 'Otro'
+};
+
+const documentVisibilityLabels: Record<string, string> = {
+  admin: 'Solo administradores',
+  owners: 'Visible para propietarios'
+};
+
 function pick<T>(response: any, key: string, fallback: T): T {
   return response?.data?.[key] ?? fallback;
 }
@@ -258,7 +274,7 @@ export function AdminPreviewPage() {
   const [state, setState] = useState<any>({
     me: null, config: {}, ownerStats: {}, dashboard: {}, report: {},
     owners: [], units: [], payments: [], notices: [], claims: [], expenses: [],
-    employees: [], salaries: [], providers: [], votes: [], visits: [], spaces: [], reservations: [],
+    employees: [], salaries: [], providers: [], votes: [], visits: [], spaces: [], reservations: [], orgDocuments: [],
     features: defaultFeatures
   });
 
@@ -388,12 +404,8 @@ export function AdminPreviewPage() {
       }
 
       if (target === 'config') {
-        const [units, owners] = await Promise.all([
-          adminApi.units.list({ limit: 100 }),
-          adminApi.owners.list({ limit: 100 })
-        ]);
-        next.units = pick(units, 'units', []);
-        next.owners = pick(owners, 'owners', []);
+        const documents = await adminApi.documents.list();
+        next.orgDocuments = pick(documents, 'documents', []);
       }
 
       setState((current: any) => ({ ...current, ...next }));
@@ -603,6 +615,47 @@ export function AdminPreviewPage() {
       lateFeePercent: Number(data.lateFeePercent || 0),
       lateFeeFixed: Number(data.lateFeeFixed || 0)
     }), 'Configuracion actualizada.');
+  }
+
+  function submitMercadoPago(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = formObject(event);
+    const update: Record<string, unknown> = {
+      mpPublicKey: String(data.mpPublicKey || '').trim()
+    };
+    const token = String(data.mpAccessToken || '').trim();
+    const secret = String(data.mpWebhookSecret || '').trim();
+    if (token) update.mpAccessToken = token;
+    if (secret) update.mpWebhookSecret = secret;
+
+    run('mercadopago', () => adminApi.config.update(update), 'Credenciales de MercadoPago actualizadas.');
+    event.currentTarget.reset();
+  }
+
+  function submitOrgDocument(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const file = (form.elements.namedItem('file') as HTMLInputElement | null)?.files?.[0];
+    if (!file) {
+      setNotice({ type: 'error', text: 'Selecciona un archivo para guardar.' });
+      return;
+    }
+
+    const formData = new FormData(form);
+    run('org-document', () => adminApi.documents.create(formData), 'Archivo de organizacion guardado.');
+    form.reset();
+  }
+
+  async function downloadOrgDocument(document: any) {
+    await run(idOf(document), async () => {
+      const blob = await adminApi.documents.download(idOf(document));
+      const url = URL.createObjectURL(blob);
+      const anchor = window.document.createElement('a');
+      anchor.href = url;
+      anchor.download = document.file?.filename || `${document.title || 'documento'}.pdf`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    }, 'Descarga preparada.');
   }
 
   return (
@@ -1096,6 +1149,62 @@ export function AdminPreviewPage() {
                 <Field label="CBU" name="bankCbu" defaultValue={state.config?.bankCbu} />
                 <button className="btn btn-primary" disabled={busy === 'config'}>Guardar configuracion</button>
               </form>
+            </Panel>
+            <Panel title="MercadoPago" icon={CreditCard}>
+              <form className="admin-form" onSubmit={submitMercadoPago}>
+                <label className="admin-field full">
+                  <span>Estado</span>
+                  <input value={state.config?.hasMercadoPago ? 'Configurado' : 'No configurado'} disabled readOnly />
+                </label>
+                <Field label="Public Key" name="mpPublicKey" defaultValue={state.config?.mpPublicKey || ''} placeholder="APP_USR-..." />
+                <Field label="Access Token" name="mpAccessToken" type="password" placeholder="Completar solo para actualizar" />
+                <Field label="Webhook Secret" name="mpWebhookSecret" type="password" placeholder="Opcional" />
+                <p className="admin-form-note">Por seguridad, el Access Token no se muestra. Si lo dejas vacio, se conserva el valor actual.</p>
+                <button className="btn btn-primary" disabled={busy === 'mercadopago'}>Guardar MercadoPago</button>
+              </form>
+            </Panel>
+            <Panel title="Archivos de organizacion" icon={FileText}>
+              <form className="admin-form" onSubmit={submitOrgDocument}>
+                <Field label="Titulo" name="title" required />
+                <SelectField label="Categoria" name="category" defaultValue="other">
+                  {Object.entries(documentCategoryLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </SelectField>
+                <SelectField label="Visibilidad" name="visibility" defaultValue="owners">
+                  {Object.entries(documentVisibilityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </SelectField>
+                <label className="admin-field">
+                  <span>Archivo</span>
+                  <input name="file" type="file" accept=".pdf,image/*" required />
+                </label>
+                <label className="admin-field full"><span>Descripcion</span><textarea name="description" rows={2} /></label>
+                <button className="btn btn-primary" disabled={busy === 'org-document'}>Guardar archivo</button>
+              </form>
+              <Table loading={loading} searchPlaceholder="Buscar archivo, categoria o visibilidad" filters={[
+                {
+                  key: 'category',
+                  label: 'Categoria',
+                  allLabel: 'Todas las categorias',
+                  options: Object.entries(documentCategoryLabels).map(([value, label]) => ({ value, label })),
+                  match: (row, value) => row.category === value
+                },
+                {
+                  key: 'visibility',
+                  label: 'Visibilidad',
+                  allLabel: 'Todas',
+                  options: Object.entries(documentVisibilityLabels).map(([value, label]) => ({ value, label })),
+                  match: (row, value) => row.visibility === value
+                }
+              ]} rows={state.orgDocuments} columns={[
+                ['Titulo', (doc: any) => doc.title],
+                ['Categoria', (doc: any) => doc.categoryLabel || documentCategoryLabels[doc.category] || doc.category],
+                ['Visibilidad', (doc: any) => doc.visibilityLabel || documentVisibilityLabels[doc.visibility] || doc.visibility],
+                ['Archivo', (doc: any) => doc.file?.filename || doc.fileTypeLabel || '-'],
+                ['Fecha', (doc: any) => dateLabel(doc.createdAt)],
+                ['Acciones', (doc: any) => <Actions>
+                  <button onClick={() => downloadOrgDocument(doc)}>Descargar</button>
+                  <button className="danger-action" onClick={() => run(idOf(doc), () => adminApi.documents.delete(idOf(doc)), 'Archivo eliminado.')}>Eliminar</button>
+                </Actions>]
+              ]} />
             </Panel>
           </div>
         )}

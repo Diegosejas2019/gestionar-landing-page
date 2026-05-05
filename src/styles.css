@@ -1690,7 +1690,8 @@ footer {
   grid-column: 1 / -1;
 }
 .admin-field span,
-.admin-check {
+.admin-check,
+.admin-form-note {
   color: var(--text-faint);
   font: 700 11px var(--font-mono);
   text-transform: uppercase;
@@ -1710,6 +1711,13 @@ footer {
   transition: border-color .18s, box-shadow .18s;
 }
 .admin-field textarea { resize: vertical; }
+.admin-form-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  text-transform: none;
+  letter-spacing: 0;
+  line-height: 1.6;
+}
 .admin-field input:focus,
 .admin-field select:focus,
 .admin-field textarea:focus {

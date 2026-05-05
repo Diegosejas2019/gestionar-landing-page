@@ -125,6 +125,13 @@ export const adminApi = {
     update: (data: Payload) => apiClient<any>('/config', { method: 'PATCH', auth: true, body: body(data) })
   },
 
+  documents: {
+    list: (params?: Params) => apiClient<any>(`/organization-documents${qs(params)}`, { auth: true }),
+    create: (data: FormData) => apiClient<any>('/organization-documents', { method: 'POST', auth: true, body: data }),
+    delete: (id: string) => apiClient<any>(`/organization-documents/${id}`, { method: 'DELETE', auth: true }),
+    download: (id: string) => apiBlob(`/organization-documents/${id}/download`, { auth: true })
+  },
+
   organizations: {
     features: (id: string) => apiClient<any>(`/organizations/${id}/features`, { auth: true })
   }
