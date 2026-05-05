@@ -1,7 +1,7 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
 import {
-  Bell, Building2, CalendarCheck, CreditCard, FileText, Home, Inbox, Landmark,
-  LogOut, Megaphone, MessageSquare, RefreshCw, Settings, ShieldCheck, UserRoundCog, Users, Vote, WalletCards
+  Bell, Building2, CalendarCheck, ChevronDown, CreditCard, FileText, Home, Inbox, Landmark,
+  LogOut, Megaphone, MessageSquare, RefreshCw, Search, Settings, ShieldCheck, UserRoundCog, Users, Vote, WalletCards
 } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
 import { isSuperAdminRole } from '../../services/authService';
@@ -259,6 +259,23 @@ function orgIdFromSession(me: any, config: any) {
     || (typeof membershipOrg === 'string' ? membershipOrg : membershipOrg?._id)
     || (typeof userOrg === 'string' ? userOrg : userOrg?._id)
     || '';
+}
+
+const tabCrumbs: Record<string, string[]> = {
+  inicio: ['Inicio'],
+  finanzas: ['Finanzas', 'Cobranza'],
+  personal: ['Administración', 'Personal'],
+  comunidad: ['Comunidad'],
+  operaciones: ['Operaciones'],
+  proveedores: ['Administración', 'Proveedores'],
+  config: ['Administración', 'Configuración'],
+};
+
+function adminInitials(name: string) {
+  return (name || 'Ad').split(' ').slice(0, 2).map((n) => n[0]?.toUpperCase() ?? '').join('');
+}
+function orgLogoText(name: string) {
+  return (name || '').split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || 'Or';
 }
 
 export function AdminPreviewPage() {
@@ -658,31 +675,108 @@ export function AdminPreviewPage() {
     }, 'Descarga preparada.');
   }
 
+  const adminName = state.me?.name || state.me?.data?.user?.name || 'Administrador';
+  const orgName = state.config?.consortiumName || '';
+  const crumbs = tabCrumbs[tab] || [tab];
+
   return (
     <main className={`admin-shell${busy ? ' is-busy' : ''}`}>
       <aside className="admin-sidebar">
         <a className="logo admin-logo" href="/">
           <span className="logo-mark" /> Gestion<span className="ar">ar</span>
         </a>
+
+        {orgName && (
+          <div className="admin-org-card">
+            <div className="admin-org-logo">{orgLogoText(orgName)}</div>
+            <div className="admin-org-meta">
+              <div className="admin-org-name">{orgName}</div>
+              <div className="admin-org-sub">{state.units?.length ?? 0} unidades</div>
+            </div>
+            <ChevronDown size={13} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+          </div>
+        )}
+
         <nav>
-          {visibleNav.map((item) => (
-            <button key={item.key} className={tab === item.key ? 'active' : ''} onClick={() => setTab(item.key)}>
-              <item.icon size={18} /> <span>{item.label}</span>
+          <div className="admin-nav-group-label">Workspace</div>
+          <button className={tab === 'inicio' ? 'active' : ''} onClick={() => setTab('inicio')}>
+            <Home size={16} /> <span>Inicio</span>
+          </button>
+          <button className={tab === 'finanzas' ? 'active' : ''} onClick={() => setTab('finanzas')}>
+            <CreditCard size={16} /> <span>Finanzas</span>
+            {(state.dashboard?.pending ?? 0) > 0 && (
+              <span className="admin-nav-badge">{state.dashboard.pending}</span>
+            )}
+          </button>
+
+          <div className="admin-nav-group-label">Comunidad</div>
+          <button className={tab === 'comunidad' ? 'active' : ''} onClick={() => setTab('comunidad')}>
+            <Users size={16} /> <span>Comunidad</span>
+          </button>
+
+          {hasOperations && (
+            <>
+              <div className="admin-nav-group-label">Operaciones</div>
+              <button className={tab === 'operaciones' ? 'active' : ''} onClick={() => setTab('operaciones')}>
+                <CalendarCheck size={16} /> <span>Operaciones</span>
+              </button>
+            </>
+          )}
+
+          <div className="admin-nav-group-label">Administración</div>
+          <button className={tab === 'personal' ? 'active' : ''} onClick={() => setTab('personal')}>
+            <UserRoundCog size={16} /> <span>Personal</span>
+          </button>
+          {moduleEnabled('providers') && (
+            <button className={tab === 'proveedores' ? 'active' : ''} onClick={() => setTab('proveedores')}>
+              <Landmark size={16} /> <span>Proveedores</span>
             </button>
-          ))}
+          )}
+          <button className={tab === 'config' ? 'active' : ''} onClick={() => setTab('config')}>
+            <Settings size={16} /> <span>Configuración</span>
+          </button>
         </nav>
+
+        <div className="admin-sidebar-foot">
+          <div className="admin-user-row">
+            <div className="admin-user-avatar">{adminInitials(adminName)}</div>
+            <div className="admin-user-info">
+              <b>{adminName}</b>
+              <span>Administrador</span>
+            </div>
+          </div>
+          <button className="btn btn-ghost" style={{ width: '100%', marginTop: '8px', height: '36px', fontSize: '13px', borderRadius: '10px' }} onClick={logout}>
+            <LogOut size={14} /> Cerrar sesión
+          </button>
+        </div>
       </aside>
 
       <section className="admin-workspace">
         <header className="admin-topbar">
-          <div>
-            <span className="admin-kicker">{state.config?.consortiumName || 'Panel web'}</span>
-            <h1>{visibleNav.find((item) => item.key === tab)?.label || nav.find((item) => item.key === tab)?.label}</h1>
+          <div className="admin-topbar-crumbs">
+            {crumbs.map((crumb, i) => (
+              <span key={i} className={i === crumbs.length - 1 ? 'cur' : ''}>
+                {i > 0 && <span className="sep" style={{ marginRight: '7px' }}>/</span>}
+                {crumb}
+              </span>
+            ))}
           </div>
-          <div className="admin-actions">
-            <button className="icon-btn" onClick={() => refresh(tab)} title="Actualizar"><RefreshCw size={18} /></button>
-            <button className="btn btn-ghost" onClick={logout}><LogOut size={17} /> Salir</button>
+          <div className="admin-topbar-search">
+            <Search size={13} />
+            <span>Buscar…</span>
+            <span className="kbd">⌘K</span>
           </div>
+          <div className="admin-topbar-sep" />
+          <button className="icon-btn" onClick={() => refresh(tab)} title="Actualizar">
+            <RefreshCw size={15} />
+          </button>
+          <button className="icon-btn" title="Notificaciones">
+            <Bell size={15} />
+            <span className="dot" />
+          </button>
+          <button className="icon-btn admin-topbar-logout" onClick={logout} title="Cerrar sesión">
+            <LogOut size={15} />
+          </button>
         </header>
 
         {busy && <BusyBanner />}
@@ -690,18 +784,28 @@ export function AdminPreviewPage() {
         {tab === 'inicio' && (
           <>
             <section className="admin-hero">
-              <div>
-                <span className="admin-kicker">Hola, {state.me?.name?.split(' ')[0] || 'admin'}</span>
-                <h2>Control operativo y financiero de {state.config?.consortiumName || 'tu organizacion'}.</h2>
+              <div className="admin-hero-greeting">
+                <span className="admin-kicker">Vista general</span>
+                <h2>Buen día, {state.me?.name?.split(' ')[0] || 'admin'}</h2>
+                <p className="admin-hero-sub">
+                  {state.config?.consortiumName || 'Tu organización'} · {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                </p>
               </div>
-              <button className="btn btn-primary" onClick={() => setTab('finanzas')}><CreditCard size={18} /> Revisar pagos</button>
+              <div className="admin-hero-actions">
+                <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={15} /> Actualizar</button>
+                <button className="btn btn-primary" onClick={() => setTab('finanzas')}><CreditCard size={16} /> Revisar pagos</button>
+              </div>
             </section>
 
             <div className="metric-grid">
-              <Metric loading={loading} label="Recaudacion anual" value={money(totalIncome)} hint={`${state.dashboard?.approved || 0} pagos aprobados`} icon={ShieldCheck} />
-              <Metric loading={loading} label="Pagos pendientes" value={state.dashboard?.pending || 0} hint="MP acreditado queda en revision" icon={CreditCard} />
-              <Metric loading={loading} label="Propietarios" value={state.ownerStats?.totalOwners || state.owners?.length || 0} hint={`${state.ownerStats?.upToDate || 0} al dia`} icon={Users} />
-              {moduleEnabled('claims') && <Metric loading={loading} label="Reclamos abiertos" value={state.claims?.length || 0} hint="Comunidad" icon={MessageSquare} />}
+              <Metric loading={loading} label="Recaudacion anual" value={money(totalIncome)} hint={`${state.dashboard?.approved || 0} pagos aprobados`} icon={ShieldCheck}
+                delta={(state.dashboard?.approved ?? 0) > 0 ? { text: `${state.dashboard.approved} aprobados`, trend: 'pos' } : undefined} />
+              <Metric loading={loading} label="Pagos pendientes" value={state.dashboard?.pending || 0} hint="MP acreditado queda en revision" icon={CreditCard}
+                delta={(state.dashboard?.pending ?? 0) > 0 ? { text: `${state.dashboard.pending} por revisar`, trend: 'neg' } : undefined} />
+              <Metric loading={loading} label="Propietarios" value={state.ownerStats?.totalOwners || state.owners?.length || 0} hint={`${state.ownerStats?.upToDate || 0} al dia`} icon={Users}
+                delta={(state.ownerStats?.upToDate ?? 0) > 0 ? { text: `${state.ownerStats.upToDate} al día`, trend: 'pos' } : undefined} />
+              {moduleEnabled('claims') && <Metric loading={loading} label="Reclamos abiertos" value={state.claims?.length || 0} hint="Comunidad" icon={MessageSquare}
+                delta={(state.claims?.length ?? 0) > 0 ? { text: `${state.claims.length} pendientes`, trend: 'neg' } : undefined} />}
             </div>
 
             <div className="admin-grid two">
@@ -1213,7 +1317,11 @@ export function AdminPreviewPage() {
   );
 }
 
-function Metric({ label, value, hint, icon: Icon, loading }: { label: string; value: string | number; hint: string; icon: any; loading?: boolean }) {
+function Metric({ label, value, hint, delta, icon: Icon, loading }: {
+  label: string; value: string | number; hint: string;
+  delta?: { text: string; trend: 'pos' | 'neg' | 'neutral' };
+  icon: any; loading?: boolean
+}) {
   if (loading) {
     return (
       <article className="metric-card">
@@ -1230,6 +1338,7 @@ function Metric({ label, value, hint, icon: Icon, loading }: { label: string; va
       <div className="metric-icon"><Icon size={18} /></div>
       <small>{label}</small>
       <b>{value}</b>
+      {delta && <span className={`metric-delta ${delta.trend}`}>{delta.text}</span>}
       <span>{hint}</span>
     </article>
   );
