@@ -1,5 +1,5 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Building2, Check, LayoutDashboard, LifeBuoy, LogOut, RefreshCw, Search, Shield, Users } from 'lucide-react';
+import { AlertTriangle, Building2, Check, KeyRound, LayoutDashboard, LifeBuoy, LogOut, RefreshCw, Search, Shield, Users } from 'lucide-react';
 import { superAdminApi } from '../../services/adminService';
 import { isSuperAdminRole } from '../../services/authService';
 
@@ -148,6 +148,41 @@ export function SuperAdminPage() {
     run(`ticket-${idOf(ticket)}`, () => superAdminApi.support.update(idOf(ticket), data), success);
   }
 
+  async function submitPasswordChange(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = formObject(event);
+    const email = String(data.email || '').trim().toLowerCase();
+    const newPassword = String(data.newPassword || '');
+    const confirmPassword = String(data.confirmPassword || '');
+
+    if (!email) {
+      setNotice({ type: 'error', text: 'Ingresa el email del usuario.' });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setNotice({ type: 'error', text: 'La contrasena debe tener al menos 6 caracteres.' });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setNotice({ type: 'error', text: 'Las contrasenas no coinciden.' });
+      return;
+    }
+
+    setBusy('change-user-password');
+    try {
+      await superAdminApi.users.updatePasswordByEmail({ email, newPassword });
+      setNotice({ type: 'ok', text: `Contrasena actualizada para ${email}.` });
+      form.reset();
+    } catch (error) {
+      setNotice({ type: 'error', text: error instanceof Error ? error.message : 'No pudimos cambiar la contrasena.' });
+    } finally {
+      setBusy('');
+    }
+  }
+
   function openStatusModal(org: any, nextActive: boolean) {
     setSelectedOrgId(idOf(org));
     setStatusReason('');
@@ -292,6 +327,16 @@ export function SuperAdminPage() {
                 ))}
               </div>
             )}
+          </Panel>
+
+          <Panel title="Cambiar contrasena" icon={KeyRound}>
+            <form className="admin-form" onSubmit={submitPasswordChange}>
+              <Field label="Email del usuario" name="email" type="email" required />
+              <Field label="Nueva contrasena" name="newPassword" type="password" required />
+              <Field label="Confirmar contrasena" name="confirmPassword" type="password" required />
+              <p className="admin-form-note">La sesion activa del usuario se cerrara cuando vuelva a usar la app.</p>
+              <button className="btn btn-primary" disabled={busy === 'change-user-password'}>Actualizar contrasena</button>
+            </form>
           </Panel>
 
           <Panel title="Miembros de la organizacion" icon={Users}>

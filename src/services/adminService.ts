@@ -140,6 +140,11 @@ export const adminApi = {
 export const superAdminApi = {
   me: () => apiClient<any>('/auth/me', { auth: true }),
 
+  users: {
+    updatePasswordByEmail: (data: { email: string; newPassword: string }) =>
+      apiClient<any>('/super-admin/users/password', { method: 'PATCH', auth: true, body: JSON.stringify(data) })
+  },
+
   support: {
     list: (params?: Params) => apiClient<any>(`/support-tickets${qs(params)}`, { auth: true }),
     update: (id: string, data: Payload) => apiClient<any>(`/support-tickets/${id}`, { method: 'PATCH', auth: true, body: body(data) }),
