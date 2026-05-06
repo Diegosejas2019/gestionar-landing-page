@@ -213,6 +213,9 @@ export function SuperAdminPage() {
         <nav>
           <button className="active"><Shield size={18} /> <span>SuperAdmin</span></button>
           <button onClick={() => setSelectedOrgId(idOf(organizations[0] || ''))}><Building2 size={18} /> <span>Organizaciones</span></button>
+          <button onClick={() => document.getElementById('password-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+            <KeyRound size={18} /> <span>Contrasenas</span>
+          </button>
           <button><LifeBuoy size={18} /> <span>Soporte</span></button>
         </nav>
       </aside>
@@ -247,6 +250,16 @@ export function SuperAdminPage() {
         </div>
 
         <div className="admin-grid">
+          <Panel id="password-panel" title="Cambiar contrasena" icon={KeyRound}>
+            <form className="admin-form" onSubmit={submitPasswordChange}>
+              <Field label="Email del usuario" name="email" type="email" required />
+              <Field label="Nueva contrasena" name="newPassword" type="password" required />
+              <Field label="Confirmar contrasena" name="confirmPassword" type="password" required />
+              <p className="admin-form-note">La sesion activa del usuario se cerrara cuando vuelva a usar la app.</p>
+              <button className="btn btn-primary" disabled={busy === 'change-user-password'}>Actualizar contrasena</button>
+            </form>
+          </Panel>
+
           <Panel title="Nueva organizacion" icon={Building2}>
             <form className="admin-form" onSubmit={submitOrganization}>
               <Field label="Nombre" name="name" required />
@@ -327,16 +340,6 @@ export function SuperAdminPage() {
                 ))}
               </div>
             )}
-          </Panel>
-
-          <Panel title="Cambiar contrasena" icon={KeyRound}>
-            <form className="admin-form" onSubmit={submitPasswordChange}>
-              <Field label="Email del usuario" name="email" type="email" required />
-              <Field label="Nueva contrasena" name="newPassword" type="password" required />
-              <Field label="Confirmar contrasena" name="confirmPassword" type="password" required />
-              <p className="admin-form-note">La sesion activa del usuario se cerrara cuando vuelva a usar la app.</p>
-              <button className="btn btn-primary" disabled={busy === 'change-user-password'}>Actualizar contrasena</button>
-            </form>
           </Panel>
 
           <Panel title="Miembros de la organizacion" icon={Users}>
@@ -451,9 +454,9 @@ function Metric({ label, value, hint, icon: Icon, loading }: { label: string; va
   );
 }
 
-function Panel({ title, icon: Icon, children }: { title: string; icon: any; children: ReactNode }) {
+function Panel({ id, title, icon: Icon, children }: { id?: string; title: string; icon: any; children: ReactNode }) {
   return (
-    <section className="admin-panel">
+    <section className="admin-panel" id={id}>
       <div className="panel-head"><h2><Icon size={18} /> {title}</h2></div>
       {children}
     </section>
