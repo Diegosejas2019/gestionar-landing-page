@@ -26,6 +26,8 @@ const shortMonth = (value: string) => {
 };
 const idOf = (row: any) => String(row?._id || row?.id || '');
 const person = (row: any) => row?.owner?.name || row?.user?.name || row?.name || 'Sin nombre';
+const debtAmount = (row: any) => Number(row?.balanceOwed ?? row?.totalOwed ?? Math.max(0, -Number(row?.balance || 0)));
+const hasDebt = (row: any) => debtAmount(row) > 0 || !!row?.isDebtor;
 const unitNames = (row: any) => {
   const units = row?.owner?.units || row?.units;
   if (Array.isArray(units) && units.length) {
@@ -1109,7 +1111,7 @@ export function AdminPreviewPage() {
               <Metric loading={loading} label="Total propietarios" value={state.owners?.length || 0} hint="Registrados" icon={Users} />
               <Metric loading={loading} label="Al día" value={state.ownerStats?.upToDate || 0} hint="Sin deuda activa" icon={ShieldCheck}
                 delta={(state.ownerStats?.upToDate ?? 0) > 0 ? { text: `${Math.round(((state.ownerStats?.upToDate || 0) / Math.max(state.owners?.length || 1, 1)) * 100)}% de la comunidad`, trend: 'pos' } : undefined} />
-              <Metric loading={loading} label="Con deuda" value={(state.owners?.filter((o: any) => o.isDebtor || Number(o.balance || 0) > 0).length) || 0} hint="Deudores activos" icon={CreditCard}
+              <Metric loading={loading} label="Con deuda" value={(state.owners?.filter((o: any) => hasDebt(o)).length) || 0} hint="Deudores activos" icon={CreditCard}
                 delta={state.owners?.filter((o: any) => o.isDebtor).length > 0 ? { text: `${state.owners.filter((o: any) => o.isDebtor).length} morosos`, trend: 'neg' } : undefined} />
               <Metric loading={loading} label="Unidades" value={state.units?.length || 0} hint={`${state.units?.filter((u: any) => u.owner).length || 0} asignadas`} icon={Building2} />
             </div>
@@ -1122,7 +1124,7 @@ export function AdminPreviewPage() {
                       label: 'Estado',
                       allLabel: 'Todos',
                       options: [{ value: 'debtor', label: 'Con deuda' }, { value: 'clear', label: 'Al día' }],
-                      match: (row, value) => value === 'debtor' ? !!row.isDebtor || Number(row.balance || 0) > 0 : !row.isDebtor && Number(row.balance || 0) <= 0
+                      match: (row, value) => value === 'debtor' ? hasDebt(row) : !hasDebt(row)
                     }
                   ]} rows={state.owners} columns={[
                     ['Propietario', (o: any) => (
@@ -1136,10 +1138,10 @@ export function AdminPreviewPage() {
                     )],
                     ['Unidades', (o: any) => <span style={{ fontSize: 12 }}>{unitLabel(o)}</span>],
                     ['Teléfono', (o: any) => <span style={{ fontSize: 11.5, color: 'var(--muted)', fontFamily: 'monospace' }}>{o.phone || '—'}</span>],
-                    ['Estado', (o: any) => <Status value={o.isDebtor || Number(o.balance || 0) > 0 ? 'pending' : 'approved'} />],
+                    ['Estado', (o: any) => <Status value={hasDebt(o) ? 'pending' : 'approved'} />],
                     ['Saldo', (o: any) => (
-                      <span style={{ fontFamily: 'monospace', fontSize: 12.5, color: Number(o.balance || 0) > 0 ? 'var(--neg)' : 'var(--muted)' }}>
-                        {Number(o.balance || 0) > 0 ? money(o.balance) : '—'}
+                      <span style={{ fontFamily: 'monospace', fontSize: 12.5, color: debtAmount(o) > 0 ? 'var(--neg)' : 'var(--muted)' }}>
+                        {debtAmount(o) > 0 ? money(debtAmount(o)) : '—'}
                       </span>
                     )],
                     ['', (o: any) => <Actions><button onClick={() => run(idOf(o), () => adminApi.owners.delete(idOf(o)), 'Propietario eliminado.')}>Eliminar</button></Actions>]
@@ -1159,6 +1161,7 @@ export function AdminPreviewPage() {
                     ['Propietario', (u: any) => u.owner?.name || '—'],
                     ['Coef.', (u: any) => u.coefficient || '1'],
                     ['Cuota', (u: any) => money(u.finalFee || u.customFee)],
+                    ['Deuda', (u: any) => debtAmount(u) > 0 ? money(debtAmount(u)) : '—'],
                     ['', (u: any) => <Actions><button onClick={() => run(idOf(u), () => adminApi.units.delete(idOf(u)), 'Unidad eliminada.')}>Eliminar</button></Actions>]
                   ]} />
                 </Panel>
