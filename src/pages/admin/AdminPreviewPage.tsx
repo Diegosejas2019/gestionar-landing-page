@@ -1,8 +1,8 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
 import {
-  AlertTriangle, Bell, Building2, CalendarCheck, CheckCircle2, ChevronDown, CreditCard, FileText,
-  Home, Inbox, Landmark, LogOut, Megaphone, MessageSquare, RefreshCw, Search, Settings,
-  ShieldCheck, TrendingUp, UserRoundCog, Users, Vote, WalletCards
+  AlertTriangle, Bell, Building2, CalendarCheck, CheckCircle2, ChevronDown, ChevronRight,
+  CreditCard, FileText, Home, Inbox, Landmark, LogOut, Megaphone, MessageSquare, MoreVertical,
+  RefreshCw, Search, Settings, ShieldCheck, TrendingUp, UserRoundCog, Users, Vote, WalletCards
 } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
 import { isSuperAdminRole } from '../../services/authService';
@@ -976,13 +976,11 @@ export function AdminPreviewPage() {
             )}
 
             <div className="admin-grid two">
-              <Panel title="Flujo de recaudacion" icon={TrendingUp} sub="Últimos 12 meses · pagos aprobados">
-                <CashflowSVG
-                  loading={loading}
-                  rows={revenueMonths(state.dashboard?.monthly || [], state.dashboard?.year || year)}
-                  onSelect={(selected) => { setMonth(selected); setTab('finanzas'); }}
-                />
-              </Panel>
+              <PendingCollectionSection
+                payments={state.payments.filter((p: any) => p.status !== 'approved').slice(0, 10)}
+                loading={loading}
+                onViewAll={() => setTab('finanzas')}
+              />
               <Panel title="Actividad reciente" icon={Bell} sub="Últimas acciones registradas">
                 <ActivityFeed
                   payments={state.payments}
@@ -2347,6 +2345,95 @@ function PendingReceiptsSection({ payments, loading, onApprove, onReject, onView
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function PendingCollectionSection({ payments, loading, onViewAll }: {
+  payments: any[]; loading: boolean; onViewAll: () => void;
+}) {
+  if (loading) return <TableSkeleton columns={5} />;
+  if (!payments.length) return null;
+
+  const overdue = payments.filter((p) => p.status === 'overdue' || p.status === 'rejected');
+  const dueSoon = payments.filter((p) => p.status === 'pending');
+  const totalAmount = payments.reduce((s, p) => s + Number(p.amount || 0), 0);
+
+  const colTone = (status: string) => {
+    if (status === 'overdue' || status === 'rejected') return 'neg';
+    if (status === 'pending') return 'warn';
+    return 'muted';
+  };
+  const colLabel = (status: string) => {
+    if (status === 'overdue') return 'Vencido';
+    if (status === 'rejected') return 'Vencido';
+    if (status === 'pending') return 'Por vencer';
+    return statusText[status] || status;
+  };
+  const daysAgo = (dateStr?: string) => {
+    if (!dateStr) return 0;
+    return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
+  };
+
+  return (
+    <div className="card">
+      <div className="card-h">
+        <div>
+          <h3>Cobranza pendiente</h3>
+          <div className="card-sub">{payments.length} lotes · {money(totalAmount)} acumulado · ordenado por días</div>
+        </div>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {overdue.length > 0 && (
+            <span className="pill neg"><span className="d" />Vencidos <strong style={{ marginLeft: 3 }}>{overdue.length}</strong></span>
+          )}
+          {dueSoon.length > 0 && (
+            <span className="pill warn"><span className="d" />Por vencer <strong style={{ marginLeft: 3 }}>{dueSoon.length}</strong></span>
+          )}
+          <button className="btn btn-ghost btn-sm" onClick={onViewAll}>Ver todos <ChevronRight size={12} /></button>
+        </div>
+      </div>
+      <table className="tbl">
+        <thead>
+          <tr>
+            <th>Lote / Propietario</th>
+            <th>Estado</th>
+            <th>Días</th>
+            <th className="num">Monto</th>
+            <th style={{ width: 40 }}></th>
+          </tr>
+        </thead>
+        <tbody>
+          {payments.map((p) => {
+            const days = daysAgo(p.createdAt);
+            const tone = colTone(p.status);
+            return (
+              <tr key={idOf(p)}>
+                <td>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div className="pending-receipt-ava">{adminInitials(person(p))}</div>
+                    <div>
+                      <div style={{ fontWeight: 500, fontSize: 12.5 }}>{person(p)}</div>
+                      <div style={{ fontSize: 11, opacity: 0.55, fontFamily: 'var(--font-mono, monospace)' }}>{unitLabel(p)}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span className={`pill ${tone}`}><span className="d" />{colLabel(p.status)}</span>
+                </td>
+                <td style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 12, color: tone === 'neg' ? 'var(--danger)' : tone === 'warn' ? 'var(--warning)' : undefined }}>
+                  {days === 0 ? 'Hoy' : `${days}d`}
+                </td>
+                <td className="num">{money(p.amount)}</td>
+                <td>
+                  <button className="btn btn-ghost btn-sm" style={{ padding: '2px 6px' }} onClick={onViewAll}>
+                    <MoreVertical size={14} />
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
