@@ -293,9 +293,68 @@ function orgLogoText(name: string) {
   return (name || '').split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || 'Or';
 }
 
+const EXPENSE_COLORS: Record<string, string> = {
+  cleaning: '#7bb8f2', security: '#f5c24a', maintenance: '#9cf27b',
+  utilities: '#4af0c8', administration: '#b87bf2', other: '#f07567'
+};
+const EXPENSE_LABELS_MAP: Record<string, string> = {
+  cleaning: 'Limpieza', security: 'Seguridad', maintenance: 'Mantenimiento',
+  utilities: 'Servicios', administration: 'Administración', other: 'Otros'
+};
+
+function fmtK(n: number): string {
+  const abs = Math.abs(n || 0);
+  if (abs >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `${(n / 1_000).toFixed(0)}k`;
+  return (n || 0).toLocaleString('es-AR');
+}
+
+function buildSparklinePoints(values: number[]): string {
+  if (!values.length) return '0,16 50,16';
+  const max = Math.max(...values, 1);
+  const step = values.length > 1 ? 50 / (values.length - 1) : 0;
+  return values.map((v, i) => `${Math.round(i * step)},${Math.round(16 - (v / max) * 14)}`).join(' ');
+}
+
+function filteredMonthlyByPeriod(monthly: any[], period: string): any[] {
+  if (!monthly.length) return monthly;
+  const now = new Date();
+  const curMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  if (period === 'mes') {
+    const m = monthly.find((x) => x._id === curMonth);
+    return m ? [m] : (monthly.length ? [monthly[monthly.length - 1]] : []);
+  }
+  if (period === 'trimestre') {
+    const cutoff = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+    const cutStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}`;
+    return monthly.filter((x) => x._id >= cutStr);
+  }
+  return monthly;
+}
+
+function expensesByCategory(expenses: any[]): Array<{ cat: string; label: string; amount: number; color: string; pct: number }> {
+  const byCategory: Record<string, number> = {};
+  let total = 0;
+  expenses.forEach((e) => {
+    byCategory[e.category] = (byCategory[e.category] || 0) + Number(e.amount || 0);
+    total += Number(e.amount || 0);
+  });
+  return Object.entries(byCategory)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([cat, amount]) => ({
+      cat,
+      label: EXPENSE_LABELS_MAP[cat] || cat,
+      amount,
+      color: EXPENSE_COLORS[cat] || '#888',
+      pct: total > 0 ? Math.round((amount / total) * 100) : 0
+    }));
+}
+
 export function AdminPreviewPage() {
   const [tab, setTab] = useState<TabKey>('inicio');
   const [finSubTab, setFinSubTab] = useState<'cobranza' | 'egresos'>('cobranza');
+  const [dashPeriod, setDashPeriod] = useState<'mes' | 'trimestre' | 'año' | 'todo'>('año');
   const [loading, setLoading] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
   const [busy, setBusy] = useState('');
@@ -308,6 +367,7 @@ export function AdminPreviewPage() {
     me: null, config: {}, ownerStats: {}, dashboard: {}, report: {},
     owners: [], units: [], payments: [], notices: [], claims: [], expenses: [],
     employees: [], salaries: [], providers: [], votes: [], visits: [], spaces: [], reservations: [], orgDocuments: [],
+    yearExpenses: [], yearPayments: [],
     features: defaultFeatures
   });
 
@@ -397,12 +457,23 @@ export function AdminPreviewPage() {
       }
 
       if (target === 'finanzas') {
-        const [allPayments, expenses] = await Promise.all([
+        const [allPayments, expenses, allYearExpenses, allYearPayments] = await Promise.all([
           adminApi.payments.list({ limit: 100, effectiveMonth: month }),
-          adminApi.expenses.list({ limit: 50, month })
+          adminApi.expenses.list({ limit: 50, month }),
+          adminApi.expenses.list({ limit: 500 }),
+          adminApi.payments.list({ limit: 500, status: 'approved' })
         ]);
         next.payments = sortPayments(pick(allPayments, 'payments', []));
         next.expenses = sortExpenses(pick(expenses, 'expenses', []));
+        const yearStr = String(year);
+        next.yearExpenses = pick(allYearExpenses, 'expenses', []).filter((e: any) => {
+          const y = (e.date || e.createdAt || '').slice(0, 4);
+          return y === yearStr;
+        });
+        next.yearPayments = pick(allYearPayments, 'payments', []).filter((p: any) => {
+          if (p.month) return p.month.startsWith(yearStr);
+          return (p.createdAt || '').startsWith(yearStr);
+        });
       }
 
       if (target === 'personal') {
@@ -497,6 +568,39 @@ export function AdminPreviewPage() {
   function logout() {
     localStorage.removeItem('gestionar_token');
     window.location.assign('/');
+  }
+
+  function exportDashboardCSV(monthly: any[], payments: any[], selectedYear: number) {
+    const monthLabels = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const summaryRows = monthly.map((m) => {
+      const [, mo] = String(m._id).split('-');
+      return [monthLabels[Number(mo) - 1] || m._id, m.total || 0, m.count || 0, m.pending || 0, m.rejected || 0].join(',');
+    });
+    const detailRows = payments.map((p) => [
+      `"${person(p)}"`, unitLabel(p) || '-', p.month || '-', p.amount || 0, 'Aprobado',
+      p.paymentMethod === 'mercadopago' ? 'MercadoPago' : 'Manual',
+      dateLabel(p.createdAt)
+    ].join(','));
+
+    const csv = [
+      `Informe de cobranza ${selectedYear}`,
+      '',
+      'Resumen mensual',
+      'Período,Recaudado,Aprobados,Pendientes,Rechazados',
+      ...summaryRows,
+      '',
+      'Detalle de pagos',
+      'Propietario,Unidad,Período,Monto,Estado,Canal,Fecha',
+      ...detailRows
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `informe_cobranza_${selectedYear}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
   }
 
   async function downloadReport() {
@@ -833,6 +937,17 @@ export function AdminPreviewPage() {
                 delta={(state.claims?.length ?? 0) > 0 ? { text: `${state.claims.length} pendientes`, trend: 'neg' } : undefined} />}
             </div>
 
+            <ComplianceHero
+              ownerStats={state.ownerStats}
+              pendingCount={state.dashboard?.pending || 0}
+              debtorCount={state.ownerStats?.debtors || 0}
+              claimCount={state.claims?.filter((c: any) => c.status === 'open').length || 0}
+              loading={loading}
+              onPending={() => setTab('finanzas')}
+              onDebtors={() => setTab('finanzas')}
+              onClaims={() => setTab('reclamos')}
+            />
+
             <AttentionHero
               payments={state.payments}
               claims={state.claims}
@@ -840,6 +955,25 @@ export function AdminPreviewPage() {
               onFinanzas={() => setTab('finanzas')}
               onComunidad={() => setTab('reclamos')}
             />
+
+            <PendingReceiptsSection
+              payments={state.payments.filter((p: any) => p.status === 'pending').slice(0, 5)}
+              loading={loading}
+              onApprove={(id) => run(id, () => adminApi.payments.approve(id), 'Pago aprobado.')}
+              onReject={(id) => {
+                const note = window.prompt('Motivo de rechazo') || 'Rechazado';
+                run(id, () => adminApi.payments.reject(id, note), 'Pago rechazado.');
+              }}
+              onViewAll={() => setTab('finanzas')}
+            />
+
+            {moduleEnabled('claims') && (
+              <OpenClaimsSection
+                claims={state.claims.filter((c: any) => c.status === 'open')}
+                loading={loading}
+                onNavigate={() => setTab('reclamos')}
+              />
+            )}
 
             <div className="admin-grid two">
               <Panel title="Flujo de recaudacion" icon={TrendingUp} sub="Últimos 12 meses · pagos aprobados">
@@ -872,6 +1006,7 @@ export function AdminPreviewPage() {
               <div className="admin-page-actions">
                 <YearMonth year={year} setYear={setYear} month={month} setMonth={setMonth} />
                 <button className="btn btn-ghost" onClick={downloadReport} disabled={busy === 'pdf'}><FileText size={14} />PDF expensas</button>
+                <button className="btn btn-ghost" onClick={() => exportDashboardCSV(state.dashboard?.monthly || [], state.yearPayments, year)}><TrendingUp size={14} />Exportar CSV</button>
                 <button className="btn btn-primary" onClick={() => run('reminders', adminApi.payments.reminders, 'Recordatorios enviados.')}><Bell size={14} />Recordatorios</button>
               </div>
             </div>
@@ -907,6 +1042,18 @@ export function AdminPreviewPage() {
 
             {finSubTab === 'cobranza' && (
               <>
+                <BalanceHero
+                  totalIncome={totalIncome}
+                  totalExpenses={state.dashboard?.totalExpenses || 0}
+                  year={year}
+                  loading={loading}
+                />
+                <KpiRow
+                  ownerStats={state.ownerStats}
+                  monthly={state.dashboard?.monthly || []}
+                  loading={loading}
+                />
+                <PeriodTabs value={dashPeriod} onChange={setDashPeriod} />
                 <CobroStrip payments={state.payments} loading={loading} />
                 <div className="admin-panel">
                   <Table loading={loading} searchPlaceholder="Buscar propietario, unidad o comprobante" filters={[
@@ -933,12 +1080,22 @@ export function AdminPreviewPage() {
                     </Actions> : null]
                   ]} />
                 </div>
+                <PeriodTable
+                  monthly={filteredMonthlyByPeriod(state.dashboard?.monthly || [], dashPeriod)}
+                  loading={loading}
+                />
+                <TopMovers
+                  yearPayments={state.yearPayments}
+                  owners={state.owners}
+                  loading={loading}
+                />
               </>
             )}
 
             {finSubTab === 'egresos' && (
               <div className="com-layout">
                 <div className="com-main">
+                  <ExpenseBreakdown yearExpenses={state.yearExpenses} loading={loading} />
                   <div className="admin-panel">
                     <Table loading={loading} searchPlaceholder="Buscar descripción, categoría o proveedor" filters={[
                       statusFilter(['paid', 'pending']),
@@ -2101,6 +2258,347 @@ function ClaimKanban({ claims, loading, onInProgress, onResolve, onDelete }: {
                 </div>
               ))}
             </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ComplianceHero({ ownerStats, pendingCount, debtorCount, claimCount, loading, onPending, onDebtors, onClaims }: {
+  ownerStats: any; pendingCount: number; debtorCount: number; claimCount: number; loading: boolean;
+  onPending: () => void; onDebtors: () => void; onClaims: () => void;
+}) {
+  if (loading) {
+    return (
+      <div className="compliance-hero">
+        <div className="skeleton-line" style={{ width: '40%', marginBottom: 12 }} />
+        <div className="skeleton-line big" style={{ marginBottom: 10 }} />
+        <div className="skeleton-line" style={{ marginBottom: 16, height: 6, borderRadius: 4 }} />
+        <div style={{ display: 'flex', gap: 8 }}>
+          <div className="skeleton-line short" style={{ flex: 1 }} />
+          <div className="skeleton-line short" style={{ flex: 1 }} />
+          <div className="skeleton-line short" style={{ flex: 1 }} />
+        </div>
+      </div>
+    );
+  }
+  const rate = ownerStats?.complianceRate || 0;
+  const upToDate = ownerStats?.upToDate || 0;
+  const total = ownerStats?.totalOwners || 0;
+  return (
+    <div className="compliance-hero">
+      <div className="compliance-hero-top">
+        <div className="compliance-hero-label"><span className="dot" />ESTADO DEL CONSORCIO</div>
+      </div>
+      <div className="compliance-hero-main">
+        <div className="compliance-hero-percent">{rate}<span className="compliance-pct">%</span></div>
+        <div className="compliance-hero-desc"><strong>{upToDate} de {total}</strong> propietarios al día este mes</div>
+      </div>
+      <div className="compliance-bar"><div className="compliance-fill" style={{ width: `${rate}%` }} /></div>
+      <div className="compliance-chips">
+        <button className="compliance-chip warn" onClick={onPending}>
+          <span className="chip-num">{pendingCount}</span>
+          <span className="chip-lbl">Por revisar</span>
+        </button>
+        <button className="compliance-chip alert" onClick={onDebtors}>
+          <span className="chip-num">{debtorCount}</span>
+          <span className="chip-lbl">Morosos</span>
+        </button>
+        <button className="compliance-chip" onClick={onClaims}>
+          <span className="chip-num">{claimCount}</span>
+          <span className="chip-lbl">Reclamos</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PendingReceiptsSection({ payments, loading, onApprove, onReject, onViewAll }: {
+  payments: any[]; loading: boolean;
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+  onViewAll: () => void;
+}) {
+  if (loading || payments.length === 0) return null;
+  return (
+    <div className="pending-receipts-section">
+      <div className="pending-receipts-head">
+        <div>
+          <h3>Comprobantes por revisar</h3>
+          <span className="pending-receipts-sub">{payments.length} esperando aprobación</span>
+        </div>
+        <button className="btn btn-ghost btn-sm" onClick={onViewAll}>Ver todos →</button>
+      </div>
+      <div className="pending-receipts-list">
+        {payments.map((p) => (
+          <div key={idOf(p)} className="pending-receipt-row">
+            <div className="pending-receipt-ava">{adminInitials(person(p))}</div>
+            <div className="pending-receipt-info">
+              <div className="pending-receipt-name">{person(p)}</div>
+              <div className="pending-receipt-meta">
+                {unitLabel(p) || p.owner?.unit || ''} · {p.month || dateLabel(p.createdAt)} · <strong>{money(p.amount)}</strong>
+              </div>
+            </div>
+            <div className="pending-receipt-actions">
+              <button className="btn btn-success btn-sm" onClick={() => onApprove(idOf(p))}>Aprobar</button>
+              <button className="btn btn-danger btn-sm" onClick={() => onReject(idOf(p))}>Rechazar</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function OpenClaimsSection({ claims, loading, onNavigate }: {
+  claims: any[]; loading: boolean; onNavigate: () => void;
+}) {
+  if (loading || claims.length === 0) return null;
+  const claimCatLabel: Record<string, string> = {
+    infrastructure: 'Infraestructura', security: 'Seguridad', noise: 'Ruido',
+    cleaning: 'Limpieza', billing: 'Facturación', other: 'Otro'
+  };
+  return (
+    <div className="open-claims-section card">
+      <div className="card-h">
+        <div>
+          <h3>Reclamos abiertos</h3>
+          <div className="card-sub">{claims.length} sin resolver</div>
+        </div>
+        <button className="btn btn-ghost btn-sm" onClick={onNavigate}>Ver todos</button>
+      </div>
+      <div className="card-body">
+        {claims.slice(0, 5).map((c) => (
+          <div key={idOf(c)} className="open-claim-row">
+            <div className="open-claim-info">
+              <div className="open-claim-title">{c.title}</div>
+              <div className="open-claim-meta">{person(c)} · {unitLabel(c) || c.owner?.unit || ''} · {claimCatLabel[c.category] || c.category}</div>
+            </div>
+            <button className="btn btn-primary btn-sm" onClick={onNavigate}>Ver</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BalanceHero({ totalIncome, totalExpenses, year, loading }: {
+  totalIncome: number; totalExpenses: number; year: number; loading: boolean;
+}) {
+  if (loading) {
+    return (
+      <div className="balance-hero">
+        <div className="skeleton-line short" style={{ marginBottom: 12 }} />
+        <div className="skeleton-line big" style={{ marginBottom: 10 }} />
+        <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+          <div className="skeleton-line" style={{ flex: 1 }} />
+          <div className="skeleton-line" style={{ flex: 1 }} />
+        </div>
+      </div>
+    );
+  }
+  const balance = (totalIncome || 0) - (totalExpenses || 0);
+  return (
+    <div className="balance-hero">
+      <div className="balance-hero-top">
+        <div className="balance-hero-label"><span className="dot" />BALANCE {year}</div>
+        <div className="balance-hero-ytd">YTD</div>
+      </div>
+      <div className="balance-hero-amt">
+        <span className="balance-cur">$</span>
+        <span className="balance-num">{fmtK(balance)}</span>
+      </div>
+      <div className="balance-hero-sub" style={{ color: balance >= 0 ? 'var(--pos)' : 'var(--neg)' }}>
+        {balance >= 0 ? '↑ ingresos superan los gastos' : '↓ gastos superan los ingresos'}
+      </div>
+      <div className="balance-flow">
+        <div className="balance-flow-item in">
+          <div className="balance-flow-lbl">Ingresos</div>
+          <div className="balance-flow-val in">${fmtK(totalIncome)}</div>
+        </div>
+        <div className="balance-flow-item out">
+          <div className="balance-flow-lbl">Gastos</div>
+          <div className="balance-flow-val out">${fmtK(totalExpenses)}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function KpiRow({ ownerStats, monthly, loading }: { ownerStats: any; monthly: any[]; loading: boolean }) {
+  if (loading) {
+    return (
+      <div className="kpi-row">
+        <div className="kpi-card"><div className="skeleton-line short" /><div className="skeleton-line big" style={{ marginTop: 8 }} /></div>
+        <div className="kpi-card"><div className="skeleton-line short" /><div className="skeleton-line big" style={{ marginTop: 8 }} /></div>
+      </div>
+    );
+  }
+  const complianceSpark = buildSparklinePoints(monthly.map((m) => m.count || 0));
+  const debtorSpark = buildSparklinePoints(monthly.map((m) => (m.pending || 0) + (m.rejected || 0)));
+  return (
+    <div className="kpi-row">
+      <div className="kpi-card">
+        <div className="kpi-card-top">
+          <span className="kpi-lbl">CUMPLIMIENTO</span>
+          <span className="kpi-ico ok">✓</span>
+        </div>
+        <div className="kpi-val ok">{ownerStats?.complianceRate || 0}%</div>
+        <div className="kpi-sub">{ownerStats?.upToDate || 0} de {ownerStats?.totalOwners || 0}</div>
+        <svg className="kpi-spark" viewBox="0 0 50 20" preserveAspectRatio="none">
+          <polyline points={complianceSpark} fill="none" stroke="var(--pos)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+      <div className="kpi-card alert">
+        <div className="kpi-card-top">
+          <span className="kpi-lbl">MOROSOS</span>
+          <span className="kpi-ico alert">!</span>
+        </div>
+        <div className="kpi-val alert">{ownerStats?.debtors || 0}</div>
+        <div className="kpi-sub">{ownerStats?.pendingPayments || 0} pendiente{(ownerStats?.pendingPayments || 0) !== 1 ? 's' : ''}</div>
+        <svg className="kpi-spark" viewBox="0 0 50 20" preserveAspectRatio="none">
+          <polyline points={debtorSpark} fill="none" stroke="var(--neg)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function PeriodTabs({ value, onChange }: { value: string; onChange: (v: 'mes' | 'trimestre' | 'año' | 'todo') => void }) {
+  const opts: Array<{ key: 'mes' | 'trimestre' | 'año' | 'todo'; label: string }> = [
+    { key: 'mes', label: 'Mes' },
+    { key: 'trimestre', label: 'Trimestre' },
+    { key: 'año', label: 'Año' },
+    { key: 'todo', label: 'Todo' }
+  ];
+  return (
+    <div className="period-tabs">
+      {opts.map((o) => (
+        <button key={o.key} className={`period-tab${value === o.key ? ' active' : ''}`} onClick={() => onChange(o.key)}>
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ExpenseBreakdown({ yearExpenses, loading }: { yearExpenses: any[]; loading: boolean }) {
+  if (loading) {
+    return (
+      <div className="expense-breakdown card" style={{ marginBottom: 16 }}>
+        <div className="card-h"><h3>Gastos por categoría</h3></div>
+        <div className="card-body">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} style={{ marginBottom: 14 }}>
+              <div className="skeleton-line short" style={{ marginBottom: 6 }} />
+              <div className="skeleton-line" style={{ height: 6, borderRadius: 4 }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  const cats = expensesByCategory(yearExpenses);
+  if (!cats.length) return null;
+  const catTotal = cats.reduce((s, c) => s + c.amount, 0);
+  return (
+    <div className="expense-breakdown card" style={{ marginBottom: 16 }}>
+      <div className="card-h">
+        <h3>Gastos por categoría</h3>
+        <div className="card-sub">${fmtK(catTotal)} total</div>
+      </div>
+      <div className="card-body">
+        {cats.map((cat) => (
+          <div key={cat.cat} className="expense-bd-item">
+            <div className="expense-bd-top">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className="expense-bd-dot" style={{ background: cat.color }} />
+                <span className="expense-bd-label">{cat.label}</span>
+              </div>
+              <span className="expense-bd-amt">${fmtK(cat.amount)} <span style={{ color: 'var(--muted)', fontSize: 11 }}>{cat.pct}%</span></span>
+            </div>
+            <div className="expense-bd-bar">
+              <div className="expense-bd-fill" style={{ width: `${Math.max(cat.pct, 2)}%`, background: cat.color }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TopMovers({ yearPayments, owners, loading }: { yearPayments: any[]; owners: any[]; loading: boolean }) {
+  if (loading) return null;
+  const payerMap: Record<string, { owner: any; total: number; count: number }> = {};
+  (yearPayments || []).forEach((p) => {
+    if (!p.owner) return;
+    const id = p.owner._id || p.owner;
+    if (!payerMap[id]) payerMap[id] = { owner: p.owner, total: 0, count: 0 };
+    payerMap[id].total += Number(p.amount || 0);
+    payerMap[id].count++;
+  });
+  const topPayers = Object.values(payerMap).sort((a, b) => b.total - a.total).slice(0, 3);
+  const topDebtors = (owners || [])
+    .filter((o) => (o.totalOwed || 0) > 0)
+    .sort((a, b) => (b.totalOwed || 0) - (a.totalOwed || 0))
+    .slice(0, 3);
+
+  if (!topPayers.length && !topDebtors.length) return null;
+
+  return (
+    <div className="top-movers card" style={{ marginBottom: 16 }}>
+      <div className="card-h"><h3>Top propietarios</h3></div>
+      <div style={{ padding: 0 }}>
+        {topPayers.map(({ owner, total, count }) => (
+          <div key={idOf(owner)} className="mover-row">
+            <div className="mover-ava">{adminInitials(owner.name || '')}</div>
+            <div className="mover-info">
+              <div className="mover-name">{owner.name}</div>
+              <div className="mover-meta">{owner.unit ? owner.unit + ' · ' : ''}{count} PAGO{count !== 1 ? 'S' : ''} APROBADOS</div>
+            </div>
+            <div className="mover-amt pos">+${fmtK(total)}<span className="mover-tag">YTD</span></div>
+          </div>
+        ))}
+        {topDebtors.map((o) => (
+          <div key={idOf(o)} className="mover-row">
+            <div className="mover-ava debtor">{adminInitials(o.name || '')}</div>
+            <div className="mover-info">
+              <div className="mover-name">{o.name}</div>
+              <div className="mover-meta">{o.unit ? o.unit + ' · ' : ''}MOROSO</div>
+            </div>
+            <div className="mover-amt neg">−${fmtK(o.totalOwed || 0)}<span className="mover-tag">DEUDA</span></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PeriodTable({ monthly, loading }: { monthly: any[]; loading: boolean }) {
+  if (loading || !monthly.length) return null;
+  const chip = (n: number, type: string) => (
+    <span className={`period-chip ${n === 0 ? 'zero' : type}`}>{n}</span>
+  );
+  return (
+    <div className="period-table card" style={{ marginBottom: 16, overflow: 'hidden' }}>
+      <div className="card-h"><h3>Detalle por período</h3></div>
+      <div className="period-table-cols">
+        <span>Período</span><span>Aprobados</span><span>Pendientes</span><span>Rechazados</span><span style={{ textAlign: 'right' }}>Recaudado</span>
+      </div>
+      {monthly.map((m) => {
+        const [yr, mo] = String(m._id).split('-');
+        const mName = new Date(`${yr}-${mo}-15`).toLocaleDateString('es-AR', { month: 'short' }).replace('.', '');
+        return (
+          <div key={m._id} className="period-row">
+            <div className="period-cell">
+              <div className="period-mo">{mName}</div>
+              <div className="period-yr">{yr}</div>
+            </div>
+            {chip(m.count || 0, 'ok')}
+            {chip(m.pending || 0, 'pend')}
+            {chip(m.rejected || 0, 'rej')}
+            <div className="period-amt">${fmtK(m.total || 0)}</div>
           </div>
         );
       })}
