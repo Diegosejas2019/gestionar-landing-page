@@ -30,6 +30,7 @@ export const adminApi = {
   units: {
     list: (params?: Params) => apiClient<any>(`/units${qs(params)}`, { auth: true }),
     create: (data: Payload) => apiClient<any>('/units', { method: 'POST', auth: true, body: body(data) }),
+    bulkCreate: (data: { count: number; start: number; prefix: string }) => apiClient<any>('/units/bulk', { method: 'POST', auth: true, body: body(data) }),
     update: (id: string, data: Payload) => apiClient<any>(`/units/${id}`, { method: 'PATCH', auth: true, body: body(data) }),
     delete: (id: string) => apiClient<any>(`/units/${id}`, { method: 'DELETE', auth: true })
   },

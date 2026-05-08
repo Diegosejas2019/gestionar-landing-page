@@ -747,6 +747,18 @@ export function AdminPreviewPage() {
     setShowUnitModal(false);
   }
 
+  function submitUnitBulk(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = formObject(event);
+    run('unit', () => adminApi.units.bulkCreate({
+      count: Number(data.count),
+      start: Number(data.start ?? 1),
+      prefix: String(data.prefix ?? 'Lote')
+    }), 'Unidades creadas.');
+    event.currentTarget.reset();
+    setShowUnitModal(false);
+  }
+
   function submitConfig(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = formObject(event);
@@ -1383,17 +1395,13 @@ export function AdminPreviewPage() {
                     <div className="form-modal-title"><Building2 size={16} />Nueva unidad</div>
                     <button className="icon-btn" onClick={() => setShowUnitModal(false)}><X size={16} /></button>
                   </div>
-                  <form className="admin-form" onSubmit={submitUnit}>
-                    <Field label="Nombre" name="name" required />
-                    <SelectField label="Propietario" name="owner">
-                      <option value="">Sin asignar</option>
-                      {state.owners.map((owner: any) => <option key={idOf(owner)} value={idOf(owner)}>{owner.name}</option>)}
-                    </SelectField>
-                    <Field label="Coeficiente" name="coefficient" type="number" />
-                    <Field label="Cuota custom" name="customFee" type="number" />
+                  <form className="admin-form" onSubmit={submitUnitBulk}>
+                    <Field label="Cantidad" name="count" type="number" required />
+                    <Field label="Desde" name="start" type="number" defaultValue="1" required />
+                    <Field label="Prefijo" name="prefix" defaultValue="Lote" required />
                     <div className="form-modal-foot">
                       <button type="button" className="btn btn-ghost" onClick={() => setShowUnitModal(false)}>Cancelar</button>
-                      <button className="btn btn-primary" disabled={busy === 'unit'}>Crear unidad</button>
+                      <button className="btn btn-primary" disabled={busy === 'unit'}>Crear unidades</button>
                     </div>
                   </form>
                 </div>
