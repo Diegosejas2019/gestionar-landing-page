@@ -1010,14 +1010,18 @@ export function AdminPreviewPage() {
             </div>
 
             <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
-              <Metric loading={loading} label="Recaudado" value={money(state.report?.income?.total)} hint={month} icon={CreditCard}
+              {(() => {
+                const bal = totalIncome - (state.dashboard?.totalExpenses || 0);
+                return <Metric loading={loading} label={`Balance ${year}`} value={money(bal)} hint="Ingresos − egresos anuales" icon={Landmark}
+                  delta={{ text: bal >= 0 ? '↑ ingresos superan gastos' : '↓ gastos superan ingresos', trend: bal >= 0 ? 'pos' : 'neg' }} />;
+              })()}
+              <Metric loading={loading} label="Ingresos" value={money(totalIncome)} hint={`Recaudado ${year}`} icon={CreditCard}
                 delta={state.payments?.filter((p: any) => p.status === 'approved').length > 0 ? { text: `${state.payments.filter((p: any) => p.status === 'approved').length} pagos aprobados`, trend: 'pos' } : undefined} />
-              <Metric loading={loading} label="Por cobrar" value={money(state.payments?.filter((p: any) => p.status === 'pending').reduce((s: number, p: any) => s + Number(p.amount || 0), 0))} hint="Pendientes de revisión" icon={Bell}
-                delta={(state.dashboard?.pending ?? 0) > 0 ? { text: `${state.dashboard.pending} sin aprobar`, trend: 'neg' } : undefined} />
-              <Metric loading={loading} label="Egresos del mes" value={money(state.report?.expenses?.total)} hint="Gastos del período" icon={FileText} />
-              <Metric loading={loading} label="Resultado" value={money(state.report?.balance)} hint="Saldo mensual" icon={Landmark}
-                delta={state.report?.income?.total ? { text: `${state.report.balance >= 0 ? '+' : ''}${Math.round(((state.report.balance || 0) / (state.report.income.total || 1)) * 100)}% margen`, trend: (state.report.balance ?? 0) >= 0 ? 'pos' : 'neg' } : undefined} />
-              <Metric loading={loading} label="Próx. vencimiento" value={`Día ${state.config?.dueDayOfMonth || '—'}`} hint="Día de cobro mensual" icon={CalendarCheck} />
+              <Metric loading={loading} label="Egresos" value={money(state.dashboard?.totalExpenses || 0)} hint={`Gastos ${year}`} icon={FileText} />
+              <Metric loading={loading} label="Cumplimiento" value={`${state.ownerStats?.complianceRate || 0}%`} hint={`${state.ownerStats?.upToDate || 0} de ${state.ownerStats?.totalOwners || 0} propietarios`} icon={ShieldCheck}
+                delta={state.ownerStats?.complianceRate >= 80 ? { text: 'Buen nivel de pago', trend: 'pos' } : { text: 'Requiere atención', trend: 'neg' }} />
+              <Metric loading={loading} label="Morosos" value={state.ownerStats?.debtors || 0} hint={`${state.ownerStats?.pendingPayments || 0} pagos pendientes`} icon={Bell}
+                delta={(state.ownerStats?.debtors || 0) === 0 ? { text: 'Sin morosos', trend: 'pos' } : { text: `${state.ownerStats.debtors} con deuda`, trend: 'neg' }} />
             </div>
 
             {/* Sub-tab bar */}
@@ -1040,17 +1044,6 @@ export function AdminPreviewPage() {
 
             {finSubTab === 'cobranza' && (
               <>
-                <BalanceHero
-                  totalIncome={totalIncome}
-                  totalExpenses={state.dashboard?.totalExpenses || 0}
-                  year={year}
-                  loading={loading}
-                />
-                <KpiRow
-                  ownerStats={state.ownerStats}
-                  monthly={state.dashboard?.monthly || []}
-                  loading={loading}
-                />
                 <PeriodTabs value={dashPeriod} onChange={setDashPeriod} />
                 <CobroStrip payments={state.payments} loading={loading} />
                 <div className="admin-panel">
