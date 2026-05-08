@@ -457,14 +457,16 @@ export function AdminPreviewPage() {
       }
 
       if (target === 'finanzas') {
-        const [allPayments, expenses, allYearExpenses, allYearPayments] = await Promise.all([
+        const [allPayments, expenses, allYearExpenses, allYearPayments, units] = await Promise.all([
           adminApi.payments.list({ limit: 100, effectiveMonth: month }),
           adminApi.expenses.list({ limit: 50, month }),
           adminApi.expenses.list({ limit: 500 }),
-          adminApi.payments.list({ limit: 500, status: 'approved' })
+          adminApi.payments.list({ limit: 500, status: 'approved' }),
+          adminApi.units.list({ limit: 200 })
         ]);
         next.payments = sortPayments(pick(allPayments, 'payments', []));
         next.expenses = sortExpenses(pick(expenses, 'expenses', []));
+        next.units = pick(units, 'units', []);
         const yearStr = String(year);
         next.yearExpenses = pick(allYearExpenses, 'expenses', []).filter((e: any) => {
           const y = (e.date || e.createdAt || '').slice(0, 4);
@@ -1047,11 +1049,23 @@ export function AdminPreviewPage() {
                 <PeriodTabs value={dashPeriod} onChange={setDashPeriod} />
                 <CobroStrip payments={state.payments} loading={loading} />
                 <div className="admin-panel">
+                  <div className="panel-head"><h2><CreditCard size={14} />Pagos</h2></div>
                   <Table loading={loading} searchPlaceholder="Buscar propietario, unidad o comprobante" filters={[
                     statusFilter(['pending', 'approved', 'rejected']),
                     monthFilter((p) => p.month || String(p.createdAt || '').slice(0, 7), month)
                   ]} rows={state.payments} columns={[
-                    ['Unidad', (p: any) => <span className="fin-lote">{unitLabel(p) || p.owner?.unit || '—'}</span>],
+                    ['Unidad', (p: any) => {
+                      const ids: string[] = [
+                        ...(Array.isArray(p.owner?.units) ? p.owner.units : []),
+                        p.owner?.unit,
+                        p.unit
+                      ].filter(Boolean);
+                      const names = ids.map((id: string) => {
+                        const found = (state.units || []).find((u: any) => idOf(u) === id);
+                        return found ? found.name : (id.length <= 30 ? id : null);
+                      }).filter(Boolean);
+                      return <span className="fin-lote">{names.join(', ') || '—'}</span>;
+                    }],
                     ['Propietario', (p: any) => (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div className="owner-avatar sm">{adminInitials(person(p))}</div>
