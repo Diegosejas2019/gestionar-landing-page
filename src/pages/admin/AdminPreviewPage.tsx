@@ -2,7 +2,7 @@ import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle, Bell, Building2, CalendarCheck, CheckCircle2, ChevronDown, ChevronRight,
   CreditCard, FileText, Home, Inbox, Landmark, LogOut, Megaphone, MessageSquare, MoreVertical,
-  RefreshCw, Search, Settings, ShieldCheck, TrendingUp, UserRoundCog, Users, Vote, WalletCards
+  RefreshCw, Search, Settings, ShieldCheck, TrendingUp, UserRoundCog, Users, Vote, WalletCards, X
 } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
 import { isSuperAdminRole } from '../../services/authService';
@@ -363,6 +363,8 @@ export function AdminPreviewPage() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [ownerUnitFilter, setOwnerUnitFilter] = useState('');
   const [ownerSelectedUnitIds, setOwnerSelectedUnitIds] = useState<Set<string>>(new Set());
+  const [showOwnerModal, setShowOwnerModal] = useState(false);
+  const [showUnitModal, setShowUnitModal] = useState(false);
   const [state, setState] = useState<any>({
     me: null, config: {}, ownerStats: {}, dashboard: {}, report: {},
     owners: [], units: [], payments: [], notices: [], claims: [], expenses: [],
@@ -629,6 +631,7 @@ export function AdminPreviewPage() {
       setOwnerSelectedUnitIds(new Set());
       setOwnerUnitFilter('');
       form.reset();
+      setShowOwnerModal(false);
     }, 'Propietario creado con unidades seleccionadas.');
   }
 
@@ -741,6 +744,7 @@ export function AdminPreviewPage() {
       customFee: data.customFee ? Number(data.customFee) : undefined
     }), 'Unidad creada.');
     event.currentTarget.reset();
+    setShowUnitModal(false);
   }
 
   function submitConfig(event: FormEvent<HTMLFormElement>) {
@@ -1252,6 +1256,8 @@ export function AdminPreviewPage() {
               </div>
               <div className="admin-page-actions">
                 <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
+                <button className="btn btn-secondary" onClick={() => setShowUnitModal(true)}><Building2 size={14} />Nueva unidad</button>
+                <button className="btn btn-primary" onClick={() => setShowOwnerModal(true)}><Users size={14} />Nuevo propietario</button>
               </div>
             </div>
             <div className="metric-grid">
@@ -1262,64 +1268,67 @@ export function AdminPreviewPage() {
                 delta={state.owners?.filter((o: any) => o.isDebtor).length > 0 ? { text: `${state.owners.filter((o: any) => o.isDebtor).length} morosos`, trend: 'neg' } : undefined} />
               <Metric loading={loading} label="Unidades" value={state.units?.length || 0} hint={`${state.units?.filter((u: any) => u.owner).length || 0} asignadas`} icon={Building2} />
             </div>
-            <div className="com-layout">
-              <div className="com-main">
-                <div className="card" style={{ overflow: 'hidden' }}>
-                  <Table loading={loading} searchPlaceholder="Buscar nombre, email o unidad" filters={[
-                    {
-                      key: 'debt',
-                      label: 'Estado',
-                      allLabel: 'Todos',
-                      options: [{ value: 'debtor', label: 'Con deuda' }, { value: 'clear', label: 'Al día' }],
-                      match: (row, value) => value === 'debtor' ? hasDebt(row) : !hasDebt(row)
-                    }
-                  ]} rows={state.owners} columns={[
-                    ['Propietario', (o: any) => (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div className="owner-avatar">{adminInitials(o.name)}</div>
-                        <div>
-                          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-bright)' }}>{o.name}</div>
-                          <div style={{ fontSize: 11, color: 'var(--muted)' }}>{o.email}</div>
-                        </div>
-                      </div>
-                    )],
-                    ['Unidades', (o: any) => <span style={{ fontSize: 12 }}>{unitLabel(o)}</span>],
-                    ['Teléfono', (o: any) => <span style={{ fontSize: 11.5, color: 'var(--muted)', fontFamily: 'monospace' }}>{o.phone || '—'}</span>],
-                    ['Estado', (o: any) => <Status value={hasDebt(o) ? 'pending' : 'approved'} />],
-                    ['Saldo', (o: any) => (
-                      <span style={{ fontFamily: 'monospace', fontSize: 12.5, color: debtAmount(o) > 0 ? 'var(--neg)' : 'var(--muted)' }}>
-                        {debtAmount(o) > 0 ? money(debtAmount(o)) : '—'}
-                      </span>
-                    )],
-                    ['', (o: any) => <Actions><button onClick={() => run(idOf(o), () => adminApi.owners.delete(idOf(o)), 'Propietario eliminado.')}>Eliminar</button></Actions>]
-                  ]} />
-                </div>
-                <Panel title="Unidades" icon={Building2}>
-                  <Table loading={loading} searchPlaceholder="Buscar unidad o propietario" filters={[
-                    {
-                      key: 'assigned',
-                      label: 'Asignacion',
-                      allLabel: 'Todas',
-                      options: [{ value: 'yes', label: 'Asignadas' }, { value: 'no', label: 'Sin asignar' }],
-                      match: (row, value) => value === 'yes' ? !!row.owner : !row.owner
-                    }
-                  ]} rows={state.units} columns={[
-                    ['Nombre', (u: any) => u.name],
-                    ['Propietario', (u: any) => u.owner?.name || '—'],
-                    ['Coef.', (u: any) => u.coefficient || '1'],
-                    ['Cuota', (u: any) => money(u.finalFee || u.customFee)],
-                    ['Deuda', (u: any) => debtAmount(u) > 0 ? money(debtAmount(u)) : '—'],
-                    ['', (u: any) => <Actions><button onClick={() => run(idOf(u), () => adminApi.units.delete(idOf(u)), 'Unidad eliminada.')}>Eliminar</button></Actions>]
-                  ]} />
-                </Panel>
-              </div>
-              <div className="com-side">
-                <Panel title="Nuevo propietario" icon={Users}>
+            <div className="card" style={{ overflow: 'hidden' }}>
+              <Table loading={loading} searchPlaceholder="Buscar nombre, email o unidad" filters={[
+                {
+                  key: 'debt',
+                  label: 'Estado',
+                  allLabel: 'Todos',
+                  options: [{ value: 'debtor', label: 'Con deuda' }, { value: 'clear', label: 'Al día' }],
+                  match: (row, value) => value === 'debtor' ? hasDebt(row) : !hasDebt(row)
+                }
+              ]} rows={state.owners} columns={[
+                ['Propietario', (o: any) => (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div className="owner-avatar">{adminInitials(o.name)}</div>
+                    <div>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-bright)' }}>{o.name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>{o.email}</div>
+                    </div>
+                  </div>
+                )],
+                ['Unidades', (o: any) => <span style={{ fontSize: 12 }}>{unitLabel(o)}</span>],
+                ['Teléfono', (o: any) => <span style={{ fontSize: 11.5, color: 'var(--muted)', fontFamily: 'monospace' }}>{o.phone || '—'}</span>],
+                ['Estado', (o: any) => <Status value={hasDebt(o) ? 'pending' : 'approved'} />],
+                ['Saldo', (o: any) => (
+                  <span style={{ fontFamily: 'monospace', fontSize: 12.5, color: debtAmount(o) > 0 ? 'var(--neg)' : 'var(--muted)' }}>
+                    {debtAmount(o) > 0 ? money(debtAmount(o)) : '—'}
+                  </span>
+                )],
+                ['', (o: any) => <Actions><button onClick={() => run(idOf(o), () => adminApi.owners.delete(idOf(o)), 'Propietario eliminado.')}>Eliminar</button></Actions>]
+              ]} />
+            </div>
+            <Panel title="Unidades" icon={Building2}>
+              <Table loading={loading} searchPlaceholder="Buscar unidad o propietario" filters={[
+                {
+                  key: 'assigned',
+                  label: 'Asignacion',
+                  allLabel: 'Todas',
+                  options: [{ value: 'yes', label: 'Asignadas' }, { value: 'no', label: 'Sin asignar' }],
+                  match: (row, value) => value === 'yes' ? !!row.owner : !row.owner
+                }
+              ]} rows={state.units} columns={[
+                ['Nombre', (u: any) => u.name],
+                ['Propietario', (u: any) => u.owner?.name || '—'],
+                ['Coef.', (u: any) => u.coefficient || '1'],
+                ['Cuota', (u: any) => money(u.finalFee || u.customFee)],
+                ['Deuda', (u: any) => debtAmount(u) > 0 ? money(debtAmount(u)) : '—'],
+                ['', (u: any) => <Actions><button onClick={() => run(idOf(u), () => adminApi.units.delete(idOf(u)), 'Unidad eliminada.')}>Eliminar</button></Actions>]
+              ]} />
+            </Panel>
+
+            {showOwnerModal && (
+              <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) setShowOwnerModal(false); }}>
+                <div className="form-modal">
+                  <div className="form-modal-head">
+                    <div className="form-modal-title"><Users size={16} />Nuevo propietario</div>
+                    <button className="icon-btn" onClick={() => setShowOwnerModal(false)}><X size={16} /></button>
+                  </div>
                   <form className="admin-form" onSubmit={submitOwner}>
                     <Field label="Nombre" name="name" required />
                     <Field label="Email" name="email" type="email" required />
-                    <Field label="Telefono" name="phone" />
-                    <Field label="Contrasena temporal" name="password" type="password" required />
+                    <Field label="Teléfono" name="phone" />
+                    <Field label="Contraseña temporal" name="password" type="password" required />
                     <div className="admin-field full">
                       <span>Unidades</span>
                       <div className="unit-picker">
@@ -1358,20 +1367,38 @@ export function AdminPreviewPage() {
                         <small>{availableOwnerUnits.length} disponibles · {state.units.length - availableOwnerUnits.length} ocupadas.</small>
                       </div>
                     </div>
-                    <button className="btn btn-primary" disabled={busy === 'owner'}>Crear propietario</button>
+                    <div className="form-modal-foot">
+                      <button type="button" className="btn btn-ghost" onClick={() => setShowOwnerModal(false)}>Cancelar</button>
+                      <button className="btn btn-primary" disabled={busy === 'owner'}>Crear propietario</button>
+                    </div>
                   </form>
-                </Panel>
-                <Panel title="Nueva unidad" icon={Building2}>
+                </div>
+              </div>
+            )}
+
+            {showUnitModal && (
+              <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) setShowUnitModal(false); }}>
+                <div className="form-modal">
+                  <div className="form-modal-head">
+                    <div className="form-modal-title"><Building2 size={16} />Nueva unidad</div>
+                    <button className="icon-btn" onClick={() => setShowUnitModal(false)}><X size={16} /></button>
+                  </div>
                   <form className="admin-form" onSubmit={submitUnit}>
                     <Field label="Nombre" name="name" required />
-                    <SelectField label="Propietario" name="owner"><option value="">Sin asignar</option>{state.owners.map((owner: any) => <option key={idOf(owner)} value={idOf(owner)}>{owner.name}</option>)}</SelectField>
+                    <SelectField label="Propietario" name="owner">
+                      <option value="">Sin asignar</option>
+                      {state.owners.map((owner: any) => <option key={idOf(owner)} value={idOf(owner)}>{owner.name}</option>)}
+                    </SelectField>
                     <Field label="Coeficiente" name="coefficient" type="number" />
                     <Field label="Cuota custom" name="customFee" type="number" />
-                    <button className="btn btn-primary" disabled={busy === 'unit'}>Crear unidad</button>
+                    <div className="form-modal-foot">
+                      <button type="button" className="btn btn-ghost" onClick={() => setShowUnitModal(false)}>Cancelar</button>
+                      <button className="btn btn-primary" disabled={busy === 'unit'}>Crear unidad</button>
+                    </div>
                   </form>
-                </Panel>
+                </div>
               </div>
-            </div>
+            )}
           </>
         )}
 
