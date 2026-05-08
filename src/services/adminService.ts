@@ -21,6 +21,7 @@ export const adminApi = {
 
   owners: {
     stats: () => apiClient<any>('/owners/stats', { auth: true }),
+    checkEmail: (email: string) => apiClient<any>(`/owners/check-email?${new URLSearchParams({ email })}`, { auth: true }),
     list: (params?: Params) => apiClient<any>(`/owners${qs(params)}`, { auth: true }),
     create: (data: Payload) => apiClient<any>('/owners', { method: 'POST', auth: true, body: body(data) }),
     update: (id: string, data: Payload) => apiClient<any>(`/owners/${id}`, { method: 'PATCH', auth: true, body: body(data) }),

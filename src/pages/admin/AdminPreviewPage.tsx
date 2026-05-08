@@ -365,6 +365,10 @@ export function AdminPreviewPage() {
   const [ownerSelectedUnitIds, setOwnerSelectedUnitIds] = useState<Set<string>>(new Set());
   const [showOwnerModal, setShowOwnerModal] = useState(false);
   const [ownerEmailError, setOwnerEmailError] = useState('');
+  const [ownerEmailHint, setOwnerEmailHint] = useState<{ text: string; tone: 'info' | 'success' | 'danger' } | null>(null);
+  const [ownerEmailChecking, setOwnerEmailChecking] = useState(false);
+  const [ownerEmailResult, setOwnerEmailResult] = useState<any>(null);
+  const [ownerLastCheckedEmail, setOwnerLastCheckedEmail] = useState('');
   const [showUnitModal, setShowUnitModal] = useState(false);
   const [state, setState] = useState<any>({
     me: null, config: {}, ownerStats: {}, dashboard: {}, report: {},
@@ -620,6 +624,25 @@ export function AdminPreviewPage() {
     }, 'PDF generado.');
   }
 
+  async function checkOwnerEmail(email: string) {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return;
+    if (email === ownerLastCheckedEmail) return;
+    setOwnerEmailChecking(true);
+    setOwnerEmailHint({ text: 'Verificando…', tone: 'info' });
+    try {
+      const res = await adminApi.owners.checkEmail(email);
+      setOwnerLastCheckedEmail(email);
+      setOwnerEmailResult(res);
+      const tone = !res.canAddToCurrentOrganization ? 'danger' : res.exists ? 'success' : 'info';
+      setOwnerEmailHint({ text: res.message, tone });
+    } catch {
+      setOwnerEmailHint(null);
+      setOwnerEmailResult(null);
+    } finally {
+      setOwnerEmailChecking(false);
+    }
+  }
+
   function submitOwner(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
@@ -630,8 +653,17 @@ export function AdminPreviewPage() {
       return;
     }
     setOwnerEmailError('');
+    if (ownerEmailResult && !ownerEmailResult.canAddToCurrentOrganization) {
+      return;
+    }
+    const isNewUser = !ownerEmailResult || !ownerEmailResult.exists;
+    if (isNewUser && !data.password) {
+      setOwnerEmailError('La contraseña es obligatoria para nuevos propietarios.');
+      return;
+    }
     const chargeCurrentMonth = (form.querySelector('#chargeCurrentMonth') as HTMLInputElement)?.checked ?? true;
     run('owner', async () => {
+      if (email !== ownerLastCheckedEmail) await checkOwnerEmail(email);
       await adminApi.owners.create({
         ...data,
         initialDebtAmount: Number(data.initialDebtAmount ?? 0),
@@ -640,6 +672,9 @@ export function AdminPreviewPage() {
       });
       setOwnerSelectedUnitIds(new Set());
       setOwnerUnitFilter('');
+      setOwnerEmailHint(null);
+      setOwnerEmailResult(null);
+      setOwnerLastCheckedEmail('');
       form.reset();
       setShowOwnerModal(false);
     }, 'Propietario creado con unidades seleccionadas.');
@@ -1339,12 +1374,22 @@ export function AdminPreviewPage() {
               ]} />
             </Panel>
 
-            {showOwnerModal && (
-              <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) { setShowOwnerModal(false); setOwnerEmailError(''); } }}>
+            {showOwnerModal && (() => {
+              const closeOwnerModal = () => {
+                setShowOwnerModal(false);
+                setOwnerEmailError('');
+                setOwnerEmailHint(null);
+                setOwnerEmailResult(null);
+                setOwnerLastCheckedEmail('');
+              };
+              const userExists = ownerEmailResult?.exists && ownerEmailResult?.canAddToCurrentOrganization;
+              const cantAdd = ownerEmailResult && !ownerEmailResult.canAddToCurrentOrganization;
+              return (
+              <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) closeOwnerModal(); }}>
                 <div className="form-modal form-modal--wide">
                   <div className="form-modal-head">
                     <div className="form-modal-title"><Users size={16} />Nuevo propietario</div>
-                    <button className="icon-btn" onClick={() => { setShowOwnerModal(false); setOwnerEmailError(''); }}><X size={16} /></button>
+                    <button className="icon-btn" onClick={closeOwnerModal}><X size={16} /></button>
                   </div>
                   <form className="admin-form" onSubmit={submitOwner}>
                     <p className="form-section-label">Datos personales</p>
@@ -1355,12 +1400,22 @@ export function AdminPreviewPage() {
                         name="email"
                         type="email"
                         required
-                        style={ownerEmailError ? { borderColor: 'var(--danger)' } : {}}
-                        onChange={() => ownerEmailError && setOwnerEmailError('')}
+                        disabled={ownerEmailChecking}
+                        style={ownerEmailError || cantAdd ? { borderColor: 'var(--danger)' } : ownerEmailHint?.tone === 'success' ? { borderColor: 'var(--success,#16a34a)' } : {}}
+                        onChange={() => { if (ownerEmailError) setOwnerEmailError(''); if (ownerEmailHint) setOwnerEmailHint(null); if (ownerEmailResult) { setOwnerEmailResult(null); setOwnerLastCheckedEmail(''); } }}
+                        onBlur={(e) => checkOwnerEmail(e.target.value.trim())}
                       />
+                      {ownerEmailChecking && <small style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 2 }}>Verificando…</small>}
+                      {!ownerEmailChecking && ownerEmailHint && (
+                        <small style={{ fontSize: 11, marginTop: 2, color: ownerEmailHint.tone === 'danger' ? 'var(--danger)' : ownerEmailHint.tone === 'success' ? 'var(--success,#16a34a)' : 'var(--text-muted)' }}>
+                          {ownerEmailHint.text}
+                        </small>
+                      )}
                       {ownerEmailError && <small style={{ color: 'var(--danger)', fontSize: 11, marginTop: 2 }}>{ownerEmailError}</small>}
                     </label>
-                    <Field label="Contraseña temporal" name="password" type="password" placeholder="Mín. 6 caracteres" required />
+                    {!userExists && (
+                      <Field label="Contraseña temporal" name="password" type="password" placeholder="Mín. 6 caracteres" required={!userExists} />
+                    )}
                     <Field label="Teléfono" name="phone" />
                     <p className="form-section-label">Configuración de cuenta</p>
                     <label className="admin-field">
@@ -1414,13 +1469,14 @@ export function AdminPreviewPage() {
                       </div>
                     </div>
                     <div className="form-modal-foot">
-                      <button type="button" className="btn btn-ghost" onClick={() => { setShowOwnerModal(false); setOwnerEmailError(''); }}>Cancelar</button>
-                      <button className="btn btn-primary" disabled={busy === 'owner'}>Crear propietario</button>
+                      <button type="button" className="btn btn-ghost" onClick={closeOwnerModal}>Cancelar</button>
+                      <button className="btn btn-primary" disabled={busy === 'owner' || cantAdd || ownerEmailChecking}>Crear propietario</button>
                     </div>
                   </form>
                 </div>
               </div>
-            )}
+              );
+            })()}
 
             {showUnitModal && (
               <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) setShowUnitModal(false); }}>
