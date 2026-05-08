@@ -983,14 +983,6 @@ export function AdminPreviewPage() {
                 loading={loading}
                 onViewAll={() => setTab('finanzas')}
               />
-              <Panel title="Actividad reciente" icon={Bell} sub="Últimas acciones registradas">
-                <ActivityFeed
-                  payments={state.payments}
-                  claims={state.claims}
-                  notices={state.notices}
-                  loading={loading}
-                />
-              </Panel>
             </div>
           </>
         )}
