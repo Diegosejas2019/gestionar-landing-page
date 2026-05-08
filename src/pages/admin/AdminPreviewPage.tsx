@@ -1086,11 +1086,7 @@ export function AdminPreviewPage() {
                   monthly={filteredMonthlyByPeriod(state.dashboard?.monthly || [], dashPeriod)}
                   loading={loading}
                 />
-                <TopMovers
-                  yearPayments={state.yearPayments}
-                  owners={state.owners}
-                  loading={loading}
-                />
+
               </>
             )}
 
