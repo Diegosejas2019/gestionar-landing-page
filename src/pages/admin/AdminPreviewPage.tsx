@@ -1055,15 +1055,12 @@ export function AdminPreviewPage() {
                     monthFilter((p) => p.month || String(p.createdAt || '').slice(0, 7), month)
                   ]} rows={state.payments} columns={[
                     ['Unidad', (p: any) => {
-                      const ids: string[] = [
-                        ...(Array.isArray(p.owner?.units) ? p.owner.units : []),
-                        p.owner?.unit,
-                        p.unit
-                      ].filter(Boolean);
-                      const names = ids.map((id: string) => {
-                        const found = (state.units || []).find((u: any) => idOf(u) === id);
-                        return found ? found.name : (id.length <= 30 ? id : null);
-                      }).filter(Boolean);
+                      const ownerId = idOf(p.owner);
+                      const ownerUnits = (state.units || []).filter((u: any) => {
+                        const uid = typeof u.owner === 'string' ? u.owner : idOf(u.owner);
+                        return ownerId && uid === ownerId;
+                      });
+                      const names = ownerUnits.map((u: any) => u.name).filter(Boolean);
                       return <span className="fin-lote">{names.join(', ') || '—'}</span>;
                     }],
                     ['Propietario', (p: any) => (
