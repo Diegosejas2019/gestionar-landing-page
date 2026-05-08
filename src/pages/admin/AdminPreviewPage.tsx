@@ -623,9 +623,12 @@ export function AdminPreviewPage() {
     event.preventDefault();
     const form = event.currentTarget;
     const data = formObject(event);
+    const chargeCurrentMonth = (form.querySelector('#chargeCurrentMonth') as HTMLInputElement)?.checked ?? true;
     run('owner', async () => {
       await adminApi.owners.create({
         ...data,
+        initialDebtAmount: Number(data.initialDebtAmount ?? 0),
+        chargeCurrentMonth,
         unitIds: [...ownerSelectedUnitIds]
       });
       setOwnerSelectedUnitIds(new Set());
@@ -1337,10 +1340,9 @@ export function AdminPreviewPage() {
                     <button className="icon-btn" onClick={() => setShowOwnerModal(false)}><X size={16} /></button>
                   </div>
                   <form className="admin-form" onSubmit={submitOwner}>
-                    <Field label="Nombre" name="name" required />
+                    <Field label="Nombre completo" name="name" required />
                     <Field label="Email" name="email" type="email" required />
-                    <Field label="Teléfono" name="phone" />
-                    <Field label="Contraseña temporal" name="password" type="password" required />
+                    <Field label="Contraseña temporal" name="password" type="password" placeholder="Mín. 6 caracteres" required />
                     <div className="admin-field full">
                       <span>Unidades</span>
                       <div className="unit-picker">
@@ -1377,6 +1379,19 @@ export function AdminPreviewPage() {
                           }) : <Empty text="No hay unidades disponibles con ese filtro." />}
                         </div>
                         <small>{availableOwnerUnits.length} disponibles · {state.units.length - availableOwnerUnits.length} ocupadas.</small>
+                      </div>
+                    </div>
+                    <Field label="Teléfono" name="phone" />
+                    <div className="admin-field full">
+                      <span>Deuda inicial / Saldo anterior ($)</span>
+                      <input className="input" type="number" name="initialDebtAmount" defaultValue={0} min={0} />
+                      <small style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 2 }}>Usá este campo si el propietario ingresa con deuda previa.</small>
+                    </div>
+                    <div className="admin-field full" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <input type="checkbox" name="chargeCurrentMonth" id="chargeCurrentMonth" defaultChecked style={{ width: 16, height: 16, flexShrink: 0 }} />
+                      <div>
+                        <label htmlFor="chargeCurrentMonth" style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-bright)', cursor: 'pointer' }}>¿Cobrar mes en curso?</label>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Si se desactiva, el cobro comenzará el mes siguiente.</div>
                       </div>
                     </div>
                     <div className="form-modal-foot">
