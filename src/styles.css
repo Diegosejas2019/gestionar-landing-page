@@ -2555,6 +2555,27 @@ footer {
   grid-column: 1 / -1;
 }
 
+.form-modal--wide { width: min(780px, 96vw); }
+.form-section-label {
+  grid-column: 1 / -1;
+  margin: 4px 0 -2px;
+  font: 700 10px var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-faint);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
+}
+.form-section-label:first-of-type { margin-top: 0; }
+.owner-check-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+.owner-check-row input[type='checkbox'] { width: 16px; height: 16px; flex-shrink: 0; accent-color: var(--accent); }
+.owner-check-row label { font-size: 12.5px; font-weight: 600; color: var(--text-bright); }
+.owner-check-hint { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
 /* ============ ADMIN v2 COMPONENT STYLES ============ */
 
 /* Metric card v2 */

@@ -364,6 +364,7 @@ export function AdminPreviewPage() {
   const [ownerUnitFilter, setOwnerUnitFilter] = useState('');
   const [ownerSelectedUnitIds, setOwnerSelectedUnitIds] = useState<Set<string>>(new Set());
   const [showOwnerModal, setShowOwnerModal] = useState(false);
+  const [ownerEmailError, setOwnerEmailError] = useState('');
   const [showUnitModal, setShowUnitModal] = useState(false);
   const [state, setState] = useState<any>({
     me: null, config: {}, ownerStats: {}, dashboard: {}, report: {},
@@ -623,6 +624,12 @@ export function AdminPreviewPage() {
     event.preventDefault();
     const form = event.currentTarget;
     const data = formObject(event);
+    const email = (data.email as string) || '';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+      setOwnerEmailError('Ingresá un correo electrónico válido.');
+      return;
+    }
+    setOwnerEmailError('');
     const chargeCurrentMonth = (form.querySelector('#chargeCurrentMonth') as HTMLInputElement)?.checked ?? true;
     run('owner', async () => {
       await adminApi.owners.create({
@@ -1333,18 +1340,43 @@ export function AdminPreviewPage() {
             </Panel>
 
             {showOwnerModal && (
-              <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) setShowOwnerModal(false); }}>
-                <div className="form-modal">
+              <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) { setShowOwnerModal(false); setOwnerEmailError(''); } }}>
+                <div className="form-modal form-modal--wide">
                   <div className="form-modal-head">
                     <div className="form-modal-title"><Users size={16} />Nuevo propietario</div>
-                    <button className="icon-btn" onClick={() => setShowOwnerModal(false)}><X size={16} /></button>
+                    <button className="icon-btn" onClick={() => { setShowOwnerModal(false); setOwnerEmailError(''); }}><X size={16} /></button>
                   </div>
                   <form className="admin-form" onSubmit={submitOwner}>
+                    <p className="form-section-label">Datos personales</p>
                     <Field label="Nombre completo" name="name" required />
-                    <Field label="Email" name="email" type="email" required />
+                    <label className="admin-field">
+                      <span>Email</span>
+                      <input
+                        name="email"
+                        type="email"
+                        required
+                        style={ownerEmailError ? { borderColor: 'var(--danger)' } : {}}
+                        onChange={() => ownerEmailError && setOwnerEmailError('')}
+                      />
+                      {ownerEmailError && <small style={{ color: 'var(--danger)', fontSize: 11, marginTop: 2 }}>{ownerEmailError}</small>}
+                    </label>
                     <Field label="Contraseña temporal" name="password" type="password" placeholder="Mín. 6 caracteres" required />
+                    <Field label="Teléfono" name="phone" />
+                    <p className="form-section-label">Configuración de cuenta</p>
+                    <label className="admin-field">
+                      <span>Deuda inicial / Saldo anterior ($)</span>
+                      <input className="input" type="number" name="initialDebtAmount" defaultValue={0} min={0} />
+                      <small style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 2 }}>Usá este campo si el propietario ingresa con deuda previa.</small>
+                    </label>
+                    <div className="admin-field full owner-check-row">
+                      <input type="checkbox" name="chargeCurrentMonth" id="chargeCurrentMonth" defaultChecked />
+                      <div>
+                        <label htmlFor="chargeCurrentMonth" style={{ cursor: 'pointer' }}>¿Cobrar mes en curso?</label>
+                        <div className="owner-check-hint">Si se desactiva, el cobro comenzará el mes siguiente.</div>
+                      </div>
+                    </div>
+                    <p className="form-section-label">Unidades asignadas</p>
                     <div className="admin-field full">
-                      <span>Unidades</span>
                       <div className="unit-picker">
                         <input
                           type="search"
@@ -1381,21 +1413,8 @@ export function AdminPreviewPage() {
                         <small>{availableOwnerUnits.length} disponibles · {state.units.length - availableOwnerUnits.length} ocupadas.</small>
                       </div>
                     </div>
-                    <Field label="Teléfono" name="phone" />
-                    <div className="admin-field full">
-                      <span>Deuda inicial / Saldo anterior ($)</span>
-                      <input className="input" type="number" name="initialDebtAmount" defaultValue={0} min={0} />
-                      <small style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 2 }}>Usá este campo si el propietario ingresa con deuda previa.</small>
-                    </div>
-                    <div className="admin-field full" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      <input type="checkbox" name="chargeCurrentMonth" id="chargeCurrentMonth" defaultChecked style={{ width: 16, height: 16, flexShrink: 0 }} />
-                      <div>
-                        <label htmlFor="chargeCurrentMonth" style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-bright)', cursor: 'pointer' }}>¿Cobrar mes en curso?</label>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Si se desactiva, el cobro comenzará el mes siguiente.</div>
-                      </div>
-                    </div>
                     <div className="form-modal-foot">
-                      <button type="button" className="btn btn-ghost" onClick={() => setShowOwnerModal(false)}>Cancelar</button>
+                      <button type="button" className="btn btn-ghost" onClick={() => { setShowOwnerModal(false); setOwnerEmailError(''); }}>Cancelar</button>
                       <button className="btn btn-primary" disabled={busy === 'owner'}>Crear propietario</button>
                     </div>
                   </form>
