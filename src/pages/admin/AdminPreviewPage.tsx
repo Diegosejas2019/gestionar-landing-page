@@ -2,7 +2,7 @@ import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle, Bell, Building2, CalendarCheck, CheckCircle2, ChevronDown, ChevronRight,
   CreditCard, Download, FileText, Home, Inbox, Landmark, LogOut, Mail, Megaphone, MessageSquare, MoreVertical,
-  Paperclip, RefreshCw, Search, Settings, ShieldCheck, TrendingUp, UserRoundCog, Users, Vote, WalletCards, X
+  Paperclip, Plus, RefreshCw, Search, Settings, ShieldCheck, TrendingUp, UserRoundCog, Users, Vote, WalletCards, X
 } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
 import { isSuperAdminRole } from '../../services/authService';
@@ -389,6 +389,8 @@ export function AdminPreviewPage() {
   const [showSalaryPaymentModal, setShowSalaryPaymentModal] = useState(false);
   const [salaryForPayment, setSalaryForPayment] = useState<any>(null);
   const [salaryPaymentType, setSalaryPaymentType] = useState('advance');
+  const [showProviderModal, setShowProviderModal] = useState(false);
+  const [editingProvider, setEditingProvider] = useState<any>(null);
   const [state, setState] = useState<any>({
     me: null, config: {}, ownerStats: {}, dashboard: {}, report: {},
     owners: [], units: [], payments: [], notices: [], claims: [], expenses: [],
@@ -527,12 +529,16 @@ export function AdminPreviewPage() {
       }
 
       if (target === 'proveedores') {
-        if (isEnabled('providers')) {
-          const providers = await adminApi.providers.list();
-          next.providers = pick(providers, 'providers', []);
-        } else {
-          next.providers = [];
-        }
+        const [providers, expenses] = await Promise.all([
+          isEnabled('providers') ? adminApi.providers.list() : Promise.resolve(null),
+          adminApi.expenses.list({ limit: 500 })
+        ]);
+        next.providers = isEnabled('providers') ? pick(providers, 'providers', []) : [];
+        const yearStr = String(new Date().getFullYear());
+        next.yearExpenses = pick(expenses, 'expenses', []).filter((e: any) => {
+          const y = (e.date || e.createdAt || '').slice(0, 4);
+          return y === yearStr;
+        });
       }
 
       if (target === 'config') {
@@ -743,11 +749,16 @@ export function AdminPreviewPage() {
     event.currentTarget.reset();
   }
 
-  function submitProvider(event: FormEvent<HTMLFormElement>) {
+  function submitProviderModal(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = formObject(event);
-    run('provider', () => adminApi.providers.create(data), 'Proveedor creado.');
-    event.currentTarget.reset();
+    const isEdit = !!editingProvider;
+    run(isEdit ? idOf(editingProvider) : 'provider', async () => {
+      if (isEdit) await adminApi.providers.update(idOf(editingProvider), data);
+      else await adminApi.providers.create(data);
+      setShowProviderModal(false);
+      setEditingProvider(null);
+    }, isEdit ? 'Proveedor actualizado.' : 'Proveedor creado.');
   }
 
   function submitEmployee(event: FormEvent<HTMLFormElement>) {
@@ -2075,40 +2086,119 @@ export function AdminPreviewPage() {
               <div>
                 <div className="admin-page-kicker"><span className="dot" />Administración</div>
                 <h1 className="admin-page-title">Proveedores</h1>
-                <div className="admin-page-sub">{state.providers?.length || 0} proveedores registrados · {state.config?.consortiumName || 'Tu organización'}</div>
+                <div className="admin-page-sub">
+                  {(state.providers || []).filter((p: any) => p.active !== false).length} activos
+                  {(state.providers?.length || 0) > 0 ? ` · ${state.providers.length} en total` : ''}
+                  {state.config?.consortiumName ? ` · ${state.config.consortiumName}` : ''}
+                </div>
               </div>
               <div className="admin-page-actions">
                 <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
+                <button className="btn btn-primary" onClick={() => { setEditingProvider(null); setShowProviderModal(true); }}><Plus size={14} />Nuevo proveedor</button>
               </div>
             </div>
-            <div className="admin-grid two">
-            <Panel title="Nuevo proveedor" icon={Landmark}>
-              <form className="admin-form" onSubmit={submitProvider}>
-                <Field label="Nombre" name="name" required />
-                <Field label="Servicio" name="serviceType" required />
-                <Field label="CUIT" name="cuit" />
-                <Field label="Telefono" name="phone" />
-                <Field label="Email" name="email" type="email" />
-                <button className="btn btn-primary" disabled={busy === 'provider'}>Crear proveedor</button>
-              </form>
-            </Panel>
-            <Panel title="Proveedores" icon={Landmark}>
+
+            {(() => {
+              const cats = expensesByCategory(state.yearExpenses || []);
+              const catTotal = cats.reduce((s: number, c: any) => s + c.amount, 0);
+              if (!cats.length) return null;
+              return (
+                <div className="card" style={{ marginBottom: 16 }}>
+                  <div className="card-h">
+                    <div>
+                      <h3>Gasto por categoría · YTD {new Date().getFullYear()}</h3>
+                      <div className="card-sub">${fmtK(catTotal)} total acumulado</div>
+                    </div>
+                  </div>
+                  <div className="card-body">
+                    {cats.map((cat: any, i: number) => (
+                      <div key={cat.cat} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 0', borderBottom: i < cats.length - 1 ? '1px solid var(--line-1)' : 'none' }}>
+                        <div style={{ width: 110, fontSize: 12, color: 'var(--ink-0)', display: 'flex', alignItems: 'center', gap: 7 }}>
+                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: cat.color, flexShrink: 0, display: 'inline-block' }} />
+                          {cat.label}
+                        </div>
+                        <div style={{ flex: 1, height: 8, background: 'var(--bg-2)', borderRadius: 4, overflow: 'hidden' }}>
+                          <div style={{ width: `${Math.max(cat.pct, 2)}%`, height: '100%', background: cat.color, borderRadius: 4 }} />
+                        </div>
+                        <div style={{ fontFamily: 'var(--font-mono)', width: 100, textAlign: 'right', fontSize: 12, color: 'var(--ink-0)' }}>${fmtK(cat.amount)}</div>
+                        <div style={{ fontFamily: 'var(--font-mono)', width: 30, textAlign: 'right', fontSize: 11, color: 'var(--ink-2)' }}>{cat.pct}%</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div className="card" style={{ marginBottom: 0 }}>
               <Table loading={loading} searchPlaceholder="Buscar proveedor, servicio o contacto" filters={[
                 {
-                  key: 'service',
+                  key: 'active',
+                  label: 'Estado',
+                  allLabel: 'Todos',
+                  options: [
+                    { value: 'active', label: 'Activos' },
+                    { value: 'inactive', label: 'Inactivos' }
+                  ],
+                  match: (row: any, value: string) => value === 'active' ? row.active !== false : row.active === false
+                },
+                {
+                  key: 'serviceType',
                   label: 'Servicio',
                   allLabel: 'Todos',
-                  options: uniqueOptions(state.providers, (p: any) => p.serviceType),
-                  match: (row, value) => row.serviceType === value
+                  options: Object.entries(EXPENSE_LABELS_MAP).map(([value, label]) => ({ value, label })),
+                  match: (row: any, value: string) => row.serviceType === value
                 }
               ]} rows={state.providers} columns={[
-                ['Nombre', (p: any) => p.name],
-                ['Servicio', (p: any) => p.serviceType],
-                ['Contacto', (p: any) => p.phone || p.email || '-'],
-                ['Acciones', (p: any) => <Actions><button onClick={() => run(idOf(p), () => adminApi.providers.delete(idOf(p)), 'Proveedor eliminado.')}>Eliminar</button></Actions>]
+                ['Proveedor', (p: any) => (
+                  <div>
+                    <div style={{ fontWeight: 500, fontSize: 12.5, color: 'var(--ink-0)' }}>{p.name}</div>
+                    {p.cuit && <div style={{ fontSize: 11, color: 'var(--ink-2)', fontFamily: 'var(--font-mono)' }}>CUIT {p.cuit}</div>}
+                  </div>
+                )],
+                ['Servicio', (p: any) => <span className="pill muted">{EXPENSE_LABELS_MAP[p.serviceType] || p.serviceType || '—'}</span>],
+                ['Contacto', (p: any) => p.phone || p.email || <span style={{ color: 'var(--ink-3)' }}>—</span>],
+                ['Estado', (p: any) => p.active !== false
+                  ? <span className="pill pos"><span className="d" />Activo</span>
+                  : <span className="pill neg"><span className="d" />Inactivo</span>
+                ],
+                ['Acciones', (p: any) => (
+                  <Actions>
+                    <button onClick={() => { setEditingProvider(p); setShowProviderModal(true); }}>Editar</button>
+                    <button className="danger-action" onClick={() => run(idOf(p), () => adminApi.providers.delete(idOf(p)), 'Proveedor eliminado.')}>Eliminar</button>
+                  </Actions>
+                )]
               ]} />
-            </Panel>
             </div>
+
+            {showProviderModal && (
+              <div className="modal-backdrop" role="dialog" aria-modal="true"
+                onClick={(e) => { if (e.target === e.currentTarget) { setShowProviderModal(false); setEditingProvider(null); } }}>
+                <div className="form-modal">
+                  <div className="form-modal-head">
+                    <div className="form-modal-title"><Landmark size={16} />{editingProvider ? 'Editar proveedor' : 'Nuevo proveedor'}</div>
+                    <button className="icon-btn" onClick={() => { setShowProviderModal(false); setEditingProvider(null); }}><X size={16} /></button>
+                  </div>
+                  <form key={editingProvider ? idOf(editingProvider) : 'new'} className="admin-form" onSubmit={submitProviderModal}>
+                    <Field label="Nombre" name="name" required defaultValue={editingProvider?.name} />
+                    <label className="admin-field">
+                      <span>Servicio</span>
+                      <select name="serviceType" defaultValue={editingProvider?.serviceType || 'other'}>
+                        {Object.entries(EXPENSE_LABELS_MAP).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                      </select>
+                    </label>
+                    <Field label="CUIT" name="cuit" defaultValue={editingProvider?.cuit} />
+                    <Field label="Telefono" name="phone" defaultValue={editingProvider?.phone} />
+                    <Field label="Email" name="email" type="email" defaultValue={editingProvider?.email} />
+                    <div className="form-modal-foot">
+                      <button type="button" className="btn btn-ghost" onClick={() => { setShowProviderModal(false); setEditingProvider(null); }}>Cancelar</button>
+                      <button className="btn btn-primary" disabled={busy === 'provider' || (!!editingProvider && busy === idOf(editingProvider))}>
+                        {editingProvider ? 'Guardar cambios' : 'Crear proveedor'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
           </>
         )}
 
