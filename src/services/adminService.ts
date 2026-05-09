@@ -134,8 +134,10 @@ export const adminApi = {
       () => apiClient<any>(`/providers${qs(params)}`, { auth: true })
     ),
     create: (data: Payload) => { cacheDelete('providers:list'); return apiClient<any>('/providers', { method: 'POST', auth: true, body: body(data) }); },
-    update: (id: string, data: Payload) => apiClient<any>(`/providers/${id}`, { method: 'PATCH', auth: true, body: body(data) }),
-    delete: (id: string) => { cacheDelete('providers:list'); return apiClient<any>(`/providers/${id}`, { method: 'DELETE', auth: true }); }
+    update: (id: string, data: Payload) => { cacheDelete('providers:list'); return apiClient<any>(`/providers/${id}`, { method: 'PATCH', auth: true, body: body(data) }); },
+    delete: (id: string) => { cacheDelete('providers:list'); return apiClient<any>(`/providers/${id}`, { method: 'DELETE', auth: true }); },
+    deleteDocument: (id: string, index: number) => { cacheDelete('providers:list'); return apiClient<any>(`/providers/${id}/document/${index}`, { method: 'DELETE', auth: true }); },
+    getDocumentBlob: (id: string, index: number) => apiBlob(`/providers/${id}/document/${index}`, { auth: true }),
   },
 
   reports: {

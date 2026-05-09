@@ -780,14 +780,46 @@ export function AdminPreviewPage() {
 
   function submitProviderModal(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const data = formObject(event);
+    const fd = new FormData(event.currentTarget);
     const isEdit = !!editingProvider;
     run(isEdit ? idOf(editingProvider) : 'provider', async () => {
-      if (isEdit) await adminApi.providers.update(idOf(editingProvider), data);
-      else await adminApi.providers.create(data);
+      if (isEdit) await adminApi.providers.update(idOf(editingProvider), fd);
+      else await adminApi.providers.create(fd);
       setShowProviderModal(false);
       setEditingProvider(null);
     }, isEdit ? 'Proveedor actualizado.' : 'Proveedor creado.');
+  }
+
+  async function downloadProviderDoc(providerId: string, index: number, filename: string) {
+    try {
+      const blob = await adminApi.providers.getDocumentBlob(providerId, index);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename || `documento-${index + 1}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setNotice({ type: 'error', text: 'No se pudo descargar el archivo.' });
+    }
+  }
+
+  async function deleteProviderDoc(providerId: string, index: number) {
+    setBusy(providerId + '-doc' + index);
+    try {
+      await adminApi.providers.deleteDocument(providerId, index);
+      const updatedDocs = [...(editingProvider?.documents || [])];
+      updatedDocs.splice(index, 1);
+      setEditingProvider((p: any) => ({ ...p, documents: updatedDocs }));
+      setNotice({ type: 'ok', text: 'Archivo eliminado.' });
+      refresh(tab);
+    } catch (error) {
+      setNotice({ type: 'error', text: error instanceof Error ? error.message : 'No se pudo eliminar el archivo.' });
+    } finally {
+      setBusy('');
+    }
   }
 
   function submitEmployee(event: FormEvent<HTMLFormElement>) {
@@ -2190,6 +2222,21 @@ export function AdminPreviewPage() {
                   ? <span className="pill pos"><span className="d" />Activo</span>
                   : <span className="pill neg"><span className="d" />Inactivo</span>
                 ],
+                ['Archivos', (p: any) => {
+                  const docs: any[] = p.documents || [];
+                  if (!docs.length) return <span style={{ color: 'var(--ink-3)' }}>—</span>;
+                  return (
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                      {docs.map((doc: any, i: number) => (
+                        <button key={i} type="button" className="btn btn-ghost"
+                          style={{ fontSize: 11, padding: '2px 6px', gap: 4 }}
+                          onClick={() => downloadProviderDoc(idOf(p), i, doc.filename)}>
+                          <Paperclip size={11} />{doc.filename || `Doc ${i + 1}`}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                }],
                 ['Acciones', (p: any) => (
                   <Actions>
                     <button onClick={() => { setEditingProvider(p); setShowProviderModal(true); }}>Editar</button>
@@ -2218,6 +2265,31 @@ export function AdminPreviewPage() {
                     <Field label="CUIT" name="cuit" defaultValue={editingProvider?.cuit} />
                     <Field label="Telefono" name="phone" defaultValue={editingProvider?.phone} />
                     <Field label="Email" name="email" type="email" defaultValue={editingProvider?.email} />
+                    {editingProvider?.documents?.length > 0 && (
+                      <label className="admin-field">
+                        <span>Archivos actuales</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {editingProvider.documents.map((doc: any, i: number) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <button type="button" className="btn btn-ghost"
+                                style={{ fontSize: 11, padding: '2px 8px', gap: 4, flex: 1, textAlign: 'left', justifyContent: 'flex-start' }}
+                                onClick={() => downloadProviderDoc(idOf(editingProvider), i, doc.filename)}>
+                                <Paperclip size={11} />{doc.filename || `Documento ${i + 1}`}
+                              </button>
+                              <button type="button" className="icon-btn"
+                                disabled={busy === idOf(editingProvider) + '-doc' + i}
+                                onClick={() => deleteProviderDoc(idOf(editingProvider), i)}>
+                                <X size={12} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </label>
+                    )}
+                    <label className="admin-field">
+                      <span>Adjuntar archivos</span>
+                      <input type="file" name="documents" multiple accept=".pdf,.jpg,.jpeg,.png,.webp" />
+                    </label>
                     <div className="form-modal-foot">
                       <button type="button" className="btn btn-ghost" onClick={() => { setShowProviderModal(false); setEditingProvider(null); }}>Cancelar</button>
                       <button className="btn btn-primary" disabled={busy === 'provider' || (!!editingProvider && busy === idOf(editingProvider))}>
