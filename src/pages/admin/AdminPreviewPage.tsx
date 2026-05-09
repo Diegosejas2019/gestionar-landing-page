@@ -370,6 +370,8 @@ export function AdminPreviewPage() {
   const [ownerEmailResult, setOwnerEmailResult] = useState<any>(null);
   const [ownerLastCheckedEmail, setOwnerLastCheckedEmail] = useState('');
   const [showUnitModal, setShowUnitModal] = useState(false);
+  const [showNoticeModal, setShowNoticeModal] = useState(false);
+  const [noticeFiles, setNoticeFiles] = useState<File[]>([]);
   const [state, setState] = useState<any>({
     me: null, config: {}, ownerStats: {}, dashboard: {}, report: {},
     owners: [], units: [], payments: [], notices: [], claims: [], expenses: [],
@@ -682,9 +684,29 @@ export function AdminPreviewPage() {
 
   function submitNotice(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
     const data = formObject(event);
-    run('notice', () => adminApi.notices.create({ ...data, sendPush: true, sendEmail: true }), 'Comunicado publicado.');
-    event.currentTarget.reset();
+    const sendPush = (form.querySelector('#n-push') as HTMLInputElement)?.checked ?? true;
+    const sendEmail = (form.querySelector('#n-email') as HTMLInputElement)?.checked ?? true;
+    run('notice', async () => {
+      let payload: Record<string, unknown> | FormData;
+      if (noticeFiles.length > 0) {
+        const fd = new FormData();
+        fd.append('title', String(data.title));
+        fd.append('body', String(data.body));
+        fd.append('tag', String(data.tag));
+        fd.append('sendPush', String(sendPush));
+        fd.append('sendEmail', String(sendEmail));
+        noticeFiles.forEach(f => fd.append('attachments', f));
+        payload = fd;
+      } else {
+        payload = { ...data, sendPush, sendEmail };
+      }
+      await adminApi.notices.create(payload);
+      setNoticeFiles([]);
+      form.reset();
+      setShowNoticeModal(false);
+    }, 'Comunicado publicado.');
   }
 
   function submitExpense(event: FormEvent<HTMLFormElement>) {
@@ -1510,11 +1532,12 @@ export function AdminPreviewPage() {
               </div>
               <div className="admin-page-actions">
                 <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
+                <button className="btn btn-primary" onClick={() => setShowNoticeModal(true)}><Megaphone size={14} />Nuevo comunicado</button>
               </div>
             </div>
             {moduleEnabled('notices') ? (
               <div className="com-layout">
-                <div className="com-main">
+                <div className="com-main" style={{ gridColumn: '1 / -1' }}>
                   {loading ? (
                     <Empty text="Cargando comunicados…" />
                   ) : !state.notices?.length ? (
@@ -1538,38 +1561,75 @@ export function AdminPreviewPage() {
                     </div>
                   )}
                 </div>
-                <div className="com-side">
-                  <Panel title="Nuevo comunicado" icon={Megaphone}>
-                    <form className="admin-form" onSubmit={submitNotice}>
-                      <Field label="Titulo" name="title" required />
-                      <SelectField label="Prioridad" name="tag" defaultValue="info">
-                        <option value="info">Info</option>
-                        <option value="warning">Advertencia</option>
-                        <option value="urgent">Urgente</option>
-                      </SelectField>
-                      <label className="admin-field full"><span>Mensaje</span><textarea name="body" rows={4} required /></label>
-                      <button className="btn btn-primary" disabled={busy === 'notice'}>Publicar</button>
-                    </form>
-                  </Panel>
-                  <div className="card">
-                    <div className="card-h"><h3>Resumen</h3></div>
-                    <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {(['info', 'warning', 'urgent'] as const).map((tag) => {
-                        const count = (state.notices || []).filter((n: any) => n.tag === tag).length;
-                        const label = tag === 'urgent' ? 'Urgentes' : tag === 'warning' ? 'Advertencias' : 'Informativos';
-                        const tone = tag === 'urgent' ? 'var(--neg)' : tag === 'warning' ? 'var(--warn)' : 'var(--acc)';
-                        return (
-                          <div key={tag} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: 12.5, color: 'var(--text)' }}>{label}</span>
-                            <span style={{ fontSize: 13, fontWeight: 600, fontFamily: 'monospace', color: tone }}>{count}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
               </div>
             ) : <Empty text="El módulo de comunicados no está habilitado para esta organización." />}
+
+            {showNoticeModal && (
+              <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) { setShowNoticeModal(false); setNoticeFiles([]); } }}>
+                <div className="form-modal form-modal--wide">
+                  <div className="form-modal-head">
+                    <div className="form-modal-title"><Megaphone size={16} />Nuevo comunicado</div>
+                    <button className="icon-btn" onClick={() => { setShowNoticeModal(false); setNoticeFiles([]); }}><X size={16} /></button>
+                  </div>
+                  <form className="admin-form" onSubmit={submitNotice}>
+                    <Field label="Título" name="title" required />
+                    <label className="admin-field full"><span>Mensaje</span><textarea name="body" rows={5} required placeholder="Contenido del comunicado..." maxLength={2000} /></label>
+                    <SelectField label="Tipo" name="tag" defaultValue="info">
+                      <option value="info">📢 Informativo</option>
+                      <option value="warning">⚠️ Advertencia</option>
+                      <option value="urgent">🔴 Urgente</option>
+                    </SelectField>
+                    <div className="admin-field full">
+                      <span>Adjuntos <small style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(opcional · máx. 3 · 10 MB c/u)</small></span>
+                      <input type="file" id="n-files-input" accept="image/*,.pdf" multiple style={{ display: 'none' }}
+                        onChange={(e) => {
+                          const incoming = Array.from(e.target.files || []);
+                          setNoticeFiles(prev => {
+                            const remaining = 3 - prev.length;
+                            return [...prev, ...incoming.slice(0, remaining)];
+                          });
+                          e.target.value = '';
+                        }}
+                      />
+                      <button type="button" className="btn btn-ghost btn-sm" style={{ width: '100%' }}
+                        onClick={() => document.getElementById('n-files-input')?.click()}>
+                        📎 Adjuntar archivos
+                      </button>
+                      {noticeFiles.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                          {noticeFiles.map((f, i) => (
+                            <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--bg-2)', borderRadius: 6, padding: '3px 8px', fontSize: 11.5 }}>
+                              <span>{f.type.startsWith('image/') ? '🖼️' : '📄'}</span>
+                              <span>{f.name.length > 22 ? f.name.slice(0, 21) + '…' : f.name}</span>
+                              <button type="button" onClick={() => setNoticeFiles(prev => prev.filter((_, j) => j !== i))}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', lineHeight: 1, padding: 0 }}>✕</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="admin-field full" style={{ gap: 8 }}>
+                      <label className="owner-check-row" style={{ cursor: 'pointer' }}>
+                        <input type="checkbox" id="n-push" defaultChecked style={{ width: 16, height: 16, accentColor: 'var(--acc)' }} />
+                        <span style={{ fontSize: 13, color: 'var(--text-bright)' }}>Enviar notificación push a propietarios</span>
+                      </label>
+                      <label className="owner-check-row" style={{ cursor: 'pointer' }}>
+                        <input type="checkbox" id="n-email" defaultChecked style={{ width: 16, height: 16, accentColor: 'var(--acc)' }} />
+                        <span style={{ fontSize: 13, color: 'var(--text-bright)' }}>Enviar correo electrónico a propietarios</span>
+                      </label>
+                      <label className="owner-check-row" style={{ cursor: 'pointer' }}>
+                        <input type="checkbox" id="n-whatsapp" style={{ width: 16, height: 16, accentColor: 'var(--acc)' }} />
+                        <span style={{ fontSize: 13, color: 'var(--text-bright)' }}>💬 Enviar por WhatsApp <small style={{ color: 'var(--text-faint)' }}>(manual)</small></span>
+                      </label>
+                    </div>
+                    <div className="form-modal-foot">
+                      <button type="button" className="btn btn-ghost" onClick={() => { setShowNoticeModal(false); setNoticeFiles([]); }}>Cancelar</button>
+                      <button className="btn btn-primary" disabled={busy === 'notice'}>Publicar</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
           </>
         )}
 
