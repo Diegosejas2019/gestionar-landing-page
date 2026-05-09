@@ -9,7 +9,7 @@ import { isSuperAdminRole } from '../../services/authService';
 import { useAdminStore } from '../../stores/adminStore';
 import { Table } from '../../components/Table';
 
-type TabKey = 'inicio' | 'finanzas' | 'personal' | 'propietarios' | 'comunicados' | 'reclamos' | 'operaciones' | 'proveedores' | 'config';
+type TabKey = 'inicio' | 'finanzas' | 'personal' | 'propietarios' | 'comunicados' | 'reclamos' | 'operaciones' | 'visitas' | 'proveedores' | 'config';
 type Notice = { type: 'ok' | 'error'; text: string } | null;
 type FeatureKey = 'visits' | 'reservations' | 'votes' | 'claims' | 'notices' | 'expenses' | 'providers';
 type GridFilter = {
@@ -306,6 +306,7 @@ const tabCrumbs: Record<string, string[]> = {
   comunicados: ['Comunidad', 'Comunicados'],
   reclamos: ['Comunidad', 'Reclamos'],
   operaciones: ['Operaciones'],
+  visitas: ['Operaciones', 'Visitas e ingresos'],
   proveedores: ['Administración', 'Proveedores'],
   config: ['Administración', 'Configuración'],
 };
@@ -547,16 +548,19 @@ export function AdminPreviewPage() {
     }
 
     if (target === 'operaciones') {
-      const [votes, visits, spaces, reservations] = await Promise.all([
+      const [votes, spaces, reservations] = await Promise.all([
         isEnabled('votes') ? adminApi.votes.list({ limit: 50 }) : Promise.resolve(null),
-        isEnabled('visits') ? adminApi.visits.list({ limit: 50 }) : Promise.resolve(null),
         isEnabled('reservations') ? adminApi.spaces.list() : Promise.resolve(null),
         isEnabled('reservations') ? adminApi.reservations.list({ limit: 50 }) : Promise.resolve(null)
       ]);
       next.votes = isEnabled('votes') ? pick(votes, 'votes', []) : [];
-      next.visits = isEnabled('visits') ? pick(visits, 'visits', []) : [];
       next.spaces = isEnabled('reservations') ? pick(spaces, 'spaces', []) : [];
       next.reservations = isEnabled('reservations') ? pick(reservations, 'reservations', []) : [];
+    }
+
+    if (target === 'visitas') {
+      const visitsRes = isEnabled('visits') ? await adminApi.visits.list({ limit: 100 }) : null;
+      next.visits = isEnabled('visits') ? pick(visitsRes, 'visits', []) : [];
     }
 
     if (target === 'proveedores') {
@@ -645,6 +649,7 @@ export function AdminPreviewPage() {
 
   useEffect(() => {
     if (tab === 'operaciones' && !hasOperations) setTab('inicio');
+    if (tab === 'visitas' && !moduleEnabled('visits')) setTab('inicio');
     if (tab === 'proveedores' && !moduleEnabled('providers')) setTab('inicio');
   }, [tab, hasOperations, features]);
 
@@ -1118,9 +1123,16 @@ export function AdminPreviewPage() {
           {hasOperations && (
             <>
               <div className="admin-nav-group-label">Operaciones</div>
-              <button className={tab === 'operaciones' ? 'active' : ''} onClick={() => setTab('operaciones')}>
-                <CalendarCheck size={16} /> <span>Operaciones</span>
-              </button>
+              {(moduleEnabled('votes') || moduleEnabled('reservations')) && (
+                <button className={tab === 'operaciones' ? 'active' : ''} onClick={() => setTab('operaciones')}>
+                  <CalendarCheck size={16} /> <span>Votaciones y reservas</span>
+                </button>
+              )}
+              {moduleEnabled('visits') && (
+                <button className={tab === 'visitas' ? 'active' : ''} onClick={() => setTab('visitas')}>
+                  <ShieldCheck size={16} /> <span>Visitas</span>
+                </button>
+              )}
             </>
           )}
 
@@ -2034,7 +2046,7 @@ export function AdminPreviewPage() {
               <div>
                 <div className="admin-page-kicker"><span className="dot" />Operaciones</div>
                 <h1 className="admin-page-title">Operaciones</h1>
-                <div className="admin-page-sub">Votaciones, reservas y visitas · {config?.consortiumName || 'Tu organización'}</div>
+                <div className="admin-page-sub">Votaciones y reservas · {config?.consortiumName || 'Tu organización'}</div>
               </div>
               <div className="admin-page-actions">
                 <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
@@ -2096,23 +2108,6 @@ export function AdminPreviewPage() {
                 </Actions>]
               ]} />
             </Panel>}
-            {moduleEnabled('visits') && <Panel title="Visitas" icon={ShieldCheck}>
-              <Table loading={loading} searchPlaceholder="Buscar visitante o propietario" filters={[
-                statusFilter(['pending', 'approved', 'rejected', 'inside', 'exited']),
-                dateFilter((v) => String(v.expectedDate || '').slice(0, 10))
-              ]} rows={visits} columns={[
-                ['Visitante', (v: any) => v.visitorName || v.name],
-                ['Propietario', (v: any) => person(v)],
-                ['Fecha', (v: any) => dateLabel(v.expectedDate)],
-                ['Estado', (v: any) => <Status value={v.status} />],
-                ['Acciones', (v: any) => <Actions>
-                  <button onClick={() => run(idOf(v), () => adminApi.visits.status(idOf(v), 'approved'), 'Visita aprobada.')}>Aprobar</button>
-                  <button onClick={() => run(idOf(v), () => adminApi.visits.status(idOf(v), 'rejected'), 'Visita rechazada.')}>Rechazar</button>
-                  <button onClick={() => run(idOf(v), () => adminApi.visits.status(idOf(v), 'inside'), 'Visita ingresada.')}>Ingreso</button>
-                  <button onClick={() => run(idOf(v), () => adminApi.visits.status(idOf(v), 'exited'), 'Visita egresada.')}>Egreso</button>
-                </Actions>]
-              ]} />
-            </Panel>}
             </div>
 
             {showVoteModal && (
@@ -2171,6 +2166,103 @@ export function AdminPreviewPage() {
                 </div>
               </div>
             )}
+          </>
+        )}
+
+        {tab === 'visitas' && (
+          <>
+            <div className="admin-page-head">
+              <div>
+                <div className="admin-page-kicker"><span className="dot" />Operaciones</div>
+                <h1 className="admin-page-title">Visitas e ingresos</h1>
+                <div className="admin-page-sub">
+                  {(() => {
+                    const vs = visits || [];
+                    const inside = vs.filter((v: any) => v.status === 'inside').length;
+                    const pending = vs.filter((v: any) => v.status === 'pending').length;
+                    const total = vs.length;
+                    return `${inside} dentro · ${pending} pendientes · ${total} total`;
+                  })()}
+                  {config?.consortiumName ? ` · ${config.consortiumName}` : ''}
+                </div>
+              </div>
+              <div className="admin-page-actions">
+                <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
+              </div>
+            </div>
+
+            {/* KPI cards */}
+            <div className="metric-grid" style={{ marginBottom: 16 }}>
+              {(() => {
+                const vs = visits || [];
+                const inside = vs.filter((v: any) => v.status === 'inside').length;
+                const pending = vs.filter((v: any) => v.status === 'pending').length;
+                const approved = vs.filter((v: any) => v.status === 'approved').length;
+                const denied = vs.filter((v: any) => v.status === 'rejected').length;
+                return (
+                  <>
+                    <div className={`metric-card ${loading ? 'skeleton' : ''}`}>
+                      <div className="metric-icon"><ShieldCheck size={18} /></div>
+                      <div className="metric-body">
+                        <div className="metric-label">Dentro ahora</div>
+                        {loading ? <div className="skeleton-val" /> : <div className="metric-value">{inside}</div>}
+                        <div className="metric-hint">visitantes autorizados</div>
+                      </div>
+                    </div>
+                    <div className={`metric-card ${loading ? 'skeleton' : ''}`}>
+                      <div className="metric-icon"><Bell size={18} /></div>
+                      <div className="metric-body">
+                        <div className="metric-label">Pendientes</div>
+                        {loading ? <div className="skeleton-val" /> : <div className="metric-value">{pending}</div>}
+                        <div className="metric-hint">esperando aprobación</div>
+                      </div>
+                    </div>
+                    <div className={`metric-card ${loading ? 'skeleton' : ''}`}>
+                      <div className="metric-icon"><CheckCircle2 size={18} /></div>
+                      <div className="metric-body">
+                        <div className="metric-label">Aprobadas</div>
+                        {loading ? <div className="skeleton-val" /> : <div className="metric-value">{approved}</div>}
+                        <div className="metric-hint">pre-autorizadas</div>
+                      </div>
+                    </div>
+                    <div className={`metric-card ${loading ? 'skeleton' : ''}`}>
+                      <div className="metric-icon"><AlertTriangle size={18} /></div>
+                      <div className="metric-body">
+                        <div className="metric-label">Rechazadas</div>
+                        {loading ? <div className="skeleton-val" /> : <div className="metric-value">{denied}</div>}
+                        <div className="metric-hint">denegadas</div>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+
+            {/* Tabla de visitas */}
+            <div className="card" style={{ marginBottom: 0 }}>
+              <Table loading={loading} searchPlaceholder="Buscar visitante o propietario" filters={[
+                statusFilter(['pending', 'approved', 'rejected', 'inside', 'exited']),
+                dateFilter((v) => String(v.expectedDate || '').slice(0, 10))
+              ]} rows={visits} columns={[
+                ['Visitante', (v: any) => (
+                  <div>
+                    <div style={{ fontWeight: 500, fontSize: 12.5, color: 'var(--ink-0)' }}>{v.visitorName || v.name}</div>
+                    {v.type && <div style={{ fontSize: 11, color: 'var(--ink-2)' }}>{v.type}</div>}
+                  </div>
+                )],
+                ['Propietario', (v: any) => person(v)],
+                ['Fecha esperada', (v: any) => dateLabel(v.expectedDate)],
+                ['Estado', (v: any) => <Status value={v.status} />],
+                ['Acciones', (v: any) => (
+                  <Actions>
+                    <button onClick={() => run(idOf(v), () => adminApi.visits.status(idOf(v), 'approved'), 'Visita aprobada.')}>Aprobar</button>
+                    <button onClick={() => run(idOf(v), () => adminApi.visits.status(idOf(v), 'rejected'), 'Visita rechazada.')}>Rechazar</button>
+                    <button onClick={() => run(idOf(v), () => adminApi.visits.status(idOf(v), 'inside'), 'Ingreso registrado.')}>Ingreso</button>
+                    <button onClick={() => run(idOf(v), () => adminApi.visits.status(idOf(v), 'exited'), 'Egreso registrado.')}>Egreso</button>
+                  </Actions>
+                )]
+              ]} />
+            </div>
           </>
         )}
 
