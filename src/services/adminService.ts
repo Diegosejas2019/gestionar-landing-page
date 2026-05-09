@@ -85,6 +85,12 @@ export const adminApi = {
     delete: (id: string) => apiClient<any>(`/salaries/${id}`, { method: 'DELETE', auth: true })
   },
 
+  salaryPayments: {
+    list: (params?: Params) => apiClient<any>(`/salary-payments${qs(params)}`, { auth: true }),
+    create: (data: Payload) => apiClient<any>('/salary-payments', { method: 'POST', auth: true, body: body(data) }),
+    delete: (id: string) => apiClient<any>(`/salary-payments/${id}`, { method: 'DELETE', auth: true })
+  },
+
   providers: {
     list: (params?: Params) => apiClient<any>(`/providers${qs(params)}`, { auth: true }),
     create: (data: Payload) => apiClient<any>('/providers', { method: 'POST', auth: true, body: body(data) }),

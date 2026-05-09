@@ -70,6 +70,7 @@ const statusText: Record<string, string> = {
   inside: 'Dentro',
   exited: 'Salio',
   paid: 'Pagado',
+  partially_paid: 'Parcialmente pagado',
   unpaid: 'Impago',
   closed: 'Cerrado',
   active: 'Activo'
@@ -89,6 +90,11 @@ const paymentMethodLabels: Record<string, string> = {
   manual: 'Manual',
   mercadopago: 'MercadoPago'
 };
+
+const salaryPaidAmount = (s: any) =>
+  s?.paidAmount != null ? Number(s.paidAmount) : (s?.status === 'paid' ? Number(s?.totalAmount || 0) : 0);
+const salaryRemainingAmount = (s: any) =>
+  s?.remainingAmount != null ? Number(s.remainingAmount) : Math.max(Number(s?.totalAmount || 0) - salaryPaidAmount(s), 0);
 
 const documentCategoryLabels: Record<string, string> = {
   regulation: 'Reglamento',
@@ -150,7 +156,7 @@ function Empty({ text = 'Sin datos para mostrar.' }: { text?: string }) {
 function Status({ value }: { value?: string }) {
   const tone = (value === 'approved' || value === 'paid' || value === 'resolved' || value === 'exited' || value === 'active') ? 'pos'
     : (value === 'rejected' || value === 'cancelled') ? 'neg'
-    : (value === 'pending' || value === 'open' || value === 'in_progress' || value === 'inside') ? 'warn'
+    : (value === 'pending' || value === 'partially_paid' || value === 'open' || value === 'in_progress' || value === 'inside') ? 'warn'
     : (value === 'closed') ? 'muted'
     : '';
   return (
@@ -378,6 +384,11 @@ export function AdminPreviewPage() {
   const [editingEmployee, setEditingEmployee] = useState<any>(null);
   const [employeeFiles, setEmployeeFiles] = useState<File[]>([]);
   const [empModalRole, setEmpModalRole] = useState('maintenance');
+  const [showSalaryModal, setShowSalaryModal] = useState(false);
+  const [editingSalary, setEditingSalary] = useState<any>(null);
+  const [showSalaryPaymentModal, setShowSalaryPaymentModal] = useState(false);
+  const [salaryForPayment, setSalaryForPayment] = useState<any>(null);
+  const [salaryPaymentType, setSalaryPaymentType] = useState('advance');
   const [state, setState] = useState<any>({
     me: null, config: {}, ownerStats: {}, dashboard: {}, report: {},
     owners: [], units: [], payments: [], notices: [], claims: [], expenses: [],
@@ -763,19 +774,46 @@ export function AdminPreviewPage() {
     }, isEdit ? 'Empleado actualizado.' : 'Empleado creado.');
   }
 
-  function submitSalary(event: FormEvent<HTMLFormElement>) {
+  function submitSalaryModal(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = formObject(event);
-    run('salary', () => adminApi.salaries.create({
-      employeeId: data.employeeId,
+    const isEdit = !!editingSalary;
+    const payload: any = {
       period: data.period,
       baseAmount: Number(data.baseAmount || 0),
       extraAmount: Number(data.extraAmount || 0),
       deductions: Number(data.deductions || 0),
       paymentMethod: data.paymentMethod || undefined,
       notes: data.notes || undefined
-    }), 'Liquidacion creada.');
-    event.currentTarget.reset();
+    };
+    if (!isEdit) payload.employeeId = data.employeeId;
+    run(isEdit ? idOf(editingSalary) : 'salary', async () => {
+      if (isEdit) await adminApi.salaries.update(idOf(editingSalary), payload);
+      else await adminApi.salaries.create(payload);
+      setShowSalaryModal(false);
+      setEditingSalary(null);
+    }, isEdit ? 'Liquidacion actualizada.' : 'Liquidacion creada.');
+  }
+
+  function submitSalaryPayment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = formObject(event);
+    const amount = Number(data.amount);
+    const remaining = salaryRemainingAmount(salaryForPayment);
+    if (!(amount > 0)) { setNotice({ type: 'error', text: 'El monto debe ser mayor a cero.' }); return; }
+    if (amount > remaining + 0.001) { setNotice({ type: 'error', text: 'El monto supera el saldo pendiente.' }); return; }
+    run('sal-payment', async () => {
+      await adminApi.salaryPayments.create({
+        salary: idOf(salaryForPayment),
+        type: data.type,
+        amount,
+        paymentDate: data.paymentDate || undefined,
+        paymentMethod: data.paymentMethod || undefined,
+        note: data.note || undefined
+      });
+      setShowSalaryPaymentModal(false);
+      setSalaryForPayment(null);
+    }, 'Pago registrado.');
   }
 
   function editEmployee(employee: any) {
@@ -815,18 +853,9 @@ export function AdminPreviewPage() {
     }
   }
 
-  function editSalary(salary: any) {
-    const baseAmount = window.prompt('Monto base', String(salary.baseAmount ?? 0));
-    if (baseAmount === null) return;
-    const extraAmount = window.prompt('Extras', String(salary.extraAmount ?? 0));
-    if (extraAmount === null) return;
-    const deductions = window.prompt('Descuentos', String(salary.deductions ?? 0));
-    if (deductions === null) return;
-    run(idOf(salary), () => adminApi.salaries.update(idOf(salary), {
-      baseAmount: Number(baseAmount || 0),
-      extraAmount: Number(extraAmount || 0),
-      deductions: Number(deductions || 0)
-    }), 'Liquidacion actualizada.');
+  function openEditSalary(salary: any) {
+    setEditingSalary(salary);
+    setShowSalaryModal(true);
   }
 
   function submitVote(event: FormEvent<HTMLFormElement>) {
@@ -1270,38 +1299,17 @@ export function AdminPreviewPage() {
               </div>
               <div className="admin-page-actions">
                 <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
+                <button className="btn btn-ghost" onClick={() => { setEditingSalary(null); setShowSalaryModal(true); }}><WalletCards size={14} />Nueva liquidacion</button>
                 <button className="btn btn-primary" onClick={() => { setEditingEmployee(null); setEmpModalRole('maintenance'); setEmployeeFiles([]); setShowEmployeeModal(true); }}><UserRoundCog size={14} />Nuevo empleado</button>
               </div>
             </div>
             <div className="metric-grid">
               <Metric loading={loading} label="Empleados activos" value={state.employees?.filter((e: any) => e.isActive).length || 0} hint="Colaboradores" icon={UserRoundCog} />
-              <Metric loading={loading} label="Sueldos pendientes" value={money(state.salaries.filter((s: any) => s.status === 'pending').reduce((sum: number, s: any) => sum + Number(s.totalAmount || 0), 0))} hint={month} icon={WalletCards} />
-              <Metric loading={loading} label="Sueldos pagados" value={money(state.salaries.filter((s: any) => s.status === 'paid').reduce((sum: number, s: any) => sum + Number(s.totalAmount || 0), 0))} hint="Período visible" icon={ShieldCheck} />
+              <Metric loading={loading} label="Sueldos pendientes" value={money(state.salaries.filter((s: any) => ['pending', 'partially_paid'].includes(s.status)).reduce((sum: number, s: any) => sum + salaryRemainingAmount(s), 0))} hint={month} icon={WalletCards} />
+              <Metric loading={loading} label="Sueldos pagados" value={money(state.salaries.reduce((sum: number, s: any) => sum + salaryPaidAmount(s), 0))} hint="Período visible" icon={ShieldCheck} />
               <Metric loading={loading} label="Liquidaciones" value={state.salaries.length || 0} hint="Período visible" icon={FileText} />
             </div>
             <div className="admin-grid">
-            <Panel title="Nueva liquidacion" icon={WalletCards}>
-              <form className="admin-form" onSubmit={submitSalary}>
-                <SelectField label="Empleado" name="employeeId">
-                  <option value="">Seleccionar</option>
-                  {state.employees.filter((employee: any) => employee.isActive).map((employee: any) => (
-                    <option key={idOf(employee)} value={idOf(employee)}>{employee.name} ({roleLabel(employee)})</option>
-                  ))}
-                </SelectField>
-                <Field label="Periodo" name="period" type="month" defaultValue={month} required />
-                <Field label="Monto base" name="baseAmount" type="number" required />
-                <Field label="Extras" name="extraAmount" type="number" defaultValue={0} />
-                <Field label="Descuentos" name="deductions" type="number" defaultValue={0} />
-                <SelectField label="Metodo de pago" name="paymentMethod">
-                  <option value="">Sin especificar</option>
-                  <option value="cash">Efectivo</option>
-                  <option value="transfer">Transferencia</option>
-                </SelectField>
-                <label className="admin-field full"><span>Notas</span><textarea name="notes" rows={2} /></label>
-                <button className="btn btn-primary" disabled={busy === 'salary'}>Crear liquidacion</button>
-              </form>
-            </Panel>
-
             <Panel title="Empleados" icon={UserRoundCog}>
               <Table loading={loading} searchPlaceholder="Buscar empleado, rol o DNI" filters={[
                 {
@@ -1341,23 +1349,26 @@ export function AdminPreviewPage() {
               action={<div className="period-controls"><input type="month" value={month} onChange={(event) => setMonth(event.target.value)} /></div>}
             >
               <Table loading={loading} searchPlaceholder="Buscar empleado o periodo" filters={[
-                statusFilter(['pending', 'paid', 'cancelled']),
+                statusFilter(['pending', 'partially_paid', 'paid', 'cancelled']),
                 monthFilter((s) => s.period || '', month)
               ]} rows={state.salaries} columns={[
                 ['Periodo', (s: any) => s.period],
                 ['Empleado', (s: any) => s.employee?.name || '-'],
                 ['Rol', (s: any) => roleLabel(s.employee)],
-                ['Base', (s: any) => money(s.baseAmount)],
-                ['Extras', (s: any) => money(s.extraAmount)],
-                ['Desc.', (s: any) => money(s.deductions)],
                 ['Total', (s: any) => money(s.totalAmount)],
-                ['Metodo', (s: any) => paymentMethodLabels[s.paymentMethod] || '-'],
+                ['Pagado', (s: any) => money(salaryPaidAmount(s))],
+                ['Pendiente', (s: any) => money(salaryRemainingAmount(s))],
                 ['Estado', (s: any) => <Status value={s.status} />],
-                ['Acciones', (s: any) => <Actions>
-                  {s.status === 'pending' && <button onClick={() => editSalary(s)}>Editar</button>}
-                  {s.status === 'pending' && <button onClick={() => run(idOf(s), () => adminApi.salaries.update(idOf(s), { status: 'paid', paymentDate: new Date().toISOString().slice(0, 10) }), 'Sueldo marcado como pagado.')}>Pagar</button>}
-                  {s.status !== 'cancelled' && <button className="danger-action" onClick={() => run(idOf(s), () => adminApi.salaries.delete(idOf(s)), 'Liquidacion cancelada.')}>Cancelar</button>}
-                </Actions>]
+                ['Acciones', (s: any) => {
+                  const canPay = s.status !== 'paid' && s.status !== 'cancelled' && salaryRemainingAmount(s) > 0;
+                  const canEdit = s.status !== 'paid' && s.status !== 'cancelled';
+                  return <Actions>
+                    {canEdit && <button onClick={() => openEditSalary(s)}>Editar</button>}
+                    {canPay && <button onClick={() => { setSalaryForPayment(s); setSalaryPaymentType('advance'); setShowSalaryPaymentModal(true); }}>Adelanto</button>}
+                    {canPay && <button onClick={() => { setSalaryForPayment(s); setSalaryPaymentType('salary_payment'); setShowSalaryPaymentModal(true); }}>Registrar pago</button>}
+                    {s.status !== 'cancelled' && <button className="danger-action" onClick={() => run(idOf(s), () => adminApi.salaries.delete(idOf(s)), 'Liquidacion cancelada.')}>Cancelar</button>}
+                  </Actions>;
+                }]
               ]} />
             </Panel>
             </div>
@@ -1452,6 +1463,94 @@ export function AdminPreviewPage() {
                       <button type="button" className="btn btn-ghost" onClick={() => { setShowEmployeeModal(false); setEditingEmployee(null); setEmployeeFiles([]); }}>Cancelar</button>
                       <button className="btn btn-primary" disabled={busy === 'employee' || (!!editingEmployee && busy === idOf(editingEmployee)) || busy === 'emp-doc'}>
                         <UserRoundCog size={14} />{editingEmployee ? 'Guardar cambios' : 'Crear empleado'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {showSalaryModal && (
+              <div className="modal-backdrop" role="dialog" aria-modal="true"
+                onClick={(e) => { if (e.target === e.currentTarget) { setShowSalaryModal(false); setEditingSalary(null); } }}>
+                <div className="form-modal form-modal--wide">
+                  <div className="form-modal-head">
+                    <div className="form-modal-title"><WalletCards size={16} />{editingSalary ? 'Editar liquidacion' : 'Nueva liquidacion'}</div>
+                    <button className="icon-btn" onClick={() => { setShowSalaryModal(false); setEditingSalary(null); }}><X size={16} /></button>
+                  </div>
+                  <form key={editingSalary ? idOf(editingSalary) : 'new-salary'} className="admin-form" onSubmit={submitSalaryModal}>
+                    <label className="admin-field">
+                      <span>Empleado *</span>
+                      <select name="employeeId" defaultValue={editingSalary?.employee?._id || editingSalary?.employeeId || ''} disabled={!!editingSalary} required={!editingSalary}>
+                        <option value="">Seleccionar</option>
+                        {state.employees.filter((e: any) => e.isActive || (editingSalary && idOf(e) === idOf(editingSalary?.employee))).map((e: any) => (
+                          <option key={idOf(e)} value={idOf(e)}>{e.name} ({roleLabel(e)})</option>
+                        ))}
+                      </select>
+                    </label>
+                    <Field label="Periodo *" name="period" type="month" required defaultValue={editingSalary?.period || month} />
+                    <Field label="Monto base *" name="baseAmount" type="number" required defaultValue={editingSalary?.baseAmount ?? ''} />
+                    <Field label="Extras" name="extraAmount" type="number" defaultValue={editingSalary?.extraAmount ?? 0} />
+                    <Field label="Descuentos" name="deductions" type="number" defaultValue={editingSalary?.deductions ?? 0} />
+                    <label className="admin-field">
+                      <span>Metodo de pago</span>
+                      <select name="paymentMethod" defaultValue={editingSalary?.paymentMethod || ''}>
+                        <option value="">Sin especificar</option>
+                        <option value="cash">Efectivo</option>
+                        <option value="transfer">Transferencia</option>
+                      </select>
+                    </label>
+                    <label className="admin-field full"><span>Notas</span><textarea name="notes" rows={2} defaultValue={editingSalary?.notes || ''} /></label>
+                    <div className="form-modal-foot">
+                      <button type="button" className="btn btn-ghost" onClick={() => { setShowSalaryModal(false); setEditingSalary(null); }}>Cancelar</button>
+                      <button className="btn btn-primary" disabled={busy === 'salary' || (!!editingSalary && busy === idOf(editingSalary))}>
+                        <WalletCards size={14} />{editingSalary ? 'Guardar cambios' : 'Crear liquidacion'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {showSalaryPaymentModal && salaryForPayment && (
+              <div className="modal-backdrop" role="dialog" aria-modal="true"
+                onClick={(e) => { if (e.target === e.currentTarget) { setShowSalaryPaymentModal(false); setSalaryForPayment(null); } }}>
+                <div className="form-modal">
+                  <div className="form-modal-head">
+                    <div className="form-modal-title"><WalletCards size={16} />Registrar pago de sueldo</div>
+                    <button className="icon-btn" onClick={() => { setShowSalaryPaymentModal(false); setSalaryForPayment(null); }}><X size={16} /></button>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem 1.5rem', padding: '0.75rem 0', marginBottom: '0.5rem', borderBottom: '1px solid var(--border)' }}>
+                    <div><span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>Empleado</span><div style={{ fontWeight: 600, color: 'var(--text-bright)' }}>{salaryForPayment.employee?.name || '-'}</div></div>
+                    <div><span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>Periodo</span><div style={{ fontWeight: 600, color: 'var(--text-bright)' }}>{salaryForPayment.period}</div></div>
+                    <div><span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>Total</span><div style={{ fontWeight: 600, color: 'var(--text-bright)' }}>{money(salaryForPayment.totalAmount)}</div></div>
+                    <div><span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>Pendiente</span><div style={{ fontWeight: 600, color: 'var(--accent)' }}>{money(salaryRemainingAmount(salaryForPayment))}</div></div>
+                  </div>
+                  <form className="admin-form" onSubmit={submitSalaryPayment}>
+                    <label className="admin-field">
+                      <span>Tipo *</span>
+                      <select name="type" defaultValue={salaryPaymentType}>
+                        <option value="advance">Adelanto</option>
+                        <option value="salary_payment">Pago de sueldo</option>
+                      </select>
+                    </label>
+                    <Field label="Monto *" name="amount" type="number" required
+                      defaultValue={salaryPaymentType === 'salary_payment' ? String(salaryRemainingAmount(salaryForPayment)) : ''} />
+                    <Field label="Fecha de pago" name="paymentDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
+                    <label className="admin-field">
+                      <span>Metodo *</span>
+                      <select name="paymentMethod">
+                        <option value="">Seleccionar</option>
+                        <option value="cash">Efectivo</option>
+                        <option value="transfer">Transferencia</option>
+                      </select>
+                    </label>
+                    <label className="admin-field full"><span>Nota</span><textarea name="note" rows={2} /></label>
+                    <p style={{ fontSize: 12, color: 'var(--muted)', gridColumn: '1 / -1' }}>El adelanto se descuenta del saldo pendiente del sueldo del periodo.</p>
+                    <div className="form-modal-foot">
+                      <button type="button" className="btn btn-ghost" onClick={() => { setShowSalaryPaymentModal(false); setSalaryForPayment(null); }}>Cancelar</button>
+                      <button className="btn btn-primary" disabled={busy === 'sal-payment'}>
+                        <WalletCards size={14} />Guardar
                       </button>
                     </div>
                   </form>
