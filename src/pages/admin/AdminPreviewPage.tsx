@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
 import { isSuperAdminRole } from '../../services/authService';
+import { useAdminStore } from '../../stores/adminStore';
+import { Table } from '../../components/Table';
 
 type TabKey = 'inicio' | 'finanzas' | 'personal' | 'propietarios' | 'comunicados' | 'reclamos' | 'operaciones' | 'proveedores' | 'config';
 type Notice = { type: 'ok' | 'error'; text: string } | null;
@@ -165,20 +167,20 @@ const PaymentChannel = memo(function PaymentChannel({ payment }: { payment: any 
   );
 });
 
-const Field = memo(function Field(props: { label: string; name: string; type?: string; placeholder?: string; defaultValue?: string | number; required?: boolean }) {
+const Field = memo(function Field(props: { label: string; name: string; type?: string; placeholder?: string; defaultValue?: unknown; required?: boolean }) {
   return (
     <label className="admin-field">
       <span>{props.label}</span>
-      <input name={props.name} type={props.type || 'text'} placeholder={props.placeholder} defaultValue={props.defaultValue} required={props.required} />
+      <input name={props.name} type={props.type || 'text'} placeholder={props.placeholder} defaultValue={String(props.defaultValue ?? '')} required={props.required} />
     </label>
   );
 });
 
-const SelectField = memo(function SelectField(props: { label: string; name: string; defaultValue?: string; children: ReactNode }) {
+const SelectField = memo(function SelectField(props: { label: string; name: string; defaultValue?: unknown; children: ReactNode }) {
   return (
     <label className="admin-field">
       <span>{props.label}</span>
-      <select name={props.name} defaultValue={props.defaultValue}>{props.children}</select>
+      <select name={props.name} defaultValue={String(props.defaultValue ?? '')}>{props.children}</select>
     </label>
   );
 });
@@ -407,15 +409,32 @@ export function AdminPreviewPage() {
   const [salaryPaymentType, setSalaryPaymentType] = useState('advance');
   const [showProviderModal, setShowProviderModal] = useState(false);
   const [editingProvider, setEditingProvider] = useState<any>(null);
-  const [state, setState] = useState<any>({
-    me: null, config: {}, ownerStats: {}, dashboard: {}, report: {},
-    owners: [], units: [], payments: [], notices: [], claims: [], expenses: [],
-    employees: [], salaries: [], providers: [], votes: [], visits: [], spaces: [], reservations: [], orgDocuments: [],
-    yearExpenses: [], yearPayments: [],
-    features: defaultFeatures
-  });
 
-  const moduleEnabled = (key: FeatureKey) => state.features?.[key] ?? defaultFeatures[key];
+  const { me, membership, config, features, ownerStats, dashboard, owners, units, payments, notices, claims, expenses, employees, salaries, providers, votes, visits, spaces, reservations, orgDocuments, yearExpenses, yearPayments, report } = useAdminStore();
+  const setMe = useAdminStore(s => s.setMe);
+  const setConfig = useAdminStore(s => s.setConfig);
+  const setFeatures = useAdminStore(s => s.setFeatures);
+  const setOwnerStats = useAdminStore(s => s.setOwnerStats);
+  const setDashboard = useAdminStore(s => s.setDashboard);
+  const setOwners = useAdminStore(s => s.setOwners);
+  const setUnits = useAdminStore(s => s.setUnits);
+  const setPayments = useAdminStore(s => s.setPayments);
+  const setNotices = useAdminStore(s => s.setNotices);
+  const setClaims = useAdminStore(s => s.setClaims);
+  const setExpenses = useAdminStore(s => s.setExpenses);
+  const setEmployees = useAdminStore(s => s.setEmployees);
+  const setSalaries = useAdminStore(s => s.setSalaries);
+  const setProviders = useAdminStore(s => s.setProviders);
+  const setVotes = useAdminStore(s => s.setVotes);
+  const setVisits = useAdminStore(s => s.setVisits);
+  const setSpaces = useAdminStore(s => s.setSpaces);
+  const setReservations = useAdminStore(s => s.setReservations);
+  const setOrgDocuments = useAdminStore(s => s.setOrgDocuments);
+  const setYearExpenses = useAdminStore(s => s.setYearExpenses);
+  const setYearPayments = useAdminStore(s => s.setYearPayments);
+  const setReport = useAdminStore(s => s.setReport);
+
+  const moduleEnabled = (key: FeatureKey) => features?.[key] ?? defaultFeatures[key];
   const hasOperations = moduleEnabled('votes') || moduleEnabled('reservations') || moduleEnabled('visits');
   const visibleNav = nav.filter((item) => {
     if (item.key === 'operaciones') return hasOperations;
@@ -424,14 +443,14 @@ export function AdminPreviewPage() {
   });
 
   const totalIncome = useMemo(
-    () => (state.dashboard?.monthly || []).reduce((sum: number, item: any) => sum + Number(item.total || 0), 0),
-    [state.dashboard]
+    () => (dashboard?.monthly || []).reduce((sum: number, item: any) => sum + Number(item.total || 0), 0),
+    [dashboard]
   );
   const availableOwnerUnits = useMemo(
-    () => [...(state.units || [])]
+    () => [...(units || [])]
       .filter((unit: any) => !unit.owner && unit.status !== 'occupied')
       .sort((a: any, b: any) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { numeric: true, sensitivity: 'base' })),
-    [state.units]
+    [units]
   );
   const filteredOwnerUnits = useMemo(() => {
     const query = ownerUnitFilter.trim().toLowerCase();
@@ -563,17 +582,31 @@ export function AdminPreviewPage() {
     try {
       const session = await fetchSession();
       const user = session.me?.data?.user;
-      setState((current: any) => ({
-        ...current,
-        me: user,
-        membership: session.me?.data?.membership,
-        config: session.config,
-        features: session.features
-      }));
+      setMe(user, session.me?.data?.membership);
+      setConfig(session.config);
+      setFeatures(session.features);
 
       const tabData = await fetchForTab(target, session);
       if (tabData) {
-        setState((current: any) => ({ ...current, ...tabData }));
+        if (tabData.ownerStats !== undefined) setOwnerStats(tabData.ownerStats);
+        if (tabData.dashboard !== undefined) setDashboard(tabData.dashboard);
+        if (tabData.payments !== undefined) setPayments(tabData.payments);
+        if (tabData.claims !== undefined) setClaims(tabData.claims);
+        if (tabData.notices !== undefined) setNotices(tabData.notices);
+        if (tabData.report !== undefined) setReport(tabData.report);
+        if (tabData.owners !== undefined) setOwners(tabData.owners);
+        if (tabData.units !== undefined) setUnits(tabData.units);
+        if (tabData.expenses !== undefined) setExpenses(tabData.expenses);
+        if (tabData.employees !== undefined) setEmployees(tabData.employees);
+        if (tabData.salaries !== undefined) setSalaries(tabData.salaries);
+        if (tabData.providers !== undefined) setProviders(tabData.providers);
+        if (tabData.votes !== undefined) setVotes(tabData.votes);
+        if (tabData.visits !== undefined) setVisits(tabData.visits);
+        if (tabData.spaces !== undefined) setSpaces(tabData.spaces);
+        if (tabData.reservations !== undefined) setReservations(tabData.reservations);
+        if (tabData.orgDocuments !== undefined) setOrgDocuments(tabData.orgDocuments);
+        if (tabData.yearExpenses !== undefined) setYearExpenses(tabData.yearExpenses);
+        if (tabData.yearPayments !== undefined) setYearPayments(tabData.yearPayments);
       }
 
       setNotice(null);
@@ -596,7 +629,7 @@ export function AdminPreviewPage() {
           window.location.assign('/super-admin');
           return;
         }
-        setState((current: any) => ({ ...current, me: user, membership: response?.data?.membership }));
+        setMe(user, response?.data?.membership);
         setAuthChecked(true);
       })
       .catch(() => {
@@ -613,7 +646,7 @@ export function AdminPreviewPage() {
   useEffect(() => {
     if (tab === 'operaciones' && !hasOperations) setTab('inicio');
     if (tab === 'proveedores' && !moduleEnabled('providers')) setTab('inicio');
-  }, [tab, hasOperations, state.features]);
+  }, [tab, hasOperations, features]);
 
   async function run(label: string, action: () => Promise<unknown>, success = 'Cambios guardados.') {
     setBusy(label);
@@ -1034,8 +1067,8 @@ export function AdminPreviewPage() {
     }, 'Descarga preparada.');
   }
 
-  const adminName = state.me?.name || state.me?.data?.user?.name || 'Administrador';
-  const orgName = state.config?.consortiumName || '';
+  const adminName = me?.name || 'Administrador';
+  const orgName = config?.consortiumName || '';
   const crumbs = tabCrumbs[tab] || [tab];
 
   return (
@@ -1050,7 +1083,7 @@ export function AdminPreviewPage() {
             <div className="admin-org-logo">{orgLogoText(orgName)}</div>
             <div className="admin-org-meta">
               <div className="admin-org-name">{orgName}</div>
-              <div className="admin-org-sub">{state.units?.length ?? 0} unidades</div>
+              <div className="admin-org-sub">{units?.length ?? 0} unidades</div>
             </div>
             <ChevronDown size={13} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
           </div>
@@ -1063,8 +1096,8 @@ export function AdminPreviewPage() {
           </button>
           <button className={tab === 'finanzas' ? 'active' : ''} onClick={() => setTab('finanzas')}>
             <CreditCard size={16} /> <span>Finanzas</span>
-            {(state.dashboard?.pending ?? 0) > 0 && (
-              <span className="admin-nav-badge">{state.dashboard.pending}</span>
+            {(dashboard?.pending ?? 0) > 0 && (
+              <span className="admin-nav-badge">{dashboard.pending}</span>
             )}
           </button>
 
@@ -1077,8 +1110,8 @@ export function AdminPreviewPage() {
           </button>
           <button className={tab === 'reclamos' ? 'active' : ''} onClick={() => setTab('reclamos')}>
             <MessageSquare size={16} /> <span>Reclamos</span>
-            {(state.claims?.filter((c: any) => c.status === 'open').length ?? 0) > 0 && (
-              <span className="admin-nav-badge">{state.claims.filter((c: any) => c.status === 'open').length}</span>
+            {(claims?.filter((c: any) => c.status === 'open').length ?? 0) > 0 && (
+              <span className="admin-nav-badge">{claims.filter((c: any) => c.status === 'open').length}</span>
             )}
           </button>
 
@@ -1154,9 +1187,9 @@ export function AdminPreviewPage() {
             <div className="admin-page-head">
               <div>
                 <div className="admin-page-kicker"><span className="dot" />Vista general</div>
-                <h1 className="admin-page-title">Buen día, {state.me?.name?.split(' ')[0] || 'admin'}</h1>
+                <h1 className="admin-page-title">Buen día, {me?.name?.split(' ')[0] || 'admin'}</h1>
                 <div className="admin-page-sub">
-                  {state.config?.consortiumName || 'Tu organización'} · {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  {config?.consortiumName || 'Tu organización'} · {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
                 </div>
               </div>
               <div className="admin-page-actions">
@@ -1166,21 +1199,21 @@ export function AdminPreviewPage() {
             </div>
 
             <div className="metric-grid">
-              <Metric loading={loading} label="Recaudacion anual" value={money(totalIncome)} hint={`${state.dashboard?.approved || 0} pagos aprobados`} icon={ShieldCheck}
-                delta={(state.dashboard?.approved ?? 0) > 0 ? { text: `${state.dashboard.approved} aprobados`, trend: 'pos' } : undefined} />
-              <Metric loading={loading} label="Pagos pendientes" value={state.dashboard?.pending || 0} hint="MP acreditado queda en revision" icon={CreditCard}
-                delta={(state.dashboard?.pending ?? 0) > 0 ? { text: `${state.dashboard.pending} por revisar`, trend: 'neg' } : undefined} />
-              <Metric loading={loading} label="Propietarios" value={state.ownerStats?.totalOwners || state.owners?.length || 0} hint={`${state.ownerStats?.upToDate || 0} al dia`} icon={Users}
-                delta={(state.ownerStats?.upToDate ?? 0) > 0 ? { text: `${state.ownerStats.upToDate} al día`, trend: 'pos' } : undefined} />
-              {moduleEnabled('claims') && <Metric loading={loading} label="Reclamos abiertos" value={state.claims?.length || 0} hint="Comunidad" icon={MessageSquare}
-                delta={(state.claims?.length ?? 0) > 0 ? { text: `${state.claims.length} pendientes`, trend: 'neg' } : undefined} />}
+              <Metric loading={loading} label="Recaudacion anual" value={money(totalIncome)} hint={`${dashboard?.approved || 0} pagos aprobados`} icon={ShieldCheck}
+                delta={(dashboard?.approved ?? 0) > 0 ? { text: `${dashboard.approved} aprobados`, trend: 'pos' } : undefined} />
+              <Metric loading={loading} label="Pagos pendientes" value={dashboard?.pending || 0} hint="MP acreditado queda en revision" icon={CreditCard}
+                delta={(dashboard?.pending ?? 0) > 0 ? { text: `${dashboard.pending} por revisar`, trend: 'neg' } : undefined} />
+              <Metric loading={loading} label="Propietarios" value={ownerStats?.totalOwners || owners?.length || 0} hint={`${ownerStats?.upToDate || 0} al dia`} icon={Users}
+                delta={(ownerStats?.upToDate ?? 0) > 0 ? { text: `${ownerStats.upToDate} al día`, trend: 'pos' } : undefined} />
+              {moduleEnabled('claims') && <Metric loading={loading} label="Reclamos abiertos" value={claims?.length || 0} hint="Comunidad" icon={MessageSquare}
+                delta={(claims?.length ?? 0) > 0 ? { text: `${claims.length} pendientes`, trend: 'neg' } : undefined} />}
             </div>
 
             <ComplianceHero
-              ownerStats={state.ownerStats}
-              pendingCount={state.dashboard?.pending || 0}
-              debtorCount={state.ownerStats?.debtors || 0}
-              claimCount={state.claims?.filter((c: any) => c.status === 'open').length || 0}
+              ownerStats={ownerStats}
+              pendingCount={dashboard?.pending || 0}
+              debtorCount={ownerStats?.debtors || 0}
+              claimCount={claims?.filter((c: any) => c.status === 'open').length || 0}
               loading={loading}
               onPending={() => setTab('finanzas')}
               onDebtors={() => setTab('finanzas')}
@@ -1188,15 +1221,15 @@ export function AdminPreviewPage() {
             />
 
             <AttentionHero
-              payments={state.payments}
-              claims={state.claims}
+              payments={payments}
+              claims={claims}
               loading={loading}
               onFinanzas={() => setTab('finanzas')}
               onComunidad={() => setTab('reclamos')}
             />
 
             <PendingReceiptsSection
-              payments={state.payments.filter((p: any) => p.status === 'pending').slice(0, 5)}
+              payments={payments.filter((p: any) => p.status === 'pending').slice(0, 5)}
               loading={loading}
               onApprove={(id) => run(id, () => adminApi.payments.approve(id), 'Pago aprobado.')}
               onReject={(id) => {
@@ -1208,7 +1241,7 @@ export function AdminPreviewPage() {
 
             {moduleEnabled('claims') && (
               <OpenClaimsSection
-                claims={state.claims.filter((c: any) => c.status === 'open')}
+                claims={claims.filter((c: any) => c.status === 'open')}
                 loading={loading}
                 onNavigate={() => setTab('reclamos')}
               />
@@ -1216,7 +1249,7 @@ export function AdminPreviewPage() {
 
             <div className="admin-grid two">
               <PendingCollectionSection
-                rows={state.owners.filter((o: any) => hasDebt(o)).slice(0, 10)}
+                rows={owners.filter((o: any) => hasDebt(o)).slice(0, 10)}
                 loading={loading}
                 onViewAll={() => setTab('finanzas')}
               />
@@ -1230,39 +1263,39 @@ export function AdminPreviewPage() {
               <div>
                 <div className="admin-page-kicker"><span className="dot" />Finanzas</div>
                 <h1 className="admin-page-title">Pagos y gastos</h1>
-                <div className="admin-page-sub">Cobranza de expensas, egresos y conciliación · {state.config?.consortiumName || 'Tu organización'}</div>
+                <div className="admin-page-sub">Cobranza de expensas, egresos y conciliación · {config?.consortiumName || 'Tu organización'}</div>
               </div>
               <div className="admin-page-actions">
                 <YearMonth year={year} setYear={setYear} month={month} setMonth={setMonth} />
                 <button className="btn btn-ghost" onClick={downloadReport} disabled={busy === 'pdf'}><FileText size={14} />PDF expensas</button>
-                <button className="btn btn-ghost" onClick={() => exportDashboardCSV(state.dashboard?.monthly || [], state.yearPayments, year)}><TrendingUp size={14} />Exportar CSV</button>
+                <button className="btn btn-ghost" onClick={() => exportDashboardCSV(dashboard?.monthly || [], yearPayments, year)}><TrendingUp size={14} />Exportar CSV</button>
                 <button className="btn btn-primary" onClick={() => run('reminders', adminApi.payments.reminders, 'Recordatorios enviados.')}><Bell size={14} />Recordatorios</button>
               </div>
             </div>
 
             <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
               {(() => {
-                const bal = totalIncome - (state.dashboard?.totalExpenses || 0);
+                const bal = totalIncome - (dashboard?.totalExpenses || 0);
                 return <Metric loading={loading} label={`Balance ${year}`} value={money(bal)} hint="Ingresos − egresos anuales" icon={Landmark}
                   delta={{ text: bal >= 0 ? '↑ ingresos superan gastos' : '↓ gastos superan ingresos', trend: bal >= 0 ? 'pos' : 'neg' }} />;
               })()}
               <Metric loading={loading} label="Ingresos" value={money(totalIncome)} hint={`Recaudado ${year}`} icon={CreditCard}
-                delta={state.payments?.filter((p: any) => p.status === 'approved').length > 0 ? { text: `${state.payments.filter((p: any) => p.status === 'approved').length} pagos aprobados`, trend: 'pos' } : undefined} />
-              <Metric loading={loading} label="Egresos" value={money(state.dashboard?.totalExpenses || 0)} hint={`Gastos ${year}`} icon={FileText} />
-              <Metric loading={loading} label="Cumplimiento" value={`${state.ownerStats?.complianceRate || 0}%`} hint={`${state.ownerStats?.upToDate || 0} de ${state.ownerStats?.totalOwners || 0} propietarios`} icon={ShieldCheck}
-                delta={state.ownerStats?.complianceRate >= 80 ? { text: 'Buen nivel de pago', trend: 'pos' } : { text: 'Requiere atención', trend: 'neg' }} />
-              <Metric loading={loading} label="Morosos" value={state.ownerStats?.debtors || 0} hint={`${state.ownerStats?.pendingPayments || 0} pagos pendientes`} icon={Bell}
-                delta={(state.ownerStats?.debtors || 0) === 0 ? { text: 'Sin morosos', trend: 'pos' } : { text: `${state.ownerStats.debtors} con deuda`, trend: 'neg' }} />
+                delta={payments?.filter((p: any) => p.status === 'approved').length > 0 ? { text: `${payments.filter((p: any) => p.status === 'approved').length} pagos aprobados`, trend: 'pos' } : undefined} />
+              <Metric loading={loading} label="Egresos" value={money(dashboard?.totalExpenses || 0)} hint={`Gastos ${year}`} icon={FileText} />
+              <Metric loading={loading} label="Cumplimiento" value={`${ownerStats?.complianceRate || 0}%`} hint={`${ownerStats?.upToDate || 0} de ${ownerStats?.totalOwners || 0} propietarios`} icon={ShieldCheck}
+                delta={(ownerStats?.complianceRate ?? 0) >= 80 ? { text: 'Buen nivel de pago', trend: 'pos' } : { text: 'Requiere atención', trend: 'neg' }} />
+              <Metric loading={loading} label="Morosos" value={ownerStats?.debtors || 0} hint={`${ownerStats?.pendingPayments || 0} pagos pendientes`} icon={Bell}
+                delta={(ownerStats?.debtors || 0) === 0 ? { text: 'Sin morosos', trend: 'pos' } : { text: `${ownerStats.debtors} con deuda`, trend: 'neg' }} />
             </div>
 
             {/* Sub-tab bar */}
             <div className="fin-tabs-bar">
               <div className="fin-tabs">
                 <button className={`fin-tab${finSubTab === 'cobranza' ? ' is-active' : ''}`} onClick={() => setFinSubTab('cobranza')}>
-                  Cobranza <span className="fin-tab-count">{state.payments?.length || 0}</span>
+                  Cobranza <span className="fin-tab-count">{payments?.length || 0}</span>
                 </button>
                 <button className={`fin-tab${finSubTab === 'egresos' ? ' is-active' : ''}`} onClick={() => setFinSubTab('egresos')}>
-                  Egresos <span className="fin-tab-count">{state.expenses?.length || 0}</span>
+                  Egresos <span className="fin-tab-count">{expenses?.length || 0}</span>
                 </button>
               </div>
               {finSubTab === 'cobranza' && (
@@ -1276,16 +1309,16 @@ export function AdminPreviewPage() {
             {finSubTab === 'cobranza' && (
               <>
                 <PeriodTabs value={dashPeriod} onChange={setDashPeriod} />
-                <CobroStrip payments={state.payments} loading={loading} />
+                <CobroStrip payments={payments} loading={loading} />
                 <div className="admin-panel">
                   <div className="panel-head"><h2><CreditCard size={14} />Pagos</h2></div>
                   <Table loading={loading} searchPlaceholder="Buscar propietario, unidad o comprobante" filters={[
                     statusFilter(['pending', 'approved', 'rejected']),
                     monthFilter((p) => p.month || String(p.createdAt || '').slice(0, 7), month)
-                  ]} rows={state.payments} columns={[
+                  ]} rows={payments} columns={[
                     ['Unidad', (p: any) => {
                       const ownerId = idOf(p.owner);
-                      const ownerUnits = (state.units || []).filter((u: any) => {
+                      const ownerUnits = (units || []).filter((u: any) => {
                         const uid = typeof u.owner === 'string' ? u.owner : idOf(u.owner);
                         return ownerId && uid === ownerId;
                       });
@@ -1312,7 +1345,7 @@ export function AdminPreviewPage() {
                   ]} />
                 </div>
                 <PeriodTable
-                  monthly={filteredMonthlyByPeriod(state.dashboard?.monthly || [], dashPeriod)}
+                  monthly={filteredMonthlyByPeriod(dashboard?.monthly || [], dashPeriod)}
                   loading={loading}
                 />
 
@@ -1322,12 +1355,12 @@ export function AdminPreviewPage() {
             {finSubTab === 'egresos' && (
               <div className="com-layout">
                 <div className="com-main">
-                  <ExpenseBreakdown yearExpenses={state.yearExpenses} loading={loading} />
+                  <ExpenseBreakdown yearExpenses={yearExpenses} loading={loading} />
                   <div className="admin-panel">
                     <Table loading={loading} searchPlaceholder="Buscar descripción, categoría o proveedor" filters={[
                       statusFilter(['paid', 'pending']),
                       categoryFilter()
-                    ]} rows={state.expenses} columns={[
+                    ]} rows={expenses} columns={[
                       ['Descripción', (e: any) => <span style={{ fontWeight: 500, color: 'var(--text-bright)', fontSize: 13 }}>{e.description}</span>],
                       ['Categoría', (e: any) => {
                         const catLabels: Record<string, string> = { cleaning: 'Limpieza', security: 'Seguridad', maintenance: 'Mantenimiento', utilities: 'Servicios', administration: 'Administración', other: 'Otros' };
@@ -1367,7 +1400,7 @@ export function AdminPreviewPage() {
               <div>
                 <div className="admin-page-kicker"><span className="dot" />Administración</div>
                 <h1 className="admin-page-title">Personal</h1>
-                <div className="admin-page-sub">{state.employees?.filter((e: any) => e.isActive).length || 0} colaboradores activos · {state.config?.consortiumName || 'Tu organización'}</div>
+                <div className="admin-page-sub">{employees?.filter((e: any) => e.isActive).length || 0} colaboradores activos · {config?.consortiumName || 'Tu organización'}</div>
               </div>
               <div className="admin-page-actions">
                 <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
@@ -1376,10 +1409,10 @@ export function AdminPreviewPage() {
               </div>
             </div>
             <div className="metric-grid">
-              <Metric loading={loading} label="Empleados activos" value={state.employees?.filter((e: any) => e.isActive).length || 0} hint="Colaboradores" icon={UserRoundCog} />
-              <Metric loading={loading} label="Sueldos pendientes" value={money(state.salaries.filter((s: any) => ['pending', 'partially_paid'].includes(s.status)).reduce((sum: number, s: any) => sum + salaryRemainingAmount(s), 0))} hint={month} icon={WalletCards} />
-              <Metric loading={loading} label="Sueldos pagados" value={money(state.salaries.reduce((sum: number, s: any) => sum + salaryPaidAmount(s), 0))} hint="Período visible" icon={ShieldCheck} />
-              <Metric loading={loading} label="Liquidaciones" value={state.salaries.length || 0} hint="Período visible" icon={FileText} />
+              <Metric loading={loading} label="Empleados activos" value={employees?.filter((e: any) => e.isActive).length || 0} hint="Colaboradores" icon={UserRoundCog} />
+              <Metric loading={loading} label="Sueldos pendientes" value={money(salaries.filter((s: any) => ['pending', 'partially_paid'].includes(s.status)).reduce((sum: number, s: any) => sum + salaryRemainingAmount(s), 0))} hint={month} icon={WalletCards} />
+              <Metric loading={loading} label="Sueldos pagados" value={money(salaries.reduce((sum: number, s: any) => sum + salaryPaidAmount(s), 0))} hint="Período visible" icon={ShieldCheck} />
+              <Metric loading={loading} label="Liquidaciones" value={salaries.length || 0} hint="Período visible" icon={FileText} />
             </div>
             <div className="admin-grid">
             <Panel title="Empleados" icon={UserRoundCog}>
@@ -1398,7 +1431,7 @@ export function AdminPreviewPage() {
                   options: [{ value: 'yes', label: 'Activos' }, { value: 'no', label: 'Dados de baja' }],
                   match: (row, value) => value === 'yes' ? !!row.isActive : !row.isActive
                 }
-              ]} rows={state.employees} columns={[
+              ]} rows={employees} columns={[
                 ['Nombre', (e: any) => e.name],
                 ['Rol', (e: any) => roleLabel(e)],
                 ['DNI', (e: any) => e.documentNumber || '-'],
@@ -1423,7 +1456,7 @@ export function AdminPreviewPage() {
               <Table loading={loading} searchPlaceholder="Buscar empleado o periodo" filters={[
                 statusFilter(['pending', 'partially_paid', 'paid', 'cancelled']),
                 monthFilter((s) => s.period || '', month)
-              ]} rows={state.salaries} columns={[
+              ]} rows={salaries} columns={[
                 ['Periodo', (s: any) => s.period],
                 ['Empleado', (s: any) => s.employee?.name || '-'],
                 ['Rol', (s: any) => roleLabel(s.employee)],
@@ -1555,7 +1588,7 @@ export function AdminPreviewPage() {
                       <span>Empleado *</span>
                       <select name="employeeId" defaultValue={editingSalary?.employee?._id || editingSalary?.employeeId || ''} disabled={!!editingSalary} required={!editingSalary}>
                         <option value="">Seleccionar</option>
-                        {state.employees.filter((e: any) => e.isActive || (editingSalary && idOf(e) === idOf(editingSalary?.employee))).map((e: any) => (
+                        {employees.filter((e: any) => e.isActive || (editingSalary && idOf(e) === idOf(editingSalary?.employee))).map((e: any) => (
                           <option key={idOf(e)} value={idOf(e)}>{e.name} ({roleLabel(e)})</option>
                         ))}
                       </select>
@@ -1638,7 +1671,7 @@ export function AdminPreviewPage() {
               <div>
                 <div className="admin-page-kicker"><span className="dot" />Comunidad</div>
                 <h1 className="admin-page-title">Propietarios</h1>
-                <div className="admin-page-sub">{state.owners?.length || 0} propietarios · {state.units?.length || 0} unidades · {state.config?.consortiumName || 'Tu organización'}</div>
+                <div className="admin-page-sub">{owners?.length || 0} propietarios · {units?.length || 0} unidades · {config?.consortiumName || 'Tu organización'}</div>
               </div>
               <div className="admin-page-actions">
                 <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
@@ -1647,12 +1680,12 @@ export function AdminPreviewPage() {
               </div>
             </div>
             <div className="metric-grid">
-              <Metric loading={loading} label="Total propietarios" value={state.owners?.length || 0} hint="Registrados" icon={Users} />
-              <Metric loading={loading} label="Al día" value={state.ownerStats?.upToDate || 0} hint="Sin deuda activa" icon={ShieldCheck}
-                delta={(state.ownerStats?.upToDate ?? 0) > 0 ? { text: `${Math.round(((state.ownerStats?.upToDate || 0) / Math.max(state.owners?.length || 1, 1)) * 100)}% de la comunidad`, trend: 'pos' } : undefined} />
-              <Metric loading={loading} label="Con deuda" value={(state.owners?.filter((o: any) => hasDebt(o)).length) || 0} hint="Deudores activos" icon={CreditCard}
-                delta={state.owners?.filter((o: any) => o.isDebtor).length > 0 ? { text: `${state.owners.filter((o: any) => o.isDebtor).length} morosos`, trend: 'neg' } : undefined} />
-              <Metric loading={loading} label="Unidades" value={state.units?.length || 0} hint={`${state.units?.filter((u: any) => u.owner).length || 0} asignadas`} icon={Building2} />
+              <Metric loading={loading} label="Total propietarios" value={owners?.length || 0} hint="Registrados" icon={Users} />
+              <Metric loading={loading} label="Al día" value={ownerStats?.upToDate || 0} hint="Sin deuda activa" icon={ShieldCheck}
+                delta={(ownerStats?.upToDate ?? 0) > 0 ? { text: `${Math.round(((ownerStats?.upToDate || 0) / Math.max(owners?.length || 1, 1)) * 100)}% de la comunidad`, trend: 'pos' } : undefined} />
+              <Metric loading={loading} label="Con deuda" value={(owners?.filter((o: any) => hasDebt(o)).length) || 0} hint="Deudores activos" icon={CreditCard}
+                delta={owners?.filter((o: any) => o.isDebtor).length > 0 ? { text: `${owners.filter((o: any) => o.isDebtor).length} morosos`, trend: 'neg' } : undefined} />
+              <Metric loading={loading} label="Unidades" value={units?.length || 0} hint={`${units?.filter((u: any) => u.owner).length || 0} asignadas`} icon={Building2} />
             </div>
             <div className="card" style={{ overflow: 'hidden' }}>
               <Table loading={loading} searchPlaceholder="Buscar nombre, email o unidad" filters={[
@@ -1663,7 +1696,7 @@ export function AdminPreviewPage() {
                   options: [{ value: 'debtor', label: 'Con deuda' }, { value: 'clear', label: 'Al día' }],
                   match: (row, value) => value === 'debtor' ? hasDebt(row) : !hasDebt(row)
                 }
-              ]} rows={state.owners} columns={[
+              ]} rows={owners} columns={[
                 ['Propietario', (o: any) => (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div className="owner-avatar">{adminInitials(o.name)}</div>
@@ -1693,7 +1726,7 @@ export function AdminPreviewPage() {
                   options: [{ value: 'yes', label: 'Asignadas' }, { value: 'no', label: 'Sin asignar' }],
                   match: (row, value) => value === 'yes' ? !!row.owner : !row.owner
                 }
-              ]} rows={state.units} columns={[
+              ]} rows={units} columns={[
                 ['Nombre', (u: any) => u.name],
                 ['Propietario', (u: any) => u.owner?.name || '—'],
                 ['Coef.', (u: any) => u.coefficient || '1'],
@@ -1794,7 +1827,7 @@ export function AdminPreviewPage() {
                             );
                           }) : <Empty text="No hay unidades disponibles con ese filtro." />}
                         </div>
-                        <small>{availableOwnerUnits.length} disponibles · {state.units.length - availableOwnerUnits.length} ocupadas.</small>
+                        <small>{availableOwnerUnits.length} disponibles · {units.length - availableOwnerUnits.length} ocupadas.</small>
                       </div>
                     </div>
                     <div className="form-modal-foot">
@@ -1835,7 +1868,7 @@ export function AdminPreviewPage() {
               <div>
                 <div className="admin-page-kicker"><span className="dot" />Comunidad</div>
                 <h1 className="admin-page-title">Comunicados</h1>
-                <div className="admin-page-sub">{state.notices?.length || 0} comunicados · {state.config?.consortiumName || 'Tu organización'}</div>
+                <div className="admin-page-sub">{notices?.length || 0} comunicados · {config?.consortiumName || 'Tu organización'}</div>
               </div>
               <div className="admin-page-actions">
                 <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
@@ -1847,11 +1880,11 @@ export function AdminPreviewPage() {
                 <div className="com-main" style={{ gridColumn: '1 / -1' }}>
                   {loading ? (
                     <Empty text="Cargando comunicados…" />
-                  ) : !state.notices?.length ? (
+                  ) : !notices?.length ? (
                     <Empty text="No hay comunicados publicados." />
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      {state.notices.map((n: any) => (
+                      {notices.map((n: any) => (
                         <div key={idOf(n)} className="notice-card">
                           <div className="notice-card-head">
                             <Status value={n.tag === 'urgent' ? 'rejected' : n.tag === 'warning' ? 'pending' : 'approved'} />
@@ -1968,7 +2001,7 @@ export function AdminPreviewPage() {
                 <div className="admin-page-kicker"><span className="dot" />Comunidad</div>
                 <h1 className="admin-page-title">Reclamos</h1>
                 <div className="admin-page-sub">
-                  {(state.claims || []).filter((c: any) => c.status === 'open').length} abiertos · {(state.claims || []).filter((c: any) => c.status === 'in_progress').length} en progreso · {state.config?.consortiumName || 'Tu organización'}
+                  {(claims || []).filter((c: any) => c.status === 'open').length} abiertos · {(claims || []).filter((c: any) => c.status === 'in_progress').length} en progreso · {config?.consortiumName || 'Tu organización'}
                 </div>
               </div>
               <div className="admin-page-actions">
@@ -1976,16 +2009,16 @@ export function AdminPreviewPage() {
               </div>
             </div>
             <div className="metric-grid">
-              <Metric loading={loading} label="Abiertos" value={(state.claims || []).filter((c: any) => c.status === 'open').length} hint="Sin asignar" icon={MessageSquare}
-                delta={(state.claims || []).filter((c: any) => c.status === 'open').length > 0 ? { text: 'Requieren atención', trend: 'neg' } : undefined} />
-              <Metric loading={loading} label="En progreso" value={(state.claims || []).filter((c: any) => c.status === 'in_progress').length} hint="En gestión" icon={RefreshCw} />
-              <Metric loading={loading} label="Resueltos" value={(state.claims || []).filter((c: any) => c.status === 'resolved').length} hint="Cerrados" icon={ShieldCheck}
-                delta={(state.claims || []).filter((c: any) => c.status === 'resolved').length > 0 ? { text: 'Resueltos', trend: 'pos' } : undefined} />
-              <Metric loading={loading} label="Total" value={(state.claims || []).length} hint="Histórico" icon={FileText} />
+              <Metric loading={loading} label="Abiertos" value={(claims || []).filter((c: any) => c.status === 'open').length} hint="Sin asignar" icon={MessageSquare}
+                delta={(claims || []).filter((c: any) => c.status === 'open').length > 0 ? { text: 'Requieren atención', trend: 'neg' } : undefined} />
+              <Metric loading={loading} label="En progreso" value={(claims || []).filter((c: any) => c.status === 'in_progress').length} hint="En gestión" icon={RefreshCw} />
+              <Metric loading={loading} label="Resueltos" value={(claims || []).filter((c: any) => c.status === 'resolved').length} hint="Cerrados" icon={ShieldCheck}
+                delta={(claims || []).filter((c: any) => c.status === 'resolved').length > 0 ? { text: 'Resueltos', trend: 'pos' } : undefined} />
+              <Metric loading={loading} label="Total" value={(claims || []).length} hint="Histórico" icon={FileText} />
             </div>
             {moduleEnabled('claims') ? (
               <ClaimKanban
-                claims={state.claims || []}
+                claims={claims || []}
                 loading={loading}
                 onInProgress={(id) => run(id, () => adminApi.claims.status(id, 'in_progress'), 'Reclamo en progreso.')}
                 onResolve={(id) => run(id, () => adminApi.claims.status(id, 'resolved', window.prompt('Nota para el propietario') || ''), 'Reclamo resuelto.')}
@@ -2001,7 +2034,7 @@ export function AdminPreviewPage() {
               <div>
                 <div className="admin-page-kicker"><span className="dot" />Operaciones</div>
                 <h1 className="admin-page-title">Operaciones</h1>
-                <div className="admin-page-sub">Votaciones, reservas y visitas · {state.config?.consortiumName || 'Tu organización'}</div>
+                <div className="admin-page-sub">Votaciones, reservas y visitas · {config?.consortiumName || 'Tu organización'}</div>
               </div>
               <div className="admin-page-actions">
                 <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
@@ -2013,7 +2046,7 @@ export function AdminPreviewPage() {
             {moduleEnabled('votes') && <Panel title="Votaciones" icon={Vote}>
               <Table loading={loading} searchPlaceholder="Buscar votacion" filters={[
                 statusFilter(['open', 'closed'])
-              ]} rows={state.votes} columns={[
+              ]} rows={votes} columns={[
                 ['Titulo', (v: any) => v.title],
                 ['Estado', (v: any) => <Status value={v.status} />],
                 ['Cierre', (v: any) => dateLabel(v.endsAt)],
@@ -2041,7 +2074,7 @@ export function AdminPreviewPage() {
                   options: [{ value: 'yes', label: 'Requiere' }, { value: 'no', label: 'Automatica' }],
                   match: (row, value) => value === 'yes' ? !!row.requiresApproval : !row.requiresApproval
                 }
-              ]} rows={state.spaces} columns={[
+              ]} rows={spaces} columns={[
                 ['Nombre', (s: any) => s.name],
                 ['Capacidad', (s: any) => s.capacity || '-'],
                 ['Aprobacion', (s: any) => s.requiresApproval ? 'Si' : 'No'],
@@ -2052,7 +2085,7 @@ export function AdminPreviewPage() {
               <Table loading={loading} searchPlaceholder="Buscar reserva, espacio o propietario" filters={[
                 statusFilter(['pending', 'approved', 'rejected', 'cancelled']),
                 dateFilter((r) => r.date)
-              ]} rows={state.reservations} columns={[
+              ]} rows={reservations} columns={[
                 ['Espacio', (r: any) => r.space?.name],
                 ['Propietario', (r: any) => person(r)],
                 ['Fecha', (r: any) => `${r.date || '-'} ${r.startTime || ''}`],
@@ -2067,7 +2100,7 @@ export function AdminPreviewPage() {
               <Table loading={loading} searchPlaceholder="Buscar visitante o propietario" filters={[
                 statusFilter(['pending', 'approved', 'rejected', 'inside', 'exited']),
                 dateFilter((v) => String(v.expectedDate || '').slice(0, 10))
-              ]} rows={state.visits} columns={[
+              ]} rows={visits} columns={[
                 ['Visitante', (v: any) => v.visitorName || v.name],
                 ['Propietario', (v: any) => person(v)],
                 ['Fecha', (v: any) => dateLabel(v.expectedDate)],
@@ -2148,9 +2181,9 @@ export function AdminPreviewPage() {
                 <div className="admin-page-kicker"><span className="dot" />Administración</div>
                 <h1 className="admin-page-title">Proveedores</h1>
                 <div className="admin-page-sub">
-                  {(state.providers || []).filter((p: any) => p.active !== false).length} activos
-                  {(state.providers?.length || 0) > 0 ? ` · ${state.providers.length} en total` : ''}
-                  {state.config?.consortiumName ? ` · ${state.config.consortiumName}` : ''}
+                  {(providers || []).filter((p: any) => p.active !== false).length} activos
+                  {(providers?.length || 0) > 0 ? ` · ${providers.length} en total` : ''}
+                  {config?.consortiumName ? ` · ${config.consortiumName}` : ''}
                 </div>
               </div>
               <div className="admin-page-actions">
@@ -2160,7 +2193,7 @@ export function AdminPreviewPage() {
             </div>
 
             {(() => {
-              const cats = expensesByCategory(state.yearExpenses || []);
+              const cats = expensesByCategory(yearExpenses || []);
               const catTotal = cats.reduce((s: number, c: any) => s + c.amount, 0);
               if (!cats.length) return null;
               return (
@@ -2209,7 +2242,7 @@ export function AdminPreviewPage() {
                   options: Object.entries(EXPENSE_LABELS_MAP).map(([value, label]) => ({ value, label })),
                   match: (row: any, value: string) => row.serviceType === value
                 }
-              ]} rows={state.providers} columns={[
+              ]} rows={providers} columns={[
                 ['Proveedor', (p: any) => (
                   <div>
                     <div style={{ fontWeight: 500, fontSize: 12.5, color: 'var(--ink-0)' }}>{p.name}</div>
@@ -2309,7 +2342,7 @@ export function AdminPreviewPage() {
               <div>
                 <div className="admin-page-kicker"><span className="dot" />Administración</div>
                 <h1 className="admin-page-title">Configuración</h1>
-                <div className="admin-page-sub">{state.config?.consortiumName || 'Tu organización'} · Ajustes generales del consorcio</div>
+                <div className="admin-page-sub">{config?.consortiumName || 'Tu organización'} · Ajustes generales del consorcio</div>
               </div>
               <div className="admin-page-actions">
                 <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
@@ -2318,20 +2351,20 @@ export function AdminPreviewPage() {
             <div className="admin-grid two">
             <Panel title="Configuracion general" icon={Settings}>
               <form className="admin-form" onSubmit={submitConfig}>
-                <Field label="Nombre" name="consortiumName" defaultValue={state.config?.consortiumName} />
-                <Field label="Direccion" name="consortiumAddress" defaultValue={state.config?.consortiumAddress} />
-                <Field label="Email admin" name="adminEmail" type="email" defaultValue={state.config?.adminEmail} />
-                <Field label="Telefono admin" name="adminPhone" defaultValue={state.config?.adminPhone} />
-                <Field label="Cuota mensual" name="monthlyFee" type="number" defaultValue={state.config?.monthlyFee || state.config?.expenseAmount || 0} />
-                <Field label="Periodo actual" name="expenseMonthCode" type="month" defaultValue={state.config?.expenseMonthCode || month} />
-                <Field label="Dia vencimiento" name="dueDayOfMonth" type="number" defaultValue={state.config?.dueDayOfMonth || 10} />
-                <SelectField label="Tipo recargo" name="lateFeeType" defaultValue={state.config?.lateFeeType || 'percent'}>
+                <Field label="Nombre" name="consortiumName" defaultValue={config?.consortiumName} />
+                <Field label="Direccion" name="consortiumAddress" defaultValue={config?.consortiumAddress} />
+                <Field label="Email admin" name="adminEmail" type="email" defaultValue={config?.adminEmail} />
+                <Field label="Telefono admin" name="adminPhone" defaultValue={config?.adminPhone} />
+                <Field label="Cuota mensual" name="monthlyFee" type="number" defaultValue={config?.monthlyFee || config?.expenseAmount || 0} />
+                <Field label="Periodo actual" name="expenseMonthCode" type="month" defaultValue={config?.expenseMonthCode || month} />
+                <Field label="Dia vencimiento" name="dueDayOfMonth" type="number" defaultValue={config?.dueDayOfMonth || 10} />
+                <SelectField label="Tipo recargo" name="lateFeeType" defaultValue={config?.lateFeeType || 'percent'}>
                   <option value="percent">Porcentaje</option><option value="fixed">Fijo</option>
                 </SelectField>
-                <Field label="% recargo" name="lateFeePercent" type="number" defaultValue={state.config?.lateFeePercent || 0} />
-                <Field label="Recargo fijo" name="lateFeeFixed" type="number" defaultValue={state.config?.lateFeeFixed || 0} />
-                <Field label="Banco" name="bankName" defaultValue={state.config?.bankName} />
-                <Field label="CBU" name="bankCbu" defaultValue={state.config?.bankCbu} />
+                <Field label="% recargo" name="lateFeePercent" type="number" defaultValue={config?.lateFeePercent || 0} />
+                <Field label="Recargo fijo" name="lateFeeFixed" type="number" defaultValue={config?.lateFeeFixed || 0} />
+                <Field label="Banco" name="bankName" defaultValue={config?.bankName} />
+                <Field label="CBU" name="bankCbu" defaultValue={config?.bankCbu} />
                 <button className="btn btn-primary" disabled={busy === 'config'}>Guardar configuracion</button>
               </form>
             </Panel>
@@ -2339,9 +2372,9 @@ export function AdminPreviewPage() {
               <form className="admin-form" onSubmit={submitMercadoPago}>
                 <label className="admin-field full">
                   <span>Estado</span>
-                  <input value={state.config?.hasMercadoPago ? 'Configurado' : 'No configurado'} disabled readOnly />
+                  <input value={config?.hasMercadoPago ? 'Configurado' : 'No configurado'} disabled readOnly />
                 </label>
-                <Field label="Public Key" name="mpPublicKey" defaultValue={state.config?.mpPublicKey || ''} placeholder="APP_USR-..." />
+                <Field label="Public Key" name="mpPublicKey" defaultValue={config?.mpPublicKey || ''} placeholder="APP_USR-..." />
                 <Field label="Access Token" name="mpAccessToken" type="password" placeholder="Completar solo para actualizar" />
                 <Field label="Webhook Secret" name="mpWebhookSecret" type="password" placeholder="Opcional" />
                 <p className="admin-form-note">Por seguridad, el Access Token no se muestra. Si lo dejas vacio, se conserva el valor actual.</p>
@@ -2379,7 +2412,7 @@ export function AdminPreviewPage() {
                   options: Object.entries(documentVisibilityLabels).map(([value, label]) => ({ value, label })),
                   match: (row, value) => row.visibility === value
                 }
-              ]} rows={state.orgDocuments} columns={[
+              ]} rows={orgDocuments} columns={[
                 ['Titulo', (doc: any) => doc.title],
                 ['Categoria', (doc: any) => doc.categoryLabel || documentCategoryLabels[doc.category] || doc.category],
                 ['Visibilidad', (doc: any) => doc.visibilityLabel || documentVisibilityLabels[doc.visibility] || doc.visibility],
@@ -2450,110 +2483,6 @@ function BusyBanner() {
     <div className="admin-busy" role="status" aria-live="polite">
       <span className="action-spinner" />
       Ejecutando accion...
-    </div>
-  );
-}
-
-function Table({
-  rows,
-  columns,
-  loading = false,
-  filters = [],
-  searchPlaceholder = 'Buscar'
-}: {
-  rows: any[];
-  columns: Array<[string, (row: any) => ReactNode]>;
-  loading?: boolean;
-  filters?: GridFilter[];
-  searchPlaceholder?: string;
-}) {
-  const [query, setQuery] = useState('');
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    setPage(1);
-  }, [query, pageSize, filterValues, rows]);
-
-  const filteredRows = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    return (rows || []).filter((row) => {
-      const matchesSearch = !normalized || JSON.stringify(row).toLowerCase().includes(normalized);
-      const matchesFilters = filters.every((filter) => {
-        const value = filterValues[filter.key];
-        return !value || filter.match(row, value);
-      });
-      return matchesSearch && matchesFilters;
-    });
-  }, [rows, query, filterValues, filters]);
-
-  const pages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
-  const safePage = Math.min(page, pages);
-  const visibleRows = filteredRows.slice((safePage - 1) * pageSize, safePage * pageSize);
-
-  if (loading) return <TableSkeleton columns={columns.length} />;
-
-  return (
-    <>
-      <div className="grid-toolbar">
-        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={searchPlaceholder} />
-        {filters.map((filter) => (
-          <select
-            key={filter.key}
-            value={filterValues[filter.key] || ''}
-            onChange={(event) => setFilterValues((current) => ({ ...current, [filter.key]: event.target.value }))}
-          >
-            <option value="">{filter.allLabel || filter.label}</option>
-            {filter.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
-        ))}
-      </div>
-
-      {!filteredRows.length ? <Empty text="No hay registros con esos filtros." /> : (
-        <>
-          <div className="tbl-wrap">
-            <table className="tbl">
-              <thead><tr>{columns.map(([label]) => <th key={label}>{label}</th>)}</tr></thead>
-              <tbody>
-                {visibleRows.map((row, index) => (
-                  <tr key={idOf(row) || index}>
-                    {columns.map(([label, render]) => <td key={label}>{render(row)}</td>)}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="grid-footer">
-            <span>{filteredRows.length} registro{filteredRows.length !== 1 ? 's' : ''}</span>
-            <label>
-              Ver
-              <select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))}>
-                {[5, 10, 20, 50].map((size) => <option key={size} value={size}>{size}</option>)}
-              </select>
-            </label>
-            <div className="pager">
-              <button onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={safePage <= 1}>Anterior</button>
-              <span>{safePage} / {pages}</span>
-              <button onClick={() => setPage((current) => Math.min(pages, current + 1))} disabled={safePage >= pages}>Siguiente</button>
-            </div>
-          </div>
-        </>
-      )}
-    </>
-  );
-}
-
-function TableSkeleton({ columns }: { columns: number }) {
-  return (
-    <div className="table-skeleton">
-      <div className="grid-toolbar skeleton-toolbar"><span /><span /><span /></div>
-      {Array.from({ length: 6 }).map((_, row) => (
-        <div className="skeleton-row" key={row}>
-          {Array.from({ length: Math.max(3, Math.min(columns, 6)) }).map((__, col) => <span key={col} />)}
-        </div>
-      ))}
     </div>
   );
 }
@@ -3025,7 +2954,14 @@ function PendingReceiptsSection({ payments, loading, onApprove, onReject, onView
 function PendingCollectionSection({ rows, loading, onViewAll }: {
   rows: any[]; loading: boolean; onViewAll: () => void;
 }) {
-  if (loading) return <TableSkeleton columns={5} />;
+  if (loading) return (
+    <div className="card">
+      <div className="card-h"><div className="skeleton-line short" style={{ width: '40%' }} /></div>
+      <div className="compact-list">
+        {Array.from({ length: 4 }).map((_, i) => <div key={i} className="compact-skeleton"><span className="skeleton-line" /><span className="skeleton-line short" /></div>)}
+      </div>
+    </div>
+  );
   if (!rows.length) return null;
 
   const totalAmount = rows.reduce((s, r) => s + debtAmount(r), 0);

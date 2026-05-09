@@ -2,8 +2,14 @@ import { Suspense, lazy } from 'react';
 import { LoginPage } from './pages/auth/LoginPage';
 import { HomePage } from './pages/public/HomePage';
 
-const AdminPreviewPage = lazy(() => import('./pages/admin/AdminPreviewPage').then(m => ({ default: m.AdminPreviewPage })));
-const SuperAdminPage = lazy(() => import('./pages/super-admin/SuperAdminPage').then(m => ({ default: m.SuperAdminPage })));
+const AdminPreviewPage = lazy(() => import(
+  /* webpackPrefetch: true */
+  './pages/admin/AdminPreviewPage'
+).then(m => ({ default: m.AdminPreviewPage })));
+const SuperAdminPage = lazy(() => import(
+  /* webpackPrefetch: true */
+  './pages/super-admin/SuperAdminPage'
+).then(m => ({ default: m.SuperAdminPage })));
 
 function LoadingFallback() {
   return (
