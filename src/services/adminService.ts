@@ -50,7 +50,8 @@ export const adminApi = {
     list: (params?: Params) => apiClient<any>(`/notices${qs(params)}`, { auth: true }),
     create: (data: Payload) => apiClient<any>('/notices', { method: 'POST', auth: true, body: body(data) }),
     update: (id: string, data: Payload) => apiClient<any>(`/notices/${id}`, { method: 'PATCH', auth: true, body: body(data) }),
-    delete: (id: string) => apiClient<any>(`/notices/${id}`, { method: 'DELETE', auth: true })
+    delete: (id: string) => apiClient<any>(`/notices/${id}`, { method: 'DELETE', auth: true }),
+    attachment: (id: string, index: number) => apiBlob(`/notices/${id}/attachment/${index}`, { auth: true })
   },
 
   claims: {

@@ -1,8 +1,8 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle, Bell, Building2, CalendarCheck, CheckCircle2, ChevronDown, ChevronRight,
-  CreditCard, FileText, Home, Inbox, Landmark, LogOut, Megaphone, MessageSquare, MoreVertical,
-  RefreshCw, Search, Settings, ShieldCheck, TrendingUp, UserRoundCog, Users, Vote, WalletCards, X
+  CreditCard, FileText, Home, Inbox, Landmark, LogOut, Mail, Megaphone, MessageSquare, MoreVertical,
+  Paperclip, RefreshCw, Search, Settings, ShieldCheck, TrendingUp, UserRoundCog, Users, Vote, WalletCards, X
 } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
 import { isSuperAdminRole } from '../../services/authService';
@@ -680,6 +680,16 @@ export function AdminPreviewPage() {
       form.reset();
       setShowOwnerModal(false);
     }, 'Propietario creado con unidades seleccionadas.');
+  }
+
+  async function downloadNoticeAttachment(noticeId: string, index: number, filename: string) {
+    try {
+      const blob = await adminApi.notices.attachment(noticeId, index);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch { /* silent */ }
   }
 
   function submitNotice(event: FormEvent<HTMLFormElement>) {
@@ -1553,6 +1563,17 @@ export function AdminPreviewPage() {
                           </div>
                           <h3 className="notice-card-title">{n.title}</h3>
                           {n.body && <p className="notice-card-body">{n.body}</p>}
+                          {n.attachments?.length > 0 && (
+                            <div className="notice-card-attachments">
+                              {n.attachments.map((a: any, i: number) => (
+                                <button key={i} className="notice-attach-chip" type="button"
+                                  onClick={() => downloadNoticeAttachment(idOf(n), i, a.filename || `adjunto-${i + 1}`)}>
+                                  {a.mimetype?.startsWith('image/') ? <span>🖼️</span> : <Paperclip size={11} />}
+                                  <span>{a.filename?.length > 28 ? a.filename.slice(0, 27) + '…' : a.filename || `Adjunto ${i + 1}`}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
                           <div className="notice-card-foot">
                             <button className="btn btn-ghost btn-sm" onClick={() => run(idOf(n), () => adminApi.notices.delete(idOf(n)), 'Comunicado eliminado.')}>Eliminar</button>
                           </div>
@@ -1572,15 +1593,15 @@ export function AdminPreviewPage() {
                     <button className="icon-btn" onClick={() => { setShowNoticeModal(false); setNoticeFiles([]); }}><X size={16} /></button>
                   </div>
                   <form className="admin-form" onSubmit={submitNotice}>
-                    <Field label="Título" name="title" required />
-                    <label className="admin-field full"><span>Mensaje</span><textarea name="body" rows={5} required placeholder="Contenido del comunicado..." maxLength={2000} /></label>
+                    <Field label="Título" name="title" required placeholder="Título del comunicado" />
                     <SelectField label="Tipo" name="tag" defaultValue="info">
                       <option value="info">📢 Informativo</option>
                       <option value="warning">⚠️ Advertencia</option>
                       <option value="urgent">🔴 Urgente</option>
                     </SelectField>
+                    <label className="admin-field full"><span>Mensaje</span><textarea name="body" rows={5} required placeholder="Escribí el contenido del comunicado…" maxLength={2000} /></label>
                     <div className="admin-field full">
-                      <span>Adjuntos <small style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(opcional · máx. 3 · 10 MB c/u)</small></span>
+                      <span>Adjuntos <small style={{ color: 'var(--muted)', fontWeight: 400 }}>(opcional · máx. 3 archivos · 10 MB c/u)</small></span>
                       <input type="file" id="n-files-input" accept="image/*,.pdf" multiple style={{ display: 'none' }}
                         onChange={(e) => {
                           const incoming = Array.from(e.target.files || []);
@@ -1591,40 +1612,50 @@ export function AdminPreviewPage() {
                           e.target.value = '';
                         }}
                       />
-                      <button type="button" className="btn btn-ghost btn-sm" style={{ width: '100%' }}
-                        onClick={() => document.getElementById('n-files-input')?.click()}>
-                        📎 Adjuntar archivos
-                      </button>
+                      {noticeFiles.length < 3 && (
+                        <div className="notice-attach-zone" onClick={() => document.getElementById('n-files-input')?.click()}>
+                          <Paperclip size={16} style={{ color: 'var(--muted)' }} />
+                          <span style={{ fontSize: 13, color: 'var(--text)' }}>Adjuntar imágenes o PDF</span>
+                          <small style={{ color: 'var(--muted)', fontSize: 11 }}>Clic para seleccionar</small>
+                        </div>
+                      )}
                       {noticeFiles.length > 0 && (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
                           {noticeFiles.map((f, i) => (
-                            <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--bg-2)', borderRadius: 6, padding: '3px 8px', fontSize: 11.5 }}>
+                            <div key={i} className="notice-attach-chip notice-attach-chip--local">
                               <span>{f.type.startsWith('image/') ? '🖼️' : '📄'}</span>
-                              <span>{f.name.length > 22 ? f.name.slice(0, 21) + '…' : f.name}</span>
-                              <button type="button" onClick={() => setNoticeFiles(prev => prev.filter((_, j) => j !== i))}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', lineHeight: 1, padding: 0 }}>✕</button>
+                              <span>{f.name.length > 24 ? f.name.slice(0, 23) + '…' : f.name}</span>
+                              <span style={{ color: 'var(--muted)', fontSize: 10 }}>({(f.size / 1024).toFixed(0)} KB)</span>
+                              <button type="button" className="notice-attach-chip-remove"
+                                onClick={() => setNoticeFiles(prev => prev.filter((_, j) => j !== i))}>✕</button>
                             </div>
                           ))}
                         </div>
                       )}
                     </div>
-                    <div className="admin-field full" style={{ gap: 8 }}>
-                      <label className="owner-check-row" style={{ cursor: 'pointer' }}>
-                        <input type="checkbox" id="n-push" defaultChecked style={{ width: 16, height: 16, accentColor: 'var(--acc)' }} />
-                        <span style={{ fontSize: 13, color: 'var(--text-bright)' }}>Enviar notificación push a propietarios</span>
-                      </label>
-                      <label className="owner-check-row" style={{ cursor: 'pointer' }}>
-                        <input type="checkbox" id="n-email" defaultChecked style={{ width: 16, height: 16, accentColor: 'var(--acc)' }} />
-                        <span style={{ fontSize: 13, color: 'var(--text-bright)' }}>Enviar correo electrónico a propietarios</span>
-                      </label>
-                      <label className="owner-check-row" style={{ cursor: 'pointer' }}>
-                        <input type="checkbox" id="n-whatsapp" style={{ width: 16, height: 16, accentColor: 'var(--acc)' }} />
-                        <span style={{ fontSize: 13, color: 'var(--text-bright)' }}>💬 Enviar por WhatsApp <small style={{ color: 'var(--text-faint)' }}>(manual)</small></span>
-                      </label>
+                    <div className="admin-field full">
+                      <span>Enviar a propietarios</span>
+                      <div className="notice-checks-row">
+                        <label className="notice-check-pill">
+                          <input type="checkbox" id="n-push" defaultChecked />
+                          <Bell size={13} />
+                          <span>Notificación push</span>
+                        </label>
+                        <label className="notice-check-pill">
+                          <input type="checkbox" id="n-email" defaultChecked />
+                          <Mail size={13} />
+                          <span>Correo electrónico</span>
+                        </label>
+                        <label className="notice-check-pill">
+                          <input type="checkbox" id="n-whatsapp" />
+                          <span>💬</span>
+                          <span>WhatsApp <small style={{ color: 'var(--muted)', fontSize: 10 }}>(manual)</small></span>
+                        </label>
+                      </div>
                     </div>
                     <div className="form-modal-foot">
                       <button type="button" className="btn btn-ghost" onClick={() => { setShowNoticeModal(false); setNoticeFiles([]); }}>Cancelar</button>
-                      <button className="btn btn-primary" disabled={busy === 'notice'}>Publicar</button>
+                      <button className="btn btn-primary" disabled={busy === 'notice'}><Megaphone size={14} />Publicar comunicado</button>
                     </div>
                   </form>
                 </div>
