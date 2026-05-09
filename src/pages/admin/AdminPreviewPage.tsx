@@ -1,7 +1,7 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle, Bell, Building2, CalendarCheck, CheckCircle2, ChevronDown, ChevronRight,
-  CreditCard, FileText, Home, Inbox, Landmark, LogOut, Mail, Megaphone, MessageSquare, MoreVertical,
+  CreditCard, Download, FileText, Home, Inbox, Landmark, LogOut, Mail, Megaphone, MessageSquare, MoreVertical,
   Paperclip, RefreshCw, Search, Settings, ShieldCheck, TrendingUp, UserRoundCog, Users, Vote, WalletCards, X
 } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
@@ -374,6 +374,10 @@ export function AdminPreviewPage() {
   const [noticeFiles, setNoticeFiles] = useState<File[]>([]);
   const [showVoteModal, setShowVoteModal] = useState(false);
   const [voteOptions, setVoteOptions] = useState(['', '']);
+  const [showEmployeeModal, setShowEmployeeModal] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<any>(null);
+  const [employeeFiles, setEmployeeFiles] = useState<File[]>([]);
+  const [empModalRole, setEmpModalRole] = useState('maintenance');
   const [state, setState] = useState<any>({
     me: null, config: {}, ownerStats: {}, dashboard: {}, report: {},
     owners: [], units: [], payments: [], notices: [], claims: [], expenses: [],
@@ -737,18 +741,26 @@ export function AdminPreviewPage() {
 
   function submitEmployee(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
     const data = formObject(event);
-    run('employee', () => adminApi.employees.create({
-      name: data.name,
-      role: data.role,
-      customRole: data.customRole || undefined,
-      documentNumber: data.documentNumber || undefined,
-      phone: data.phone || undefined,
-      email: data.email || undefined,
-      startDate: data.startDate || undefined,
-      notes: data.notes || undefined
-    }), 'Empleado creado.');
-    event.currentTarget.reset();
+    const fd = new FormData();
+    ['name','role','customRole','documentNumber','phone','email','startDate','notes'].forEach(k => {
+      const v = data[k];
+      if (v && String(v)) fd.append(k, String(v));
+    });
+    employeeFiles.forEach(f => fd.append('documents', f));
+    const isEdit = !!editingEmployee;
+    run(isEdit ? idOf(editingEmployee) : 'employee', async () => {
+      if (isEdit) {
+        await adminApi.employees.update(idOf(editingEmployee), fd);
+      } else {
+        await adminApi.employees.create(fd);
+      }
+      setEmployeeFiles([]);
+      form.reset();
+      setEditingEmployee(null);
+      setShowEmployeeModal(false);
+    }, isEdit ? 'Empleado actualizado.' : 'Empleado creado.');
   }
 
   function submitSalary(event: FormEvent<HTMLFormElement>) {
@@ -767,17 +779,40 @@ export function AdminPreviewPage() {
   }
 
   function editEmployee(employee: any) {
-    const name = window.prompt('Nombre del empleado', employee.name || '');
-    if (name === null) return;
-    const phone = window.prompt('Telefono', employee.phone || '');
-    if (phone === null) return;
-    const email = window.prompt('Email', employee.email || '');
-    if (email === null) return;
-    run(idOf(employee), () => adminApi.employees.update(idOf(employee), {
-      name: name.trim(),
-      phone: phone.trim() || undefined,
-      email: email.trim() || undefined
-    }), 'Empleado actualizado.');
+    setEditingEmployee(employee);
+    setEmpModalRole(employee.role || 'maintenance');
+    setEmployeeFiles([]);
+    setShowEmployeeModal(true);
+  }
+
+  async function downloadEmployeeDocument(employeeId: string, index: number, filename: string) {
+    try {
+      const blob = await adminApi.employees.getDocument(employeeId, index);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename || 'archivo'; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch { /* silent */ }
+  }
+
+  async function deleteEmployeeDocument(index: number) {
+    if (!window.confirm('¿Eliminar este archivo?')) return;
+    try {
+      setBusy('emp-doc');
+      await adminApi.employees.deleteDocument(idOf(editingEmployee), index);
+      setEditingEmployee((prev: any) => {
+        if (!prev) return prev;
+        const docs = [...(prev.documents || [])];
+        docs.splice(index, 1);
+        return { ...prev, documents: docs };
+      });
+      setNotice({ type: 'ok', text: 'Archivo eliminado.' });
+      refresh(tab);
+    } catch {
+      setNotice({ type: 'error', text: 'No se pudo eliminar el archivo.' });
+    } finally {
+      setBusy('');
+    }
   }
 
   function editSalary(salary: any) {
@@ -1235,6 +1270,7 @@ export function AdminPreviewPage() {
               </div>
               <div className="admin-page-actions">
                 <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
+                <button className="btn btn-primary" onClick={() => { setEditingEmployee(null); setEmpModalRole('maintenance'); setEmployeeFiles([]); setShowEmployeeModal(true); }}><UserRoundCog size={14} />Nuevo empleado</button>
               </div>
             </div>
             <div className="metric-grid">
@@ -1244,22 +1280,6 @@ export function AdminPreviewPage() {
               <Metric loading={loading} label="Liquidaciones" value={state.salaries.length || 0} hint="Período visible" icon={FileText} />
             </div>
             <div className="admin-grid">
-            <Panel title="Nuevo empleado" icon={UserRoundCog}>
-              <form className="admin-form" onSubmit={submitEmployee}>
-                <Field label="Nombre" name="name" required />
-                <SelectField label="Rol" name="role" defaultValue="maintenance">
-                  {Object.entries(roleLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                </SelectField>
-                <Field label="Rol personalizado" name="customRole" placeholder="Jardinero" />
-                <Field label="DNI" name="documentNumber" />
-                <Field label="Telefono" name="phone" />
-                <Field label="Email" name="email" type="email" />
-                <Field label="Fecha de inicio" name="startDate" type="date" />
-                <label className="admin-field full"><span>Notas</span><textarea name="notes" rows={2} /></label>
-                <button className="btn btn-primary" disabled={busy === 'employee'}>Crear empleado</button>
-              </form>
-            </Panel>
-
             <Panel title="Nueva liquidacion" icon={WalletCards}>
               <form className="admin-form" onSubmit={submitSalary}>
                 <SelectField label="Empleado" name="employeeId">
@@ -1304,6 +1324,7 @@ export function AdminPreviewPage() {
                 ['DNI', (e: any) => e.documentNumber || '-'],
                 ['Telefono', (e: any) => e.phone || '-'],
                 ['Inicio', (e: any) => dateLabel(e.startDate)],
+                ['Archivos', (e: any) => e.documents?.length ? `${e.documents.length} archivo${e.documents.length !== 1 ? 's' : ''}` : '-'],
                 ['Estado', (e: any) => <Status value={e.isActive ? 'active' : 'cancelled'} />],
                 ['Acciones', (e: any) => <Actions>
                   <button onClick={() => editEmployee(e)}>Editar</button>
@@ -1340,6 +1361,103 @@ export function AdminPreviewPage() {
               ]} />
             </Panel>
             </div>
+
+            {showEmployeeModal && (
+              <div className="modal-backdrop" role="dialog" aria-modal="true"
+                onClick={(e) => { if (e.target === e.currentTarget) { setShowEmployeeModal(false); setEditingEmployee(null); setEmployeeFiles([]); } }}>
+                <div className="form-modal form-modal--wide">
+                  <div className="form-modal-head">
+                    <div className="form-modal-title"><UserRoundCog size={16} />{editingEmployee ? 'Editar empleado' : 'Nuevo empleado'}</div>
+                    <button className="icon-btn" onClick={() => { setShowEmployeeModal(false); setEditingEmployee(null); setEmployeeFiles([]); }}><X size={16} /></button>
+                  </div>
+                  <form key={editingEmployee ? idOf(editingEmployee) : 'new'} className="admin-form" onSubmit={submitEmployee}>
+                    <Field label="Nombre" name="name" required defaultValue={editingEmployee?.name} />
+                    <label className="admin-field">
+                      <span>Rol</span>
+                      <select name="role" value={empModalRole} onChange={(e) => setEmpModalRole(e.target.value)}>
+                        {Object.entries(roleLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                      </select>
+                    </label>
+                    {empModalRole === 'other' && (
+                      <Field label="Rol personalizado" name="customRole" placeholder="Ej: Jardinero" defaultValue={editingEmployee?.customRole} />
+                    )}
+                    <Field label="DNI" name="documentNumber" defaultValue={editingEmployee?.documentNumber} />
+                    <Field label="Telefono" name="phone" defaultValue={editingEmployee?.phone} />
+                    <Field label="Email" name="email" type="email" defaultValue={editingEmployee?.email} />
+                    <Field label="Fecha de inicio" name="startDate" type="date" defaultValue={editingEmployee?.startDate ? String(editingEmployee.startDate).slice(0, 10) : undefined} />
+                    <label className="admin-field full"><span>Notas</span><textarea name="notes" rows={2} defaultValue={editingEmployee?.notes} /></label>
+
+                    {editingEmployee?.documents?.length > 0 && (
+                      <div className="admin-field full">
+                        <span>Archivos cargados</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+                          {editingEmployee.documents.map((d: any, i: number) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface)', borderRadius: 8, padding: '0.5rem 0.75rem' }}>
+                              <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                📄 {d.filename || `archivo-${i + 1}`}
+                              </span>
+                              <button type="button" className="btn btn-ghost btn-sm" style={{ flexShrink: 0 }}
+                                onClick={() => downloadEmployeeDocument(idOf(editingEmployee), i, d.filename || 'archivo')}>
+                                <Download size={12} />Descargar
+                              </button>
+                              <button type="button" className="btn btn-sm danger-action" style={{ flexShrink: 0 }}
+                                disabled={busy === 'emp-doc'}
+                                onClick={() => deleteEmployeeDocument(i)}>
+                                Eliminar
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="admin-field full">
+                      <span>
+                        {editingEmployee ? 'Agregar archivos' : 'Archivos relacionados'}
+                        {' '}<small style={{ color: 'var(--muted)', fontWeight: 400 }}>(opcional · máx. 5 · PDF o imagen)</small>
+                      </span>
+                      <input type="file" id="emp-files-input" accept=".pdf,image/*" multiple style={{ display: 'none' }}
+                        onChange={(e) => {
+                          const incoming = Array.from(e.target.files || []);
+                          setEmployeeFiles(prev => {
+                            const remaining = 5 - prev.length;
+                            return [...prev, ...incoming.slice(0, remaining)];
+                          });
+                          e.target.value = '';
+                        }}
+                      />
+                      {employeeFiles.length < 5 && (
+                        <div className="notice-attach-zone" onClick={() => document.getElementById('emp-files-input')?.click()}>
+                          <Paperclip size={16} style={{ color: 'var(--muted)' }} />
+                          <span style={{ fontSize: 13, color: 'var(--text)' }}>Adjuntar PDF o imagen</span>
+                          <small style={{ color: 'var(--muted)', fontSize: 11 }}>Clic para seleccionar</small>
+                        </div>
+                      )}
+                      {employeeFiles.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                          {employeeFiles.map((f, i) => (
+                            <div key={i} className="notice-attach-chip notice-attach-chip--local">
+                              <span>{f.type.startsWith('image/') ? '🖼️' : '📄'}</span>
+                              <span>{f.name.length > 24 ? f.name.slice(0, 23) + '…' : f.name}</span>
+                              <span style={{ color: 'var(--muted)', fontSize: 10 }}>({(f.size / 1024).toFixed(0)} KB)</span>
+                              <button type="button" className="notice-attach-chip-remove"
+                                onClick={() => setEmployeeFiles(prev => prev.filter((_, j) => j !== i))}>✕</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="form-modal-foot">
+                      <button type="button" className="btn btn-ghost" onClick={() => { setShowEmployeeModal(false); setEditingEmployee(null); setEmployeeFiles([]); }}>Cancelar</button>
+                      <button className="btn btn-primary" disabled={busy === 'employee' || busy === idOf(editingEmployee) || busy === 'emp-doc'}>
+                        <UserRoundCog size={14} />{editingEmployee ? 'Guardar cambios' : 'Crear empleado'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
           </>
         )}
 

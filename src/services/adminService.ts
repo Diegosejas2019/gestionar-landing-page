@@ -73,7 +73,9 @@ export const adminApi = {
     list: (params?: Params) => apiClient<any>(`/employees${qs(params)}`, { auth: true }),
     create: (data: Payload) => apiClient<any>('/employees', { method: 'POST', auth: true, body: body(data) }),
     update: (id: string, data: Payload) => apiClient<any>(`/employees/${id}`, { method: 'PATCH', auth: true, body: body(data) }),
-    delete: (id: string) => apiClient<any>(`/employees/${id}`, { method: 'DELETE', auth: true })
+    delete: (id: string) => apiClient<any>(`/employees/${id}`, { method: 'DELETE', auth: true }),
+    getDocument: (id: string, index: number) => apiBlob(`/employees/${id}/document/${index}`, { auth: true }),
+    deleteDocument: (id: string, index: number) => apiClient<any>(`/employees/${id}/document/${index}`, { method: 'DELETE', auth: true })
   },
 
   salaries: {
