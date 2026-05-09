@@ -1450,7 +1450,7 @@ export function AdminPreviewPage() {
 
                     <div className="form-modal-foot">
                       <button type="button" className="btn btn-ghost" onClick={() => { setShowEmployeeModal(false); setEditingEmployee(null); setEmployeeFiles([]); }}>Cancelar</button>
-                      <button className="btn btn-primary" disabled={busy === 'employee' || busy === idOf(editingEmployee) || busy === 'emp-doc'}>
+                      <button className="btn btn-primary" disabled={busy === 'employee' || (!!editingEmployee && busy === idOf(editingEmployee)) || busy === 'emp-doc'}>
                         <UserRoundCog size={14} />{editingEmployee ? 'Guardar cambios' : 'Crear empleado'}
                       </button>
                     </div>
