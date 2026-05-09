@@ -1,4 +1,4 @@
-import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
+import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useState, memo } from 'react';
 import {
   AlertTriangle, Bell, Building2, CalendarCheck, CheckCircle2, ChevronDown, ChevronRight,
   CreditCard, Download, FileText, Home, Inbox, Landmark, LogOut, Mail, Megaphone, MessageSquare, MoreVertical,
@@ -116,44 +116,23 @@ function pick<T>(response: any, key: string, fallback: T): T {
   return response?.data?.[key] ?? fallback;
 }
 
-function Field(props: { label: string; name: string; type?: string; placeholder?: string; defaultValue?: string | number; required?: boolean }) {
+const Metric = memo(function Metric({ loading, label, value, hint, icon: Icon, delta }: {
+  loading?: boolean; label: string; value: string | number; hint?: string; icon: any; delta?: { text: string; trend: string }
+}) {
   return (
-    <label className="admin-field">
-      <span>{props.label}</span>
-      <input name={props.name} type={props.type || 'text'} placeholder={props.placeholder} defaultValue={props.defaultValue} required={props.required} />
-    </label>
-  );
-}
-
-function SelectField(props: { label: string; name: string; defaultValue?: string; children: ReactNode }) {
-  return (
-    <label className="admin-field">
-      <span>{props.label}</span>
-      <select name={props.name} defaultValue={props.defaultValue}>{props.children}</select>
-    </label>
-  );
-}
-
-function PaymentChannel({ payment }: { payment: any }) {
-  const label = paymentMethodLabels[payment?.paymentMethod] || payment?.paymentMethod || '-';
-  const isMpPending = payment?.paymentMethod === 'mercadopago' && payment?.mpStatus === 'approved' && payment?.status === 'pending';
-  return (
-    <span className={`channel-pill ${isMpPending ? 'mp-pending' : ''}`}>
-      {label}{isMpPending ? ' acreditado' : ''}
-    </span>
-  );
-}
-
-function Empty({ text = 'Sin datos para mostrar.' }: { text?: string }) {
-  return (
-    <div className="admin-empty">
-      <Inbox size={28} />
-      <span>{text}</span>
+    <div className={`metric-card ${loading ? 'skeleton' : ''}`}>
+      <div className="metric-icon"><Icon size={18} /></div>
+      <div className="metric-body">
+        <div className="metric-label">{label}</div>
+        {loading ? <div className="skeleton-val" /> : <div className="metric-value">{value}</div>}
+        {hint && !loading && <div className="metric-hint">{hint}</div>}
+        {delta && !loading && <div className={`metric-delta ${delta.trend}`}>{delta.text}</div>}
+      </div>
     </div>
   );
-}
+});
 
-function Status({ value }: { value?: string }) {
+const Status = memo(function Status({ value }: { value?: string }) {
   const tone = (value === 'approved' || value === 'paid' || value === 'resolved' || value === 'exited' || value === 'active') ? 'pos'
     : (value === 'rejected' || value === 'cancelled') ? 'neg'
     : (value === 'pending' || value === 'partially_paid' || value === 'open' || value === 'in_progress' || value === 'inside') ? 'warn'
@@ -165,7 +144,44 @@ function Status({ value }: { value?: string }) {
       {statusText[value || ''] || value || '-'}
     </span>
   );
-}
+});
+
+const Empty = memo(function Empty({ text = 'Sin datos para mostrar.' }: { text?: string }) {
+  return (
+    <div className="admin-empty">
+      <Inbox size={28} />
+      <span>{text}</span>
+    </div>
+  );
+});
+
+const PaymentChannel = memo(function PaymentChannel({ payment }: { payment: any }) {
+  const label = paymentMethodLabels[payment?.paymentMethod] || payment?.paymentMethod || '-';
+  const isMpPending = payment?.paymentMethod === 'mercadopago' && payment?.mpStatus === 'approved' && payment?.status === 'pending';
+  return (
+    <span className={`channel-pill ${isMpPending ? 'mp-pending' : ''}`}>
+      {label}{isMpPending ? ' acreditado' : ''}
+    </span>
+  );
+});
+
+const Field = memo(function Field(props: { label: string; name: string; type?: string; placeholder?: string; defaultValue?: string | number; required?: boolean }) {
+  return (
+    <label className="admin-field">
+      <span>{props.label}</span>
+      <input name={props.name} type={props.type || 'text'} placeholder={props.placeholder} defaultValue={props.defaultValue} required={props.required} />
+    </label>
+  );
+});
+
+const SelectField = memo(function SelectField(props: { label: string; name: string; defaultValue?: string; children: ReactNode }) {
+  return (
+    <label className="admin-field">
+      <span>{props.label}</span>
+      <select name={props.name} defaultValue={props.defaultValue}>{props.children}</select>
+    </label>
+  );
+});
 
 function statusFilter(statuses: string[]): GridFilter {
   return {
@@ -428,125 +444,138 @@ export function AdminPreviewPage() {
     [availableOwnerUnits, ownerSelectedUnitIds]
   );
 
-  function toggleOwnerUnit(unitId: string) {
+  const toggleOwnerUnit = useCallback((unitId: string) => {
     setOwnerSelectedUnitIds((current) => {
       const next = new Set(current);
       if (next.has(unitId)) next.delete(unitId);
       else next.add(unitId);
       return next;
     });
+  }, []);
+
+  async function fetchSession() {
+    const [me, config] = await Promise.all([
+      adminApi.me(),
+      adminApi.config.get()
+    ]);
+    const configData = pick(config, 'config', {});
+    const orgId = orgIdFromSession(me, configData);
+    const featuresRes = orgId ? await adminApi.organizations.features(orgId) : null;
+    const features = { ...defaultFeatures, ...pick<Record<string, boolean>>(featuresRes, 'features', {}) };
+    return { me, config: configData, features };
+  }
+
+  async function fetchForTab(target: TabKey, extra?: { me: any; config: any; features: Record<string, boolean> }) {
+    if (!extra) return;
+    const { features } = extra;
+    const isEnabled = (key: FeatureKey) => features[key] ?? defaultFeatures[key];
+    const next: any = {};
+
+    const core = [
+      adminApi.owners.stats(),
+      adminApi.payments.dashboard(year),
+      adminApi.payments.list({ limit: 8, status: 'pending' }),
+      adminApi.reports.monthly(month),
+      isEnabled('claims') ? adminApi.claims.list({ limit: 8, status: 'open' }) : Promise.resolve(null),
+      isEnabled('notices') ? adminApi.notices.list({ limit: 5 }) : Promise.resolve(null)
+    ];
+    const [ownerStats, dashboard, payments, report, claims, notices] = await Promise.all(core);
+    next.ownerStats = ownerStats?.data || {};
+    next.dashboard = dashboard?.data || {};
+    next.payments = sortPayments(pick(payments, 'payments', []));
+    next.claims = isEnabled('claims') ? pick(claims, 'claims', []) : [];
+    next.notices = isEnabled('notices') ? pick(notices, 'notices', []) : [];
+    next.report = report?.data || {};
+
+    if (target === 'propietarios' || target === 'comunicados' || target === 'reclamos' || target === 'inicio') {
+      const [owners, units, allClaims, allNotices] = await Promise.all([
+        adminApi.owners.list({ limit: 50 }),
+        adminApi.units.list({ limit: 200 }),
+        isEnabled('claims') ? adminApi.claims.list({ limit: 50 }) : Promise.resolve(null),
+        isEnabled('notices') ? adminApi.notices.list({ limit: 50 }) : Promise.resolve(null)
+      ]);
+      next.owners = pick(owners, 'owners', []);
+      next.units = pick(units, 'units', []);
+      next.claims = isEnabled('claims') ? pick(allClaims, 'claims', next.claims) : [];
+      next.notices = isEnabled('notices') ? pick(allNotices, 'notices', next.notices) : [];
+    }
+
+    if (target === 'finanzas') {
+      const [allPayments, expenses, allYearExpenses, allYearPayments, units] = await Promise.all([
+        adminApi.payments.list({ limit: 100, effectiveMonth: month }),
+        adminApi.expenses.list({ limit: 50, month }),
+        adminApi.expenses.list({ limit: 500 }),
+        adminApi.payments.list({ limit: 500, status: 'approved' }),
+        adminApi.units.list({ limit: 200 })
+      ]);
+      next.payments = sortPayments(pick(allPayments, 'payments', []));
+      next.expenses = sortExpenses(pick(expenses, 'expenses', []));
+      next.units = pick(units, 'units', []);
+      const yearStr = String(year);
+      next.yearExpenses = pick(allYearExpenses, 'expenses', []).filter((e: any) => (e.date || e.createdAt || '').slice(0, 4) === yearStr);
+      next.yearPayments = pick(allYearPayments, 'payments', []).filter((p: any) =>
+        p.month ? p.month.startsWith(yearStr) : (p.createdAt || '').startsWith(yearStr)
+      );
+    }
+
+    if (target === 'personal') {
+      const [employees, salaries] = await Promise.all([
+        adminApi.employees.list({ isActive: '', limit: 200 }),
+        adminApi.salaries.list({ limit: 200, period: month })
+      ]);
+      next.employees = pick(employees, 'employees', []);
+      next.salaries = pick(salaries, 'salaries', []);
+    }
+
+    if (target === 'operaciones') {
+      const [votes, visits, spaces, reservations] = await Promise.all([
+        isEnabled('votes') ? adminApi.votes.list({ limit: 50 }) : Promise.resolve(null),
+        isEnabled('visits') ? adminApi.visits.list({ limit: 50 }) : Promise.resolve(null),
+        isEnabled('reservations') ? adminApi.spaces.list() : Promise.resolve(null),
+        isEnabled('reservations') ? adminApi.reservations.list({ limit: 50 }) : Promise.resolve(null)
+      ]);
+      next.votes = isEnabled('votes') ? pick(votes, 'votes', []) : [];
+      next.visits = isEnabled('visits') ? pick(visits, 'visits', []) : [];
+      next.spaces = isEnabled('reservations') ? pick(spaces, 'spaces', []) : [];
+      next.reservations = isEnabled('reservations') ? pick(reservations, 'reservations', []) : [];
+    }
+
+    if (target === 'proveedores') {
+      const [providers, expenses] = await Promise.all([
+        isEnabled('providers') ? adminApi.providers.list() : Promise.resolve(null),
+        adminApi.expenses.list({ limit: 500 })
+      ]);
+      next.providers = isEnabled('providers') ? pick(providers, 'providers', []) : [];
+      const yearStr = String(new Date().getFullYear());
+      next.yearExpenses = pick(expenses, 'expenses', []).filter((e: any) => (e.date || e.createdAt || '').slice(0, 4) === yearStr);
+    }
+
+    if (target === 'config') {
+      const documents = await adminApi.documents.list();
+      next.orgDocuments = pick(documents, 'documents', []);
+    }
+
+    return next;
   }
 
   async function refresh(target: TabKey = tab) {
     setLoading(true);
     try {
-      const [me, config] = await Promise.all([
-        adminApi.me(),
-        adminApi.config.get()
-      ]);
-      const configData = pick(config, 'config', {});
-      const orgId = orgIdFromSession(me, configData);
-      const featuresRes = orgId ? await adminApi.organizations.features(orgId) : null;
-      const features = { ...defaultFeatures, ...pick<Record<string, boolean>>(featuresRes, 'features', {}) };
-      const isEnabled = (key: FeatureKey) => features[key] ?? defaultFeatures[key];
+      const session = await fetchSession();
+      const user = session.me?.data?.user;
+      setState((current: any) => ({
+        ...current,
+        me: user,
+        membership: session.me?.data?.membership,
+        config: session.config,
+        features: session.features
+      }));
 
-      const [ownerStats, dashboard, payments, report, claims, notices] = await Promise.all([
-        adminApi.owners.stats(),
-        adminApi.payments.dashboard(year),
-        adminApi.payments.list({ limit: 8, status: 'pending' }),
-        adminApi.reports.monthly(month),
-        isEnabled('claims') ? adminApi.claims.list({ limit: 8, status: 'open' }) : Promise.resolve(null),
-        isEnabled('notices') ? adminApi.notices.list({ limit: 5 }) : Promise.resolve(null)
-      ]);
-      const next: any = {
-        me: me?.data?.user,
-        membership: me?.data?.membership,
-        config: configData,
-        features,
-        ownerStats: ownerStats?.data || {},
-        dashboard: dashboard?.data || {},
-        payments: sortPayments(pick(payments, 'payments', [])),
-        claims: isEnabled('claims') ? pick(claims, 'claims', []) : [],
-        notices: isEnabled('notices') ? pick(notices, 'notices', []) : [],
-        report: report?.data || {}
-      };
-
-      if (target === 'propietarios' || target === 'comunicados' || target === 'reclamos' || target === 'inicio') {
-        const [owners, units, allClaims, allNotices] = await Promise.all([
-          adminApi.owners.list({ limit: 50 }),
-          adminApi.units.list({ limit: 200 }),
-          isEnabled('claims') ? adminApi.claims.list({ limit: 50 }) : Promise.resolve(null),
-          isEnabled('notices') ? adminApi.notices.list({ limit: 50 }) : Promise.resolve(null)
-        ]);
-        next.owners = pick(owners, 'owners', []);
-        next.units = pick(units, 'units', []);
-        next.claims = isEnabled('claims') ? pick(allClaims, 'claims', next.claims) : [];
-        next.notices = isEnabled('notices') ? pick(allNotices, 'notices', next.notices) : [];
+      const tabData = await fetchForTab(target, session);
+      if (tabData) {
+        setState((current: any) => ({ ...current, ...tabData }));
       }
 
-      if (target === 'finanzas') {
-        const [allPayments, expenses, allYearExpenses, allYearPayments, units] = await Promise.all([
-          adminApi.payments.list({ limit: 100, effectiveMonth: month }),
-          adminApi.expenses.list({ limit: 50, month }),
-          adminApi.expenses.list({ limit: 500 }),
-          adminApi.payments.list({ limit: 500, status: 'approved' }),
-          adminApi.units.list({ limit: 200 })
-        ]);
-        next.payments = sortPayments(pick(allPayments, 'payments', []));
-        next.expenses = sortExpenses(pick(expenses, 'expenses', []));
-        next.units = pick(units, 'units', []);
-        const yearStr = String(year);
-        next.yearExpenses = pick(allYearExpenses, 'expenses', []).filter((e: any) => {
-          const y = (e.date || e.createdAt || '').slice(0, 4);
-          return y === yearStr;
-        });
-        next.yearPayments = pick(allYearPayments, 'payments', []).filter((p: any) => {
-          if (p.month) return p.month.startsWith(yearStr);
-          return (p.createdAt || '').startsWith(yearStr);
-        });
-      }
-
-      if (target === 'personal') {
-        const [employees, salaries] = await Promise.all([
-          adminApi.employees.list({ isActive: '', limit: 200 }),
-          adminApi.salaries.list({ limit: 200, period: month })
-        ]);
-        next.employees = pick(employees, 'employees', []);
-        next.salaries = pick(salaries, 'salaries', []);
-      }
-
-      if (target === 'operaciones') {
-        const [votes, visits, spaces, reservations] = await Promise.all([
-          isEnabled('votes') ? adminApi.votes.list({ limit: 50 }) : Promise.resolve(null),
-          isEnabled('visits') ? adminApi.visits.list({ limit: 50 }) : Promise.resolve(null),
-          isEnabled('reservations') ? adminApi.spaces.list() : Promise.resolve(null),
-          isEnabled('reservations') ? adminApi.reservations.list({ limit: 50 }) : Promise.resolve(null)
-        ]);
-        next.votes = isEnabled('votes') ? pick(votes, 'votes', []) : [];
-        next.visits = isEnabled('visits') ? pick(visits, 'visits', []) : [];
-        next.spaces = isEnabled('reservations') ? pick(spaces, 'spaces', []) : [];
-        next.reservations = isEnabled('reservations') ? pick(reservations, 'reservations', []) : [];
-      }
-
-      if (target === 'proveedores') {
-        const [providers, expenses] = await Promise.all([
-          isEnabled('providers') ? adminApi.providers.list() : Promise.resolve(null),
-          adminApi.expenses.list({ limit: 500 })
-        ]);
-        next.providers = isEnabled('providers') ? pick(providers, 'providers', []) : [];
-        const yearStr = String(new Date().getFullYear());
-        next.yearExpenses = pick(expenses, 'expenses', []).filter((e: any) => {
-          const y = (e.date || e.createdAt || '').slice(0, 4);
-          return y === yearStr;
-        });
-      }
-
-      if (target === 'config') {
-        const documents = await adminApi.documents.list();
-        next.orgDocuments = pick(documents, 'documents', []);
-      }
-
-      setState((current: any) => ({ ...current, ...next }));
       setNotice(null);
     } catch (error) {
       setNotice({ type: 'error', text: error instanceof Error ? error.message : 'No se pudo cargar el dashboard.' });
@@ -2298,7 +2327,7 @@ export function AdminPreviewPage() {
   );
 }
 
-function Metric({ label, value, hint, delta, icon: _Icon, loading }: {
+function MetricRow({ label, value, hint, delta, icon: _Icon, loading }: {
   label: string; value: string | number; hint: string;
   delta?: { text: string; trend: 'pos' | 'neg' | 'neutral' };
   icon: any; loading?: boolean
