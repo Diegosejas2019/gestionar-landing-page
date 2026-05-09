@@ -372,6 +372,8 @@ export function AdminPreviewPage() {
   const [showUnitModal, setShowUnitModal] = useState(false);
   const [showNoticeModal, setShowNoticeModal] = useState(false);
   const [noticeFiles, setNoticeFiles] = useState<File[]>([]);
+  const [showVoteModal, setShowVoteModal] = useState(false);
+  const [voteOptions, setVoteOptions] = useState(['', '']);
   const [state, setState] = useState<any>({
     me: null, config: {}, ownerStats: {}, dashboard: {}, report: {},
     owners: [], units: [], payments: [], notices: [], claims: [], expenses: [],
@@ -794,10 +796,16 @@ export function AdminPreviewPage() {
 
   function submitVote(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
     const data = formObject(event);
-    const options = String(data.options || '').split('\n').map((item) => item.trim()).filter(Boolean);
-    run('vote', () => adminApi.votes.create({ title: data.title, description: data.description, options, endsAt: data.endsAt || undefined }), 'Votacion creada.');
-    event.currentTarget.reset();
+    const options = voteOptions.map(o => o.trim()).filter(Boolean);
+    const sendPush = (form.querySelector('#v-push') as HTMLInputElement)?.checked ?? true;
+    run('vote', async () => {
+      await adminApi.votes.create({ title: data.title, description: data.description || undefined, options, endsAt: data.endsAt || undefined, sendPush });
+      setVoteOptions(['', '']);
+      form.reset();
+      setShowVoteModal(false);
+    }, 'Votación creada.');
   }
 
   function submitSpace(event: FormEvent<HTMLFormElement>) {
@@ -1708,19 +1716,11 @@ export function AdminPreviewPage() {
               </div>
               <div className="admin-page-actions">
                 <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
+                {moduleEnabled('votes') && <button className="btn btn-primary" onClick={() => setShowVoteModal(true)}><Vote size={14} />Nueva votación</button>}
               </div>
             </div>
             <div className="admin-grid">
             {!hasOperations && <Empty text="No hay modulos operativos habilitados para esta organizacion." />}
-            {moduleEnabled('votes') && <Panel title="Nueva votacion" icon={Vote}>
-              <form className="admin-form" onSubmit={submitVote}>
-                <Field label="Titulo" name="title" required />
-                <Field label="Cierre" name="endsAt" type="datetime-local" />
-                <label className="admin-field full"><span>Descripcion</span><textarea name="description" rows={2} /></label>
-                <label className="admin-field full"><span>Opciones, una por linea</span><textarea name="options" rows={4} required /></label>
-                <button className="btn btn-primary" disabled={busy === 'vote'}>Crear votacion</button>
-              </form>
-            </Panel>}
             {moduleEnabled('votes') && <Panel title="Votaciones" icon={Vote}>
               <Table loading={loading} searchPlaceholder="Buscar votacion" filters={[
                 statusFilter(['open', 'closed'])
@@ -1792,6 +1792,63 @@ export function AdminPreviewPage() {
               ]} />
             </Panel>}
             </div>
+
+            {showVoteModal && (
+              <div className="modal-backdrop" role="dialog" aria-modal="true"
+                onClick={(e) => { if (e.target === e.currentTarget) { setShowVoteModal(false); setVoteOptions(['', '']); } }}>
+                <div className="form-modal form-modal--wide">
+                  <div className="form-modal-head">
+                    <div className="form-modal-title"><Vote size={16} />Nueva votación</div>
+                    <button className="icon-btn" onClick={() => { setShowVoteModal(false); setVoteOptions(['', '']); }}><X size={16} /></button>
+                  </div>
+                  <form className="admin-form" onSubmit={submitVote}>
+                    <Field label="Título" name="title" required placeholder="Ej: ¿Pintamos el palier?" />
+                    <Field label="Fecha límite (opcional)" name="endsAt" type="datetime-local" />
+                    <label className="admin-field full"><span>Descripción <small style={{ color: 'var(--muted)', fontWeight: 400 }}>(opcional)</small></span>
+                      <textarea name="description" rows={3} placeholder="Contexto adicional para los propietarios…" maxLength={1000} />
+                    </label>
+                    <div className="admin-field full">
+                      <span>Opciones <small style={{ color: 'var(--muted)', fontWeight: 400 }}>(mínimo 2)</small></span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {voteOptions.map((opt, i) => (
+                          <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                            <input className="input" value={opt} required={i < 2}
+                              placeholder={`Opción ${i + 1}`}
+                              onChange={(e) => setVoteOptions(prev => prev.map((o, j) => j === i ? e.target.value : o))}
+                              style={{ flex: 1 }}
+                            />
+                            {voteOptions.length > 2 && (
+                              <button type="button" className="icon-btn"
+                                onClick={() => setVoteOptions(prev => prev.filter((_, j) => j !== i))}>
+                                <X size={14} />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                        {voteOptions.length < 6 && (
+                          <button type="button" className="btn btn-ghost btn-sm"
+                            onClick={() => setVoteOptions(prev => [...prev, ''])}>
+                            + Agregar opción
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="admin-field full">
+                      <label className="notice-check-pill" style={{ maxWidth: 320 }}>
+                        <input type="checkbox" id="v-push" defaultChecked />
+                        <Bell size={13} />
+                        <span>Notificar a propietarios por push</span>
+                      </label>
+                    </div>
+                    <div className="form-modal-foot">
+                      <button type="button" className="btn btn-ghost"
+                        onClick={() => { setShowVoteModal(false); setVoteOptions(['', '']); }}>Cancelar</button>
+                      <button className="btn btn-primary" disabled={busy === 'vote'}><Vote size={14} />Publicar votación</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
           </>
         )}
 
