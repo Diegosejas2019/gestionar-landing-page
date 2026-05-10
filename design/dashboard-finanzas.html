@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Finanzas · GestionAr</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #0a0f0d;
+    --bg-2: #0e1512;
+    --surface: #141c18;
+    --surface-2: #1a231e;
+    --border: rgba(255,255,255,0.07);
+    --border-strong: rgba(255,255,255,0.14);
+    --text: #eef1ed;
+    --text-dim: #98a49c;
+    --text-faint: #5f6b65;
+    --green: #9cf27b;
+    --green-2: #7de05b;
+    --green-deep: #2a5234;
+    --green-soft: rgba(156, 242, 123, 0.12);
+    --yellow: #f5c24a;
+    --yellow-soft: rgba(245, 194, 74, 0.12);
+    --red: #f07567;
+    --red-soft: rgba(240, 117, 103, 0.12);
+    --blue: #7bb8f2;
+    --blue-soft: rgba(123, 184, 242, 0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #070a09;
+    color: var(--text);
+    padding: 48px 24px 120px;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Inter Tight', sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  .container { max-width: 480px; margin: 0 auto; }
+
+  .page-header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px 6px 10px;
+    background: var(--green-soft);
+    border: 1px solid rgba(156, 242, 123, 0.2);
+    border-radius: 999px;
+    font-size: 11px; font-weight: 500; color: var(--green);
+    margin-bottom: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+  .eyebrow .dot { width:6px; height:6px; border-radius:50%; background: var(--green); }
+  .page-header h1 { font-size: 32px; margin-bottom: 10px; }
+  .page-header h1 em { color: var(--green); font-style: italic; font-weight: 500; }
+  .page-header p { color: var(--text-dim); font-size: 14px; }
+
+  /* Phone */
+  .phone-wrap { display: flex; justify-content: center; }
+  .phone {
+    width: 390px;
+    background: #000;
+    border-radius: 48px;
+    padding: 10px;
+    box-shadow:
+      inset 0 0 0 2px rgba(255,255,255,0.06),
+      0 40px 80px -30px rgba(0,0,0,0.8);
+    position: relative;
+  }
+  .phone-screen {
+    width: 100%;
+    background: var(--bg);
+    border-radius: 40px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 1600px;
+  }
+  .notch {
+    position: absolute;
+    top: 12px; left: 50%;
+    transform: translateX(-50%);
+    width: 110px; height: 32px;
+    background: #000;
+    border-radius: 16px;
+    z-index: 20;
+  }
+  .statusbar {
+    height: 44px;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    padding-top: 14px;
+  }
+  .status-icons { display: flex; gap: 5px; align-items: center; }
+  .app-nav {
+    padding: 8px 20px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .logo-mini {
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'Inter Tight', sans-serif;
+    font-weight: 700; font-size: 17px; letter-spacing: -0.03em;
+  }
+  .logo-mini .ar { color: var(--green); font-style: italic; font-weight: 500; }
+  .logo-mini .dot-live { width: 6px; height: 6px; border-radius: 50%; background: var(--green); margin-left: 2px; }
+  .nav-right { display: flex; align-items: center; gap: 10px; }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--green); color: var(--bg);
+    display: grid; place-items: center;
+    font-weight: 700; font-size: 12px;
+    font-family: 'Inter Tight', sans-serif;
+  }
+  .icon-btn {
+    width: 32px; height: 32px;
+    border-radius: 9px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: grid; place-items: center;
+    color: var(--text-dim);
+  }
+  .app-body {
+    padding: 4px 16px 120px;
+  }
+
+  /* Tab bar */
+  .tabbar {
+    position: sticky;
+    bottom: 0; left: 0; right: 0;
+    margin: 0 -16px;
+    background: rgba(14, 21, 18, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    padding: 10px 0 24px;
+    display: flex;
+    justify-content: space-around;
+    z-index: 10;
+    margin-top: 24px;
+  }
+  .tab {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    font-size: 10px;
+    color: var(--text-faint);
+    font-weight: 500;
+    position: relative;
+    padding: 4px 12px;
+  }
+  .tab.active { color: var(--green); }
+  .tab.active::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    width: 28px; height: 2px;
+    background: var(--green);
+    border-radius: 2px;
+  }
+
+  /* ============ DASHBOARD CONTENT ============ */
+  .page-title {
+    padding: 4px 0 18px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .page-title .hello {
+    font-size: 11px;
+    color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .page-title h1 {
+    font-size: 28px;
+    line-height: 1.1;
+  }
+  .page-title .export-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .page-title .export-btn svg { color: var(--green); }
+
+  /* Period selector */
+  .period-bar {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 18px;
+  }
+  .period-tab {
+    flex: 1;
+    text-align: center;
+    padding: 8px 0;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-dim);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .period-tab.active {
+    background: var(--green);
+    color: var(--bg);
+    font-weight: 600;
+  }
+
+  /* Year switcher */
+  .year-switch {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 14px;
+  }
+  .year-switch .yr {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .year-switch .yr-sub {
+    font-size: 10px;
+    color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.08em;
+  }
+  .yr-btn {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    display: grid; place-items: center;
+    color: var(--green);
+    cursor: pointer;
+  }
+  .yr-btn:disabled, .yr-btn[disabled] { opacity: 0.3; cursor: not-allowed; }
+  .yr-ctrl { display: flex; align-items: center; gap: 6px; }
+  .yr-center { text-align: center; }
+
+  /* HERO — Balance card */
+  .balance-card {
+    background: linear-gradient(160deg, #1b2d22 0%, #0f1814 100%);
+    border: 1px solid var(--border-strong);
+    border-radius: 22px;
+    padding: 22px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .balance-card::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 220px; height: 220px;
+    background: radial-gradient(circle, rgba(156,242,123,0.18), transparent 60%);
+    pointer-events: none;
+  }
+  .balance-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .balance-label {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--green);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .balance-label .pulse {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 0 3px rgba(156,242,123,0.2);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  .balance-period {
+    font-size: 10px;
+    color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .balance-amt {
+    font-family: 'Inter Tight', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 0.95;
+    margin-bottom: 8px;
+    position: relative;
+    display: flex;
+    align-items: baseline;
+  }
+  .balance-amt .cur {
+    font-size: 20px;
+    color: var(--green);
+    margin-right: 6px;
+    font-weight: 600;
+  }
+  .balance-amt .num {
+    font-size: 48px;
+  }
+  .balance-amt .k {
+    font-size: 22px;
+    color: var(--text-dim);
+    font-weight: 500;
+    margin-left: 2px;
+  }
+  .balance-sub {
+    font-size: 12px;
+    color: var(--text-dim);
+    position: relative;
+    margin-bottom: 18px;
+  }
+  .balance-sub .up {
+    color: var(--green);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    margin-right: 4px;
+  }
+
+  .flow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    position: relative;
+  }
+  .flow-item {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+  }
+  .flow-item .ico {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    display: grid; place-items: center;
+    margin-bottom: 8px;
+  }
+  .flow-item.in .ico { background: var(--green-soft); color: var(--green); }
+  .flow-item.out .ico { background: var(--red-soft); color: var(--red); }
+  .flow-item .lbl {
+    font-size: 10px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .flow-item .v {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .flow-item.in .v { color: var(--green); }
+  .flow-item.out .v { color: var(--red); }
+  .flow-item .pct {
+    font-size: 10px;
+    color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 3px;
+  }
+
+  /* Mini KPIs row */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+  .kpi-mini {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    position: relative;
+  }
+  .kpi-mini .top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .kpi-mini .top .lbl {
+    font-size: 10px;
+    color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.08em;
+  }
+  .kpi-mini .top .ico {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    background: var(--green-soft);
+    color: var(--green);
+    display: grid; place-items: center;
+  }
+  .kpi-mini.alert .top .ico { background: var(--red-soft); color: var(--red); }
+  .kpi-mini .val {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+  .kpi-mini.alert .val { color: var(--red); }
+  .kpi-mini .sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .kpi-mini .sub .delta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--green);
+  }
+  .kpi-mini.alert .sub .delta { color: var(--red); }
+
+  /* Sparkline */
+  .spark {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 50px; height: 20px;
+    opacity: 0.9;
+  }
+
+  /* Section title */
+  .section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 26px;
+    margin-bottom: 12px;
+  }
+  .section-title h2 {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .section-title .caption {
+    font-size: 10px;
+    color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* ===== Chart card ===== */
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+  .chart-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .chart-card-head .t {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .chart-legend {
+    display: flex;
+    gap: 10px;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+  .chart-legend span {
+    display: flex; align-items: center; gap: 4px;
+  }
+  .chart-legend .sw {
+    width: 8px; height: 8px;
+    border-radius: 2px;
+  }
+
+  .bars-chart {
+    height: 170px;
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    padding: 0 2px;
+    position: relative;
+  }
+  .bar-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+  }
+  .bar-stack {
+    width: 100%;
+    background: var(--bg-2);
+    border-radius: 6px 6px 0 0;
+    position: relative;
+    overflow: hidden;
+    min-height: 4px;
+  }
+  .bar-fill {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(180deg, var(--green) 0%, var(--green-2) 100%);
+    border-radius: 6px 6px 0 0;
+    transition: all 0.3s ease;
+  }
+  .bar-col.active .bar-fill {
+    background: linear-gradient(180deg, #c7ff9e 0%, var(--green) 100%);
+    box-shadow: 0 0 20px rgba(156, 242, 123, 0.4);
+  }
+  .bar-col.future .bar-fill {
+    background: repeating-linear-gradient(45deg, rgba(156,242,123,0.15), rgba(156,242,123,0.15) 3px, transparent 3px, transparent 6px);
+  }
+  .bar-label {
+    font-size: 10px;
+    color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.04em;
+  }
+  .bar-col.active .bar-label { color: var(--green); font-weight: 600; }
+  .bar-val {
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+  }
+  .bar-col.active .bar-val {
+    color: var(--green);
+    font-weight: 600;
+    background: var(--bg-2);
+    padding: 3px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(156,242,123,0.3);
+    top: -28px;
+  }
+
+  .chart-hint {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-faint);
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ===== Detail table ===== */
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    overflow: hidden;
+  }
+  .table-head {
+    padding: 16px 16px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .table-head h3 {
+    font-size: 14px;
+  }
+  .table-filter {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .table-cols {
+    display: grid;
+    grid-template-columns: 72px 1fr 1fr 1fr;
+    gap: 10px;
+    padding: 10px 16px;
+    font-size: 9px;
+    color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.015);
+  }
+  .table-row {
+    display: grid;
+    grid-template-columns: 72px 1fr 1fr 1fr;
+    gap: 10px;
+    padding: 14px 16px;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .table-row:last-child { border-bottom: 0; }
+  .table-row .period {
+    font-family: 'Inter Tight', sans-serif;
+  }
+  .period-m {
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .period-y {
+    font-size: 10px;
+    color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .chip.ok { background: var(--green-soft); color: var(--green); border: 1px solid rgba(156,242,123,0.2); }
+  .chip.pend { background: var(--yellow-soft); color: var(--yellow); border: 1px solid rgba(245,194,74,0.2); }
+  .chip.rej { background: var(--red-soft); color: var(--red); border: 1px solid rgba(240,117,103,0.2); }
+  .chip.zero { background: rgba(255,255,255,0.03); color: var(--text-faint); border: 1px solid var(--border); }
+
+  /* ===== Top movers ===== */
+  .movers-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 18px;
+  }
+  .movers-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .movers-head h3 {
+    font-size: 14px;
+  }
+  .movers-head .see-all {
+    font-size: 11px;
+    color: var(--green);
+    font-weight: 500;
+  }
+  .mover {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .mover:last-child { border-bottom: 0; }
+  .mover-ava {
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    background: var(--surface-2);
+    display: grid; place-items: center;
+    font-size: 11px; font-weight: 700;
+    color: var(--text-dim);
+    flex-shrink: 0;
+    font-family: 'Inter Tight', sans-serif;
+  }
+  .mover-info { flex: 1; min-width: 0; }
+  .mover-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .mover-meta { font-size: 10px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; }
+  .mover-amt {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: right;
+  }
+  .mover-amt.pos { color: var(--green); }
+  .mover-amt.neg { color: var(--red); }
+  .mover-amt .t { font-size: 9px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; font-weight: 500; display: block; letter-spacing: 0.06em; }
+
+  /* ===== Gastos breakdown ===== */
+  .breakdown-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 18px;
+  }
+  .breakdown-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .breakdown-head h3 {
+    font-size: 14px;
+  }
+  .breakdown-head .total {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--red);
+  }
+  .bd-item {
+    margin-bottom: 14px;
+  }
+  .bd-item:last-child { margin-bottom: 0; }
+  .bd-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .bd-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .bd-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+  .bd-name { font-size: 13px; font-weight: 500; }
+  .bd-amt {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .bd-amt .pct { color: var(--text-faint); font-size: 10px; margin-left: 4px; }
+  .bd-bar {
+    height: 6px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .bd-fill { height: 100%; border-radius: 999px; }
+
+  /* footer stamp */
+  .stamp {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 10px;
+    color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+  .stamp .tick {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 0 3px rgba(156,242,123,0.15);
+  }
+
+  /* Annotations side */
+  .wrap {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    gap: 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+    align-items: start;
+  }
+  @media (max-width: 1000px) {
+    .wrap { grid-template-columns: 1fr; }
+  }
+  .notes {
+    position: sticky;
+    top: 32px;
+  }
+  .notes-head {
+    margin-bottom: 20px;
+  }
+  .notes-head h2 {
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+  .notes-head p {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+  .note {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    position: relative;
+  }
+  .note::before {
+    content: '';
+    position: absolute;
+    left: -1px; top: 14px; bottom: 14px;
+    width: 3px;
+    background: var(--green);
+    border-radius: 0 3px 3px 0;
+  }
+  .note .n-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--green);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .note .n-title {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .note p {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="eyebrow"><span class="dot"></span> TAB FINANZAS · DASHBOARD</div>
+  <h1>El <em>dashboard</em> responde cómo venimos.</h1>
+  <p>Lo retrospectivo vive acá: KPIs históricos, evolución, detalle por período y gastos. Inicio queda libre para lo operativo.</p>
+</div>
+
+<div class="wrap">
+  <div class="notes">
+    <div class="notes-head">
+      <h2>Decisiones de diseño</h2>
+      <p>Las piezas siguen el mismo lenguaje que Admin Home — un solo número protagonista, chips semánticos, color como información.</p>
+    </div>
+
+    <div class="note">
+      <div class="n-label">01 · Balance</div>
+      <div class="n-title">El número que importa, arriba</div>
+      <p>Ingresos menos gastos en pesos. Debajo, ingresos y gastos como cards separadas con su propio color.</p>
+    </div>
+    <div class="note">
+      <div class="n-label">02 · Chart</div>
+      <div class="n-title">Barras mensuales con mes activo</div>
+      <p>La barra del mes seleccionado se destaca con glow y valor. Meses futuros van rayados. Click en barra = abrir detalle.</p>
+    </div>
+    <div class="note">
+      <div class="n-label">03 · Tabla</div>
+      <div class="n-title">Chips semánticos, no números pelados</div>
+      <p>Aprobados verdes, pendientes amarillos, rechazados rojos. "0" se desatura para que los números activos destaquen.</p>
+    </div>
+    <div class="note">
+      <div class="n-label">04 · Top movers</div>
+      <div class="n-title">Quién subió y quién debe</div>
+      <p>No había en la versión original. Muestra los 3 mayores ingresos/deudas del período para contexto rápido.</p>
+    </div>
+    <div class="note">
+      <div class="n-label">05 · Gastos</div>
+      <div class="n-title">Breakdown por categoría</div>
+      <p>Barras horizontales con % sobre total. La comisión ve al toque a qué rubro se va la plata.</p>
+    </div>
+  </div>
+
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="phone-screen">
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="status-icons">
+            <svg width="14" height="10" viewBox="0 0 14 10" fill="none"><path d="M1 8h2M4 6h2M7 4h2M10 2h2" stroke="#eef1ed" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <svg width="22" height="10" viewBox="0 0 22 10" fill="none"><rect x="0.5" y="0.5" width="18" height="9" rx="2" stroke="#eef1ed"/><rect x="2" y="2" width="15" height="6" rx="1" fill="#eef1ed"/><rect x="19" y="3" width="2" height="4" rx="0.5" fill="#eef1ed"/></svg>
+          </span>
+        </div>
+
+        <div class="app-nav">
+          <div class="logo-mini">
+            <span>
+              <svg width="22" height="22" viewBox="0 0 100 100">
+                <path d="M 30 22 L 18 22 L 18 78 L 30 78" stroke="#eef1ed" stroke-width="10" fill="none" stroke-linecap="square"/>
+                <path d="M 70 22 L 82 22 L 82 78 L 70 78" stroke="#eef1ed" stroke-width="10" fill="none" stroke-linecap="square"/>
+                <rect x="40" y="40" width="20" height="20" fill="#9cf27b"/>
+              </svg>
+            </span>
+            Gestion<span class="ar">Ar</span><span class="dot-live"></span>
+          </div>
+          <div class="nav-right">
+            <div class="avatar">AB</div>
+            <div class="icon-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="app-body">
+
+          <!-- Title -->
+          <div class="page-title">
+            <div>
+              <div class="hello">TAB FINANZAS</div>
+              <h1>Dashboard<br>de pagos</h1>
+            </div>
+            <button class="export-btn">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Excel
+            </button>
+          </div>
+
+          <!-- Period selector -->
+          <div class="period-bar">
+            <div class="period-tab">Mes</div>
+            <div class="period-tab">Trimestre</div>
+            <div class="period-tab active">Año</div>
+            <div class="period-tab">Todo</div>
+          </div>
+
+          <!-- Year switcher -->
+          <div class="year-switch">
+            <div class="yr-center">
+              <div class="yr-sub">PERÍODO</div>
+              <div class="yr">Enero — Abril 2026</div>
+            </div>
+            <div class="yr-ctrl">
+              <div class="yr-btn">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              </div>
+              <div class="yr-btn">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Balance hero -->
+          <div class="balance-card">
+            <div class="balance-head">
+              <div class="balance-label"><span class="pulse"></span> BALANCE 2026</div>
+              <div class="balance-period">YTD · ABRIL</div>
+            </div>
+            <div class="balance-amt">
+              <span class="cur">$</span>
+              <span class="num">45</span>
+              <span class="k">k</span>
+            </div>
+            <div class="balance-sub">
+              <span class="up">↑ 18.4%</span> vs mismo período 2025
+            </div>
+            <div class="flow">
+              <div class="flow-item in">
+                <div class="ico">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+                </div>
+                <div class="lbl">Ingresos</div>
+                <div class="v">$65k</div>
+                <div class="pct">↑ 12% YoY</div>
+              </div>
+              <div class="flow-item out">
+                <div class="ico">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+                </div>
+                <div class="lbl">Gastos</div>
+                <div class="v">$20k</div>
+                <div class="pct">↓ 3% YoY</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mini KPI row -->
+          <div class="kpi-row">
+            <div class="kpi-mini">
+              <div class="top">
+                <div class="lbl">CUMPLIMIENTO</div>
+                <div class="ico">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+              </div>
+              <div class="val" style="color: var(--green);">83%</div>
+              <div class="sub">10 de 12 · <span class="delta">↑ 4pp</span></div>
+              <svg class="spark" viewBox="0 0 50 20" preserveAspectRatio="none">
+                <polyline points="0,14 8,13 16,10 24,12 32,8 40,6 50,4" fill="none" stroke="#9cf27b" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="kpi-mini alert">
+              <div class="top">
+                <div class="lbl">MOROSOS</div>
+                <div class="ico">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </div>
+              </div>
+              <div class="val">2</div>
+              <div class="sub">propietarios · <span class="delta">↑ 1 vs mar</span></div>
+              <svg class="spark" viewBox="0 0 50 20" preserveAspectRatio="none">
+                <polyline points="0,14 8,12 16,14 24,10 32,12 40,8 50,6" fill="none" stroke="#f07567" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Chart -->
+          <div class="section-title">
+            <h2>Recaudación mensual</h2>
+            <span class="caption">2026</span>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-head">
+              <div class="t">Ingresos por mes</div>
+              <div class="chart-legend">
+                <span><span class="sw" style="background:#9cf27b"></span>Aprobado</span>
+                <span><span class="sw" style="background:rgba(156,242,123,0.2); border:1px dashed rgba(156,242,123,0.4);"></span>Proyección</span>
+              </div>
+            </div>
+            <div class="bars-chart">
+              <div class="bar-col active">
+                <div class="bar-stack" style="height: 150px;">
+                  <div class="bar-fill" style="height: 100%;"></div>
+                </div>
+                <span class="bar-val">$25k</span>
+                <span class="bar-label">Ene</span>
+              </div>
+              <div class="bar-col">
+                <div class="bar-stack" style="height: 150px;">
+                  <div class="bar-fill" style="height: 32%;"></div>
+                </div>
+                <span class="bar-val">$8k</span>
+                <span class="bar-label">Feb</span>
+              </div>
+              <div class="bar-col">
+                <div class="bar-stack" style="height: 150px;">
+                  <div class="bar-fill" style="height: 48%;"></div>
+                </div>
+                <span class="bar-val">$12k</span>
+                <span class="bar-label">Mar</span>
+              </div>
+              <div class="bar-col">
+                <div class="bar-stack" style="height: 150px;">
+                  <div class="bar-fill" style="height: 80%;"></div>
+                </div>
+                <span class="bar-val">$20k</span>
+                <span class="bar-label">Abr</span>
+              </div>
+              <div class="bar-col future">
+                <div class="bar-stack" style="height: 150px;">
+                  <div class="bar-fill" style="height: 72%;"></div>
+                </div>
+                <span class="bar-label">May</span>
+              </div>
+              <div class="bar-col future">
+                <div class="bar-stack" style="height: 150px;">
+                  <div class="bar-fill" style="height: 76%;"></div>
+                </div>
+                <span class="bar-label">Jun</span>
+              </div>
+              <div class="bar-col future">
+                <div class="bar-stack" style="height: 150px;">
+                  <div class="bar-fill" style="height: 78%;"></div>
+                </div>
+                <span class="bar-label">Jul</span>
+              </div>
+            </div>
+            <div class="chart-hint">Tocá una barra para ver el detalle del mes →</div>
+          </div>
+
+          <!-- Gastos breakdown -->
+          <div class="section-title">
+            <h2>Gastos por categoría</h2>
+            <span class="caption">YTD · $20K</span>
+          </div>
+          <div class="breakdown-card">
+            <div class="bd-item">
+              <div class="bd-top">
+                <div class="bd-left">
+                  <span class="bd-dot" style="background: #9cf27b"></span>
+                  <span class="bd-name">Mantenimiento</span>
+                </div>
+                <div class="bd-amt">$9k <span class="pct">45%</span></div>
+              </div>
+              <div class="bd-bar"><div class="bd-fill" style="width: 45%; background: #9cf27b;"></div></div>
+            </div>
+            <div class="bd-item">
+              <div class="bd-top">
+                <div class="bd-left">
+                  <span class="bd-dot" style="background: #7bb8f2"></span>
+                  <span class="bd-name">Seguridad</span>
+                </div>
+                <div class="bd-amt">$5k <span class="pct">25%</span></div>
+              </div>
+              <div class="bd-bar"><div class="bd-fill" style="width: 25%; background: #7bb8f2;"></div></div>
+            </div>
+            <div class="bd-item">
+              <div class="bd-top">
+                <div class="bd-left">
+                  <span class="bd-dot" style="background: #f5c24a"></span>
+                  <span class="bd-name">Servicios</span>
+                </div>
+                <div class="bd-amt">$3.2k <span class="pct">16%</span></div>
+              </div>
+              <div class="bd-bar"><div class="bd-fill" style="width: 16%; background: #f5c24a;"></div></div>
+            </div>
+            <div class="bd-item">
+              <div class="bd-top">
+                <div class="bd-left">
+                  <span class="bd-dot" style="background: #b87bf2"></span>
+                  <span class="bd-name">Administración</span>
+                </div>
+                <div class="bd-amt">$1.8k <span class="pct">9%</span></div>
+              </div>
+              <div class="bd-bar"><div class="bd-fill" style="width: 9%; background: #b87bf2;"></div></div>
+            </div>
+            <div class="bd-item">
+              <div class="bd-top">
+                <div class="bd-left">
+                  <span class="bd-dot" style="background: #f07567"></span>
+                  <span class="bd-name">Imprevistos</span>
+                </div>
+                <div class="bd-amt">$1k <span class="pct">5%</span></div>
+              </div>
+              <div class="bd-bar"><div class="bd-fill" style="width: 5%; background: #f07567;"></div></div>
+            </div>
+          </div>
+
+          <!-- Top movers -->
+          <div class="section-title">
+            <h2>Top propietarios</h2>
+            <span class="caption">ABRIL 2026</span>
+          </div>
+          <div class="movers-card">
+            <div class="movers-head">
+              <h3>Mayores movimientos</h3>
+              <span class="see-all">Ver todos →</span>
+            </div>
+            <div class="mover">
+              <div class="mover-ava">AG</div>
+              <div class="mover-info">
+                <div class="mover-name">Ana García</div>
+                <div class="mover-meta">LOTE 047 · 4 PAGOS APROBADOS</div>
+              </div>
+              <div class="mover-amt pos">
+                +$120k
+                <span class="t">YTD</span>
+              </div>
+            </div>
+            <div class="mover">
+              <div class="mover-ava">JP</div>
+              <div class="mover-info">
+                <div class="mover-name">Juan Pérez</div>
+                <div class="mover-meta">LOTE 012 · 4 PAGOS APROBADOS</div>
+              </div>
+              <div class="mover-amt pos">
+                +$120k
+                <span class="t">YTD</span>
+              </div>
+            </div>
+            <div class="mover">
+              <div class="mover-ava">DS</div>
+              <div class="mover-info">
+                <div class="mover-name">Diego Sejas</div>
+                <div class="mover-meta">LOTE 089 · 3 MESES ADEUDADOS</div>
+              </div>
+              <div class="mover-amt neg">
+                −$90k
+                <span class="t">DEUDA</span>
+              </div>
+            </div>
+            <div class="mover">
+              <div class="mover-ava">MR</div>
+              <div class="mover-info">
+                <div class="mover-name">Martín Rodríguez</div>
+                <div class="mover-meta">LOTE 102 · 2 MESES ADEUDADOS</div>
+              </div>
+              <div class="mover-amt neg">
+                −$60k
+                <span class="t">DEUDA</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detalle tabla -->
+          <div class="section-title">
+            <h2>Detalle por período</h2>
+            <span class="caption">2026</span>
+          </div>
+          <div class="table-card">
+            <div class="table-head">
+              <h3>Comprobantes por mes</h3>
+              <div class="table-filter">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                TODOS
+              </div>
+            </div>
+            <div class="table-cols">
+              <span>Período</span>
+              <span>Aprob.</span>
+              <span>Pend.</span>
+              <span>Rech.</span>
+            </div>
+            <div class="table-row">
+              <div class="period">
+                <div class="period-m">Ene</div>
+                <div class="period-y">2026</div>
+              </div>
+              <span class="chip ok">10</span>
+              <span class="chip pend">1</span>
+              <span class="chip rej">1</span>
+            </div>
+            <div class="table-row">
+              <div class="period">
+                <div class="period-m">Feb</div>
+                <div class="period-y">2026</div>
+              </div>
+              <span class="chip ok">8</span>
+              <span class="chip pend">3</span>
+              <span class="chip zero">0</span>
+            </div>
+            <div class="table-row">
+              <div class="period">
+                <div class="period-m">Mar</div>
+                <div class="period-y">2026</div>
+              </div>
+              <span class="chip ok">9</span>
+              <span class="chip pend">2</span>
+              <span class="chip rej">1</span>
+            </div>
+            <div class="table-row">
+              <div class="period">
+                <div class="period-m">Abr</div>
+                <div class="period-y">2026</div>
+              </div>
+              <span class="chip ok">10</span>
+              <span class="chip pend">2</span>
+              <span class="chip zero">0</span>
+            </div>
+          </div>
+
+          <div class="stamp">
+            <span class="tick"></span>
+            Actualizado hace 2 min · datos en vivo
+          </div>
+
+          <!-- Tab bar -->
+          <div class="tabbar">
+            <div class="tab">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+              <span>Inicio</span>
+            </div>
+            <div class="tab active">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              <span>Finanzas</span>
+            </div>
+            <div class="tab">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span>Comunidad</span>
+            </div>
+            <div class="tab">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              <span>Más</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Home · Refactor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #0a0f0d;
+    --bg-2: #0e1512;
+    --surface: #141c18;
+    --surface-2: #1a231e;
+    --border: rgba(255,255,255,0.07);
+    --border-strong: rgba(255,255,255,0.14);
+    --text: #eef1ed;
+    --text-dim: #98a49c;
+    --text-faint: #5f6b65;
+    --green: #9cf27b;
+    --green-2: #7de05b;
+    --green-soft: rgba(156, 242, 123, 0.12);
+    --yellow: #f5c24a;
+    --yellow-soft: rgba(245, 194, 74, 0.12);
+    --red: #f07567;
+    --red-soft: rgba(240, 117, 103, 0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #070a09;
+    color: var(--text);
+    padding: 48px 24px 120px;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Inter Tight', sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  .page-header {
+    text-align: center;
+    margin-bottom: 40px;
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px 6px 10px;
+    background: var(--green-soft);
+    border: 1px solid rgba(156, 242, 123, 0.2);
+    border-radius: 999px;
+    font-size: 11px; font-weight: 500; color: var(--green);
+    margin-bottom: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+  .eyebrow .dot { width:6px; height:6px; border-radius:50%; background: var(--green); }
+  .page-header h1 { font-size: 34px; margin-bottom: 12px; }
+  .page-header h1 em { color: var(--green); font-style: italic; font-weight: 500; }
+  .page-header p { color: var(--text-dim); font-size: 14px; line-height: 1.55; }
+
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 36px;
+    align-items: start;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  @media (max-width: 1100px) { .compare { grid-template-columns: 1fr; } }
+
+  .col-title {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+  .col-title .tag {
+    padding: 4px 10px; border-radius: 999px;
+    font-weight: 500; letter-spacing: 0.08em;
+  }
+  .col-title .tag.before { background: rgba(240,117,103,0.12); color: var(--red); border: 1px solid rgba(240,117,103,0.2); }
+  .col-title .tag.after { background: var(--green-soft); color: var(--green); border: 1px solid rgba(156,242,123,0.2); }
+
+  /* Phone */
+  .phone-wrap { display: flex; justify-content: center; margin-bottom: 22px; }
+  .phone {
+    width: 390px;
+    background: #000;
+    border-radius: 48px;
+    padding: 10px;
+    box-shadow:
+      inset 0 0 0 2px rgba(255,255,255,0.06),
+      0 40px 80px -30px rgba(0,0,0,0.8);
+    position: relative;
+  }
+  .phone-screen {
+    width: 100%;
+    background: var(--bg);
+    border-radius: 40px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 800px;
+  }
+  .notch {
+    position: absolute;
+    top: 12px; left: 50%;
+    transform: translateX(-50%);
+    width: 110px; height: 32px;
+    background: #000;
+    border-radius: 16px;
+    z-index: 20;
+  }
+  .statusbar {
+    height: 44px;
+    padding: 0 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: 14px; font-weight: 600;
+    padding-top: 14px;
+  }
+  .status-icons { display: flex; gap: 5px; align-items: center; }
+
+  .app-nav {
+    padding: 8px 18px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .logo-mini {
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'Inter Tight', sans-serif;
+    font-weight: 700; font-size: 16px; letter-spacing: -0.03em;
+  }
+  .logo-mini .ar { color: var(--green); font-style: italic; font-weight: 500; }
+  .logo-mini .dot-live { width: 6px; height: 6px; border-radius: 50%; background: var(--green); margin-left: 2px; }
+  .nav-right { display: flex; align-items: center; gap: 8px; }
+  .avatar-circle {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--green); color: var(--bg);
+    display: grid; place-items: center;
+    font-weight: 700; font-size: 11px;
+    font-family: 'Inter Tight', sans-serif;
+  }
+  .avatar-info { line-height: 1.15; }
+  .avatar-name { font-size: 11px; font-weight: 600; }
+  .avatar-role { font-size: 9px; color: var(--text-faint); }
+  .icon-btn {
+    width: 30px; height: 30px;
+    border-radius: 9px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: grid; place-items: center;
+    color: var(--text-dim);
+  }
+
+  .app-body { padding: 4px 16px 16px; flex: 1; }
+  .tabbar {
+    border-top: 1px solid var(--border);
+    padding: 10px 0 24px;
+    display: flex; justify-content: space-around;
+    background: rgba(14,21,18,0.92);
+    flex-shrink: 0;
+  }
+  .tab {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    font-size: 10px; color: var(--text-faint); font-weight: 500;
+    position: relative; padding: 4px 12px;
+  }
+  .tab.active { color: var(--green); }
+  .tab.active::before {
+    content: ''; position: absolute; top: -10px;
+    width: 28px; height: 2px; background: var(--green); border-radius: 2px;
+  }
+
+  /* ============ BEFORE ============ */
+  .b-greet {
+    padding: 8px 0 14px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .b-greet .lbl {
+    font-size: 11px; color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.08em; margin-bottom: 4px;
+  }
+  .b-greet h1 {
+    font-size: 24px; line-height: 1.05;
+    font-weight: 700;
+  }
+  .b-greet .lote-pill {
+    background: var(--green-soft);
+    color: var(--green);
+    border: 1px solid rgba(156,242,123,0.3);
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .b-balance-card {
+    background: linear-gradient(140deg, #1a2520 0%, #0f1814 100%);
+    border: 1px solid var(--border-strong);
+    border-radius: 18px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .b-balance-card::before {
+    content: ''; position: absolute; top: -40px; right: -40px;
+    width: 180px; height: 180px;
+    background: radial-gradient(circle, rgba(156,242,123,0.12), transparent 60%);
+  }
+  .b-bal-head {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    margin-bottom: 8px; position: relative;
+  }
+  .b-bal-lbl {
+    font-size: 11px; color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.1em;
+  }
+  .b-pill-ok {
+    background: var(--green-soft);
+    color: var(--green);
+    border: 1px solid rgba(156,242,123,0.3);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .b-bal-amt {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 56px;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin-bottom: 18px;
+    position: relative;
+  }
+  .b-bal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+    position: relative;
+  }
+  .b-bal-grid .item {
+    padding: 0 4px;
+    position: relative;
+  }
+  .b-bal-grid .item + .item::before {
+    content: ''; position: absolute;
+    left: 0; top: 4px; bottom: 4px;
+    width: 1px; background: var(--border);
+  }
+  .b-bal-grid .lbl {
+    font-size: 9px; color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.08em; margin-bottom: 4px;
+  }
+  .b-bal-grid .v {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 14px; font-weight: 700;
+  }
+
+  .b-cta-big {
+    background: var(--green);
+    color: var(--bg);
+    border-radius: 16px;
+    padding: 16px 18px;
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 14px;
+  }
+  .b-cta-big .ico {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.15);
+    display: grid; place-items: center;
+    color: var(--bg);
+    flex-shrink: 0;
+  }
+  .b-cta-big .body { flex: 1; }
+  .b-cta-big .t { font-weight: 700; font-size: 15px; line-height: 1.1; }
+  .b-cta-big .s { font-size: 11px; opacity: 0.65; margin-top: 2px; }
+
+  .b-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .b-card .row { display: flex; align-items: center; justify-content: space-between; }
+  .b-card .lbl { font-size: 11px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .b-card .v { font-family: 'Inter Tight', sans-serif; font-size: 22px; font-weight: 700; }
+  .b-pill-mini { background: var(--green-soft); color: var(--green); padding: 3px 8px; border-radius: 999px; font-size: 10px; font-weight: 600; border: 1px solid rgba(156,242,123,0.3); }
+  .b-card-meta { font-size: 11px; color: var(--text-faint); margin-top: 4px; }
+
+  .b-avisos-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 10px; margin-bottom: 8px;
+  }
+  .b-avisos-head h3 { font-size: 14px; font-weight: 700; }
+  .b-ver { background: var(--green); color: var(--bg); padding: 6px 12px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .b-avisos-empty {
+    font-size: 12px; color: var(--text-faint);
+    padding: 4px 0;
+  }
+
+  /* ============ AFTER ============ */
+  .a-greet {
+    padding: 4px 0 12px;
+  }
+  .a-greet .hello {
+    font-size: 11px; color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .a-greet h1 {
+    font-size: 22px; line-height: 1.15;
+    margin-bottom: 6px;
+  }
+  .a-greet h1 em { color: var(--green); font-style: normal; font-weight: 600; }
+  .a-greet .meta {
+    font-size: 11px; color: var(--text-dim);
+    display: flex; align-items: center; gap: 6px;
+    flex-wrap: wrap;
+  }
+  .a-greet .meta svg { flex-shrink: 0; }
+  .a-greet .meta .sep { color: var(--text-faint); }
+
+  /* HERO status — la pregunta principal */
+  .a-hero {
+    margin-top: 14px;
+    background: linear-gradient(140deg, #1d3026 0%, #101a16 100%);
+    border: 1px solid rgba(156,242,123,0.25);
+    border-radius: 22px;
+    padding: 22px 20px 18px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .a-hero::before {
+    content: ''; position: absolute; top: -60px; right: -60px;
+    width: 220px; height: 220px;
+    background: radial-gradient(circle, rgba(156,242,123,0.22), transparent 60%);
+    pointer-events: none;
+  }
+  .a-hero-top {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px; position: relative;
+  }
+  .a-hero-tag {
+    font-size: 10px; font-family: 'JetBrains Mono', monospace;
+    color: var(--green); letter-spacing: 0.1em; text-transform: uppercase;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .a-hero-tag .pulse {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 0 3px rgba(156,242,123,0.2);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  .a-hero-pill {
+    background: rgba(0,0,0,0.25);
+    color: var(--green);
+    border: 1px solid rgba(156,242,123,0.3);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .a-hero-status {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 6px;
+    position: relative;
+  }
+  .a-hero-status em {
+    color: var(--green); font-style: normal; font-weight: 700;
+  }
+  .a-hero-desc {
+    font-size: 13px; color: var(--text-dim);
+    line-height: 1.45;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .a-hero-desc strong { color: var(--text); font-weight: 600; }
+
+  .a-hero-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding-top: 14px;
+    position: relative;
+  }
+  .a-hero-stat {
+    padding: 0 4px;
+    position: relative;
+  }
+  .a-hero-stat + .a-hero-stat::before {
+    content: ''; position: absolute;
+    left: 0; top: 4px; bottom: 4px;
+    width: 1px; background: rgba(255,255,255,0.06);
+  }
+  .a-hero-stat .lbl {
+    font-size: 9px; color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.08em; margin-bottom: 4px;
+  }
+  .a-hero-stat .v {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .a-hero-stat .vsub {
+    font-size: 10px; color: var(--text-dim);
+    margin-top: 3px;
+  }
+
+  /* Primary CTA */
+  .a-cta {
+    background: linear-gradient(135deg, var(--green) 0%, var(--green-2) 100%);
+    color: var(--bg);
+    border-radius: 18px;
+    padding: 16px 18px;
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 12px;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 24px -8px rgba(156,242,123,0.4);
+  }
+  .a-cta .ico {
+    width: 42px; height: 42px;
+    border-radius: 12px;
+    background: rgba(0,0,0,0.18);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .a-cta .body { flex: 1; min-width: 0; }
+  .a-cta .t {
+    font-family: 'Inter Tight', sans-serif;
+    font-weight: 700; font-size: 16px; line-height: 1.1;
+    margin-bottom: 2px;
+  }
+  .a-cta .s { font-size: 11px; opacity: 0.7; }
+  .a-cta .chev { flex-shrink: 0; }
+
+  /* Secondary actions row */
+  .a-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .a-action {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+  }
+  .a-action:hover { border-color: var(--border-strong); }
+  .a-action .ico {
+    width: 30px; height: 30px;
+    border-radius: 9px;
+    background: var(--green-soft);
+    color: var(--green);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .a-action .t {
+    font-size: 12px; font-weight: 600; line-height: 1.15;
+  }
+  .a-action .s {
+    font-size: 10px; color: var(--text-faint); margin-top: 1px;
+  }
+
+  /* Section header inline */
+  .a-section-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 18px 0 10px;
+  }
+  .a-section-head h2 {
+    font-size: 14px; font-weight: 600;
+  }
+  .a-section-head .link {
+    font-size: 11px; color: var(--green); font-weight: 500;
+  }
+
+  /* Last payment card */
+  .a-last-pay {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 8px;
+  }
+  .a-last-pay .ico {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    background: var(--green-soft);
+    color: var(--green);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .a-last-pay .body { flex: 1; min-width: 0; }
+  .a-last-pay .t {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 16px; font-weight: 700;
+    line-height: 1; margin-bottom: 4px;
+  }
+  .a-last-pay .meta {
+    font-size: 10px; color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.04em;
+    display: flex; gap: 5px; align-items: center;
+  }
+  .a-last-pay .meta .ok-chip {
+    color: var(--green); font-weight: 600;
+  }
+
+  /* Avisos card */
+  .a-avisos {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .a-aviso-row {
+    padding: 12px 16px;
+    display: flex; align-items: flex-start; gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .a-aviso-row:last-child { border-bottom: 0; }
+  .a-aviso-icon {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    display: grid; place-items: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .a-aviso-icon.warn { background: var(--yellow-soft); color: var(--yellow); }
+  .a-aviso-icon.info { background: rgba(123,184,242,0.12); color: #7bb8f2; }
+  .a-aviso-icon.evt { background: var(--green-soft); color: var(--green); }
+  .a-aviso-body { flex: 1; min-width: 0; }
+  .a-aviso-t {
+    font-size: 13px; font-weight: 600;
+    line-height: 1.25; margin-bottom: 3px;
+  }
+  .a-aviso-s {
+    font-size: 11px; color: var(--text-dim);
+    line-height: 1.4;
+    margin-bottom: 4px;
+  }
+  .a-aviso-time {
+    font-size: 9px; color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.06em;
+  }
+  .a-aviso-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    flex-shrink: 0;
+    margin-top: 8px;
+  }
+
+  /* Stamp */
+  .a-stamp {
+    margin-top: 16px;
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px;
+    font-size: 10px; color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+  .a-stamp .tick {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 0 3px rgba(156,242,123,0.15);
+  }
+
+  /* Annotations */
+  .annot {
+    margin-top: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .annot-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    position: relative;
+  }
+  .annot-item::before {
+    content: ''; position: absolute;
+    left: -1px; top: 14px; bottom: 14px;
+    width: 3px; background: var(--green);
+    border-radius: 0 3px 3px 0;
+  }
+  .annot-item.remove::before { background: var(--red); }
+  .annot-item .a-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--green);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .annot-item.remove .a-label { color: var(--red); }
+  .annot-item .a-title {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 14px; font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .annot-item p {
+    font-size: 12px; color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  /* Code section */
+  .code-section {
+    margin-top: 64px;
+    max-width: 1100px;
+    margin-left: auto; margin-right: auto;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+  .code-section h2 { font-size: 22px; margin-bottom: 8px; }
+  .code-section p.lead {
+    font-size: 14px; color: var(--text-dim);
+    margin-bottom: 24px; max-width: 640px;
+  }
+  .code-block {
+    background: #050807;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .code-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .code-head .file {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; color: var(--green);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .code-head .lang {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--text-faint);
+    letter-spacing: 0.08em;
+  }
+  pre {
+    padding: 18px 18px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #d4dcd8;
+  }
+  pre .k { color: #c084fc; }
+  pre .s { color: var(--green); }
+  pre .c { color: var(--text-faint); font-style: italic; }
+  pre .f { color: #7bb8f2; }
+  pre .t { color: #f5c24a; }
+  pre .v { color: #d4dcd8; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="eyebrow"><span class="dot"></span> REFACTOR · OWNER HOME · LOTE 7</div>
+  <h1>De saldo a estado del <em>propietario</em>.</h1>
+  <p>La pantalla Inicio del propietario debe responder en 2 segundos: <strong style="color:var(--text)">¿estoy al día?</strong> Si no, mostrar exactamente qué hacer y cuánto tiempo queda.</p>
+</div>
+
+<div class="compare">
+
+  <!-- ================== BEFORE ================== -->
+  <div>
+    <div class="col-title">
+      <span class="tag before">ANTES</span>
+      <span>Estado actual · saldo $0 sin contexto</span>
+    </div>
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="phone-screen">
+          <div class="statusbar">
+            <span>9:41</span>
+            <span class="status-icons">
+              <svg width="14" height="10" viewBox="0 0 14 10" fill="none"><path d="M1 8h2M4 6h2M7 4h2M10 2h2" stroke="#eef1ed" stroke-width="1.6" stroke-linecap="round"/></svg>
+              <svg width="22" height="10" viewBox="0 0 22 10" fill="none"><rect x="0.5" y="0.5" width="18" height="9" rx="2" stroke="#eef1ed"/><rect x="2" y="2" width="15" height="6" rx="1" fill="#eef1ed"/><rect x="19" y="3" width="2" height="4" rx="0.5" fill="#eef1ed"/></svg>
+            </span>
+          </div>
+          <div class="app-nav">
+            <div class="logo-mini">
+              <span>
+                <svg width="20" height="20" viewBox="0 0 100 100">
+                  <path d="M 30 22 L 18 22 L 18 78 L 30 78" stroke="#eef1ed" stroke-width="10" fill="none" stroke-linecap="square"/>
+                  <path d="M 70 22 L 82 22 L 82 78 L 70 78" stroke="#eef1ed" stroke-width="10" fill="none" stroke-linecap="square"/>
+                  <rect x="40" y="40" width="20" height="20" fill="#9cf27b"/>
+                </svg>
+              </span>
+              Gestion<span class="ar">Ar</span><span class="dot-live"></span>
+            </div>
+            <div class="nav-right">
+              <div class="avatar-circle">OA</div>
+              <div class="avatar-info">
+                <div class="avatar-name">OSCAR ARIEL FERREYRA</div>
+                <div class="avatar-role">Lote 7</div>
+              </div>
+              <div class="icon-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              </div>
+            </div>
+          </div>
+          <div class="app-body">
+            <div class="b-greet">
+              <div>
+                <div class="lbl">BIENVENIDO/A</div>
+                <h1>OSCAR ARIEL<br>FERREYRA</h1>
+              </div>
+              <span class="lote-pill">Lote 7</span>
+            </div>
+
+            <div class="b-balance-card">
+              <div class="b-bal-head">
+                <div class="b-bal-lbl">SALDO ACTUAL</div>
+                <span class="b-pill-ok">✓ Al día</span>
+              </div>
+              <div class="b-bal-amt">$0</div>
+              <div class="b-bal-grid">
+                <div class="item">
+                  <div class="lbl">MONTO<br>MENSUAL</div>
+                  <div class="v">$40.000</div>
+                </div>
+                <div class="item">
+                  <div class="lbl">PERÍODO</div>
+                  <div class="v">Abril<br><span style="font-size:11px;color:var(--text-dim);font-weight:500;">2026</span></div>
+                </div>
+                <div class="item">
+                  <div class="lbl">VENCIMIENTO</div>
+                  <div class="v">día 10</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="b-cta-big">
+              <div class="ico">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              </div>
+              <div class="body">
+                <div class="t">Subir Comprobante</div>
+                <div class="s">PDF o imagen · pago del mes</div>
+              </div>
+              <span style="font-size: 18px;">›</span>
+            </div>
+
+            <div class="b-card">
+              <div class="row">
+                <div>
+                  <div class="lbl">ÚLTIMO PAGO APROBADO</div>
+                  <div class="v">$35.000</div>
+                </div>
+                <span class="b-pill-mini">✓ Aprobado</span>
+              </div>
+              <div class="b-card-meta">Ene 2026 · 24/04/2026</div>
+            </div>
+
+            <div class="b-avisos-head">
+              <h3>Avisos recientes</h3>
+              <span class="b-ver">Ver todos</span>
+            </div>
+            <div class="b-avisos-empty">Sin avisos por el momento.</div>
+          </div>
+
+          <div class="tabbar">
+            <div class="tab active">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+              <span>Inicio</span>
+            </div>
+            <div class="tab">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <span>Pagar</span>
+            </div>
+            <div class="tab">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span>Historial</span>
+            </div>
+            <div class="tab">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
+              <span>Comunidad</span>
+            </div>
+            <div class="tab">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <span>Perfil</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="annot">
+      <div class="annot-item remove">
+        <div class="a-label">Problema</div>
+        <div class="a-title">"$0" no comunica nada útil</div>
+        <p>Para alguien al día, $0 es ambiguo: ¿pagué? ¿no me corresponde? El número grande tiene que ser cuándo vence, no el saldo cero.</p>
+      </div>
+      <div class="annot-item remove">
+        <div class="a-label">Problema</div>
+        <div class="a-title">CTA "Subir comprobante" siempre visible</div>
+        <p>Si ya pagué este mes, el botón verde grande me confunde. Debería cambiar de "Subir" a "Ver mi pago" o desactivarse.</p>
+      </div>
+      <div class="annot-item remove">
+        <div class="a-label">Problema</div>
+        <div class="a-title">"Sin avisos" ocupa espacio</div>
+        <p>Una pantalla operativa no debería terminar con un mensaje vacío. Si no hay avisos, mostrar el siguiente punto útil (próximo vencimiento, evento del barrio).</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================== AFTER ================== -->
+  <div>
+    <div class="col-title">
+      <span class="tag after">DESPUÉS</span>
+      <span>"¿Estoy al día? ¿Qué sigue?"</span>
+    </div>
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="phone-screen">
+          <div class="statusbar">
+            <span>9:41</span>
+            <span class="status-icons">
+              <svg width="14" height="10" viewBox="0 0 14 10" fill="none"><path d="M1 8h2M4 6h2M7 4h2M10 2h2" stroke="#eef1ed" stroke-width="1.6" stroke-linecap="round"/></svg>
+              <svg width="22" height="10" viewBox="0 0 22 10" fill="none"><rect x="0.5" y="0.5" width="18" height="9" rx="2" stroke="#eef1ed"/><rect x="2" y="2" width="15" height="6" rx="1" fill="#eef1ed"/><rect x="19" y="3" width="2" height="4" rx="0.5" fill="#eef1ed"/></svg>
+            </span>
+          </div>
+          <div class="app-nav">
+            <div class="logo-mini">
+              <span>
+                <svg width="20" height="20" viewBox="0 0 100 100">
+                  <path d="M 30 22 L 18 22 L 18 78 L 30 78" stroke="#eef1ed" stroke-width="10" fill="none" stroke-linecap="square"/>
+                  <path d="M 70 22 L 82 22 L 82 78 L 70 78" stroke="#eef1ed" stroke-width="10" fill="none" stroke-linecap="square"/>
+                  <rect x="40" y="40" width="20" height="20" fill="#9cf27b"/>
+                </svg>
+              </span>
+              Gestion<span class="ar">Ar</span><span class="dot-live"></span>
+            </div>
+            <div class="nav-right">
+              <div class="avatar-circle">OA</div>
+              <div class="icon-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              </div>
+            </div>
+          </div>
+          <div class="app-body">
+            <!-- Greeting -->
+            <div class="a-greet">
+              <div class="hello">BUENOS DÍAS · VIE 24 ABR</div>
+              <h1>Hola, <em>Oscar</em> 👋</h1>
+              <div class="meta">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Barrio El Edén 1
+                <span class="sep">·</span>
+                Lote 7
+              </div>
+            </div>
+
+            <!-- HERO estado -->
+            <div class="a-hero">
+              <div class="a-hero-top">
+                <div class="a-hero-tag"><span class="pulse"></span> ABRIL 2026</div>
+                <span class="a-hero-pill">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Al día
+                </span>
+              </div>
+              <div class="a-hero-status">Estás <em>al día</em><br>con tu expensa</div>
+              <div class="a-hero-desc">
+                Ya pagaste <strong>$40.000</strong> el <strong>03/abr</strong>. Próximo vencimiento en <strong>16 días</strong>.
+              </div>
+              <div class="a-hero-stats">
+                <div class="a-hero-stat">
+                  <div class="lbl">PRÓXIMO</div>
+                  <div class="v">10 May</div>
+                  <div class="vsub">en 16 días</div>
+                </div>
+                <div class="a-hero-stat">
+                  <div class="lbl">MONTO</div>
+                  <div class="v">$40.000</div>
+                  <div class="vsub">expensa fija</div>
+                </div>
+                <div class="a-hero-stat">
+                  <div class="lbl">RACHA</div>
+                  <div class="v" style="color: var(--green);">4 meses</div>
+                  <div class="vsub">al día ✓</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Primary CTA -->
+            <button class="a-cta">
+              <div class="ico">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              </div>
+              <div class="body">
+                <div class="t">Adelantar próximo pago</div>
+                <div class="s">Subir comprobante de mayo</div>
+              </div>
+              <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+
+            <!-- Secondary actions -->
+            <div class="a-actions">
+              <button class="a-action">
+                <div class="ico">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <div>
+                  <div class="t">Mi historial</div>
+                  <div class="s">12 pagos · 2026</div>
+                </div>
+              </button>
+              <button class="a-action">
+                <div class="ico">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </div>
+                <div>
+                  <div class="t">Nuevo reclamo</div>
+                  <div class="s">Mantenimiento</div>
+                </div>
+              </button>
+            </div>
+
+            <!-- Último pago -->
+            <div class="a-section-head">
+              <h2>Último pago aprobado</h2>
+              <span class="link">Ver todos →</span>
+            </div>
+            <div class="a-last-pay">
+              <div class="ico">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="body">
+                <div class="t">$40.000</div>
+                <div class="meta">
+                  <span>ABR 2026</span>
+                  <span>·</span>
+                  <span>03/04/2026</span>
+                  <span>·</span>
+                  <span class="ok-chip">APROBADO</span>
+                </div>
+              </div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5f6b65" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+
+            <!-- Avisos con contenido real -->
+            <div class="a-section-head">
+              <h2>Novedades del barrio</h2>
+              <span class="link">Ver todas →</span>
+            </div>
+            <div class="a-avisos">
+              <div class="a-aviso-row">
+                <div class="a-aviso-icon evt">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </div>
+                <div class="a-aviso-body">
+                  <div class="a-aviso-t">Asamblea ordinaria · 28 de abril</div>
+                  <div class="a-aviso-s">19:00 hs · SUM Edén 1. Confirmá tu asistencia.</div>
+                  <div class="a-aviso-time">HACE 2 H</div>
+                </div>
+                <span class="a-aviso-dot"></span>
+              </div>
+              <div class="a-aviso-row">
+                <div class="a-aviso-icon warn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+                <div class="a-aviso-body">
+                  <div class="a-aviso-t">Corte de agua programado</div>
+                  <div class="a-aviso-s">Sábado 26/abr · 09:00 a 13:00 hs · Sector Norte.</div>
+                  <div class="a-aviso-time">AYER</div>
+                </div>
+              </div>
+              <div class="a-aviso-row">
+                <div class="a-aviso-icon info">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                </div>
+                <div class="a-aviso-body">
+                  <div class="a-aviso-t">Nueva expensa cargada · Mayo</div>
+                  <div class="a-aviso-s">El monto se mantiene en $40.000. Vencimiento 10/may.</div>
+                  <div class="a-aviso-time">HACE 3 D</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="a-stamp">
+              <span class="tick"></span>
+              Actualizado hace 1 min
+            </div>
+          </div>
+
+          <div class="tabbar">
+            <div class="tab active">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+              <span>Inicio</span>
+            </div>
+            <div class="tab">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <span>Pagar</span>
+            </div>
+            <div class="tab">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span>Historial</span>
+            </div>
+            <div class="tab">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
+              <span>Comunidad</span>
+            </div>
+            <div class="tab">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <span>Perfil</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="annot">
+      <div class="annot-item">
+        <div class="a-label">Cambio 01 · Hero</div>
+        <div class="a-title">"Estás al día" reemplaza al $0</div>
+        <p>El estado en lenguaje natural responde la pregunta directa. El número grande pasa al "próximo vencimiento" — lo que sí necesita acción futura.</p>
+      </div>
+      <div class="annot-item">
+        <div class="a-label">Cambio 02 · Stats</div>
+        <div class="a-title">Próximo · Monto · Racha</div>
+        <p>Tres datos accionables: cuándo vence, cuánto, y feedback positivo (4 meses al día). La racha incentiva mantener el comportamiento.</p>
+      </div>
+      <div class="annot-item">
+        <div class="a-label">Cambio 03 · CTA contextual</div>
+        <div class="a-title">El botón cambia según el estado</div>
+        <p>Al día → "Adelantar próximo pago". Pendiente → "Subir comprobante" rojo. Aprobado este mes → "Ver mi pago". Un solo CTA, mensaje correcto.</p>
+      </div>
+      <div class="annot-item">
+        <div class="a-label">Cambio 04 · Avisos con valor</div>
+        <div class="a-title">Asambleas, cortes, novedades</div>
+        <p>Avisos con icono semántico, fecha relativa y dot de "no leído". Si el back devuelve vacío, mostrar próximo evento del calendario en su lugar.</p>
+      </div>
+      <div class="annot-item">
+        <div class="a-label">Cambio 05 · Acciones secundarias</div>
+        <div class="a-title">Historial + Reclamo accesibles</div>
+        <p>Dos accesos directos antes del fold: ver historial completo y crear reclamo de mantenimiento. Sin sumar peso al hero.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ CODE SECTION ============ -->
+<div class="code-section">
+  <h2>Código sugerido · <span style="color:var(--green); font-family:'JetBrains Mono', monospace; font-size:18px;">js/pages/owner/home.js</span></h2>
+  <p class="lead">Plantilla vanilla JS con render dinámico, <code style="background:var(--surface); padding:1px 6px; border-radius:4px; font-family:'JetBrains Mono', monospace; font-size:12px;">apiCall</code>, <code style="background:var(--surface); padding:1px 6px; border-radius:4px; font-family:'JetBrains Mono', monospace; font-size:12px;">skeleton</code>, <code style="background:var(--surface); padding:1px 6px; border-radius:4px; font-family:'JetBrains Mono', monospace; font-size:12px;">openModal</code> y CTA contextual según estado del propietario.</p>
+
+  <div class="code-block">
+    <div class="code-head">
+      <div class="file">📄 js/pages/owner/home.js</div>
+      <div class="lang">VANILLA JS</div>
+    </div>
+<pre><span class="c">// ─── Owner Home · render dinámico ────────────────────────────</span>
+
+<span class="k">export async function</span> <span class="f">renderOwnerHome</span>(root) {
+  root.innerHTML = <span class="f">skeleton</span>(<span class="s">'owner-home'</span>);
+
+  <span class="k">const</span> [me, summary, news] = <span class="k">await</span> Promise.all([
+    <span class="f">apiCall</span>(<span class="s">'/api/me'</span>),
+    <span class="f">apiCall</span>(<span class="s">'/api/owner/summary'</span>),     <span class="c">// estado + próximo</span>
+    <span class="f">apiCall</span>(<span class="s">'/api/news?limit=3'</span>),
+  ]);
+
+  root.innerHTML = <span class="f">tpl</span>({ me, summary, news });
+  <span class="f">bindEvents</span>(root, { me, summary });
+}
+
+<span class="c">// ─── Estado derivado ─────────────────────────────────────────</span>
+
+<span class="k">function</span> <span class="f">deriveStatus</span>(s) {
+  <span class="k">if</span> (s.overdue &gt; <span class="t">0</span>)            <span class="k">return</span> { kind: <span class="s">'overdue'</span>,  label: <span class="s">'Tenés deuda'</span>,    tone: <span class="s">'red'</span>    };
+  <span class="k">if</span> (s.pendingReceipt)         <span class="k">return</span> { kind: <span class="s">'pending'</span>,  label: <span class="s">'Pago en revisión'</span>, tone: <span class="s">'yellow'</span> };
+  <span class="k">if</span> (s.paidThisMonth)          <span class="k">return</span> { kind: <span class="s">'paid'</span>,     label: <span class="s">'Estás al día'</span>,    tone: <span class="s">'green'</span>  };
+  <span class="k">return</span>                              { kind: <span class="s">'due'</span>,      label: <span class="s">'Próximo a vencer'</span>, tone: <span class="s">'green'</span>  };
+}
+
+<span class="k">function</span> <span class="f">deriveCTA</span>(status) {
+  <span class="k">switch</span> (status.kind) {
+    <span class="k">case</span> <span class="s">'overdue'</span>: <span class="k">return</span> { label: <span class="s">'Regularizar deuda'</span>,    action: <span class="s">'pay-overdue'</span>,  tone: <span class="s">'red'</span>    };
+    <span class="k">case</span> <span class="s">'pending'</span>: <span class="k">return</span> { label: <span class="s">'Ver mi comprobante'</span>,    action: <span class="s">'view-pending'</span>, tone: <span class="s">'yellow'</span> };
+    <span class="k">case</span> <span class="s">'paid'</span>:    <span class="k">return</span> { label: <span class="s">'Adelantar próximo pago'</span>, action: <span class="s">'pay-next'</span>,     tone: <span class="s">'green'</span>  };
+    <span class="k">default</span>:           <span class="k">return</span> { label: <span class="s">'Subir comprobante'</span>,     action: <span class="s">'upload'</span>,       tone: <span class="s">'green'</span>  };
+  }
+}
+
+<span class="c">// ─── Template ────────────────────────────────────────────────</span>
+
+<span class="k">function</span> <span class="f">tpl</span>({ me, summary, news }) {
+  <span class="k">const</span> status = <span class="f">deriveStatus</span>(summary);
+  <span class="k">const</span> cta    = <span class="f">deriveCTA</span>(status);
+  <span class="k">const</span> nextIn = <span class="f">daysUntil</span>(summary.nextDueDate);
+
+  <span class="k">return</span> <span class="s">`
+    &lt;header class="greet"&gt;
+      &lt;p class="hello"&gt;${<span class="f">greeting</span>()} · ${<span class="f">fmtShortDate</span>()}&lt;/p&gt;
+      &lt;h1&gt;Hola, &lt;em&gt;${me.firstName}&lt;/em&gt; 👋&lt;/h1&gt;
+      &lt;p class="meta"&gt;${me.barrio} · Lote ${me.lote}&lt;/p&gt;
+    &lt;/header&gt;
+
+    &lt;section class="hero hero--${status.tone}"&gt;
+      &lt;div class="hero__top"&gt;
+        &lt;span class="period"&gt;${<span class="f">fmtMonth</span>(summary.period)}&lt;/span&gt;
+        &lt;span class="pill pill--${status.tone}"&gt;${status.label}&lt;/span&gt;
+      &lt;/div&gt;
+      &lt;h2 class="hero__big"&gt;${<span class="f">heroLine</span>(status, summary)}&lt;/h2&gt;
+      &lt;p class="hero__desc"&gt;${<span class="f">heroDesc</span>(status, summary)}&lt;/p&gt;
+      &lt;ul class="hero__stats"&gt;
+        &lt;li&gt;&lt;span&gt;PRÓXIMO&lt;/span&gt;&lt;b&gt;${<span class="f">fmtShort</span>(summary.nextDueDate)}&lt;/b&gt;&lt;em&gt;en ${nextIn} días&lt;/em&gt;&lt;/li&gt;
+        &lt;li&gt;&lt;span&gt;MONTO&lt;/span&gt;&lt;b&gt;${<span class="f">money</span>(summary.amount)}&lt;/b&gt;&lt;em&gt;expensa fija&lt;/em&gt;&lt;/li&gt;
+        &lt;li&gt;&lt;span&gt;RACHA&lt;/span&gt;&lt;b class="g"&gt;${summary.streak} meses&lt;/b&gt;&lt;em&gt;al día ✓&lt;/em&gt;&lt;/li&gt;
+      &lt;/ul&gt;
+    &lt;/section&gt;
+
+    &lt;button class="cta cta--${cta.tone}" data-action="${cta.action}"&gt;
+      &lt;span class="cta__t"&gt;${cta.label}&lt;/span&gt;
+    &lt;/button&gt;
+
+    &lt;div class="quick"&gt;
+      &lt;button data-action="history"&gt;Mi historial · ${summary.payments} pagos&lt;/button&gt;
+      &lt;button data-action="claim"&gt;Nuevo reclamo&lt;/button&gt;
+    &lt;/div&gt;
+
+    ${summary.lastPayment ? <span class="f">tplLastPayment</span>(summary.lastPayment) : <span class="s">''</span>}
+    ${<span class="f">tplNews</span>(news)}
+  `</span>;
+}
+
+<span class="c">// ─── Bindings ────────────────────────────────────────────────</span>
+
+<span class="k">function</span> <span class="f">bindEvents</span>(root, ctx) {
+  root.<span class="f">querySelectorAll</span>(<span class="s">'[data-action]'</span>).<span class="f">forEach</span>(btn =&gt; {
+    btn.<span class="f">addEventListener</span>(<span class="s">'click'</span>, () =&gt; {
+      <span class="k">switch</span> (btn.dataset.action) {
+        <span class="k">case</span> <span class="s">'upload'</span>:
+        <span class="k">case</span> <span class="s">'pay-next'</span>:
+        <span class="k">case</span> <span class="s">'pay-overdue'</span>:
+          <span class="f">openModal</span>(<span class="s">'upload-receipt'</span>, { period: ctx.summary.period });
+          <span class="k">break</span>;
+        <span class="k">case</span> <span class="s">'view-pending'</span>:
+          <span class="f">openModal</span>(<span class="s">'receipt-detail'</span>, { id: ctx.summary.pendingId });
+          <span class="k">break</span>;
+        <span class="k">case</span> <span class="s">'history'</span>:  <span class="f">navigate</span>(<span class="s">'/owner/history'</span>); <span class="k">break</span>;
+        <span class="k">case</span> <span class="s">'claim'</span>:    <span class="f">openModal</span>(<span class="s">'new-claim'</span>);     <span class="k">break</span>;
+      }
+    });
+  });
+}
+
+<span class="c">// ─── Helpers de copy ─────────────────────────────────────────</span>
+
+<span class="k">function</span> <span class="f">heroLine</span>(s, d) {
+  <span class="k">if</span> (s.kind === <span class="s">'paid'</span>)    <span class="k">return</span> <span class="s">`Estás &lt;em&gt;al día&lt;/em&gt;&lt;br&gt;con tu expensa`</span>;
+  <span class="k">if</span> (s.kind === <span class="s">'pending'</span>) <span class="k">return</span> <span class="s">`Tu pago está&lt;br&gt;&lt;em&gt;en revisión&lt;/em&gt;`</span>;
+  <span class="k">if</span> (s.kind === <span class="s">'overdue'</span>) <span class="k">return</span> <span class="s">`Tenés &lt;em&gt;${money(d.overdue)}&lt;/em&gt;&lt;br&gt;pendientes`</span>;
+  <span class="k">return</span> <span class="s">`Vence en &lt;em&gt;${daysUntil(d.nextDueDate)} días&lt;/em&gt;`</span>;
+}
+
+<span class="k">function</span> <span class="f">heroDesc</span>(s, d) {
+  <span class="k">if</span> (s.kind === <span class="s">'paid'</span>)    <span class="k">return</span> <span class="s">`Ya pagaste &lt;b&gt;${money(d.amount)}&lt;/b&gt; el &lt;b&gt;${fmtShort(d.lastPayment.date)}&lt;/b&gt;.`</span>;
+  <span class="k">if</span> (s.kind === <span class="s">'pending'</span>) <span class="k">return</span> <span class="s">`Subiste el comprobante el &lt;b&gt;${fmtShort(d.pendingDate)}&lt;/b&gt;. Te avisamos cuando se apruebe.`</span>;
+  <span class="k">if</span> (s.kind === <span class="s">'overdue'</span>) <span class="k">return</span> <span class="s">`Llevás &lt;b&gt;${d.overdueMonths} meses&lt;/b&gt; sin pago aprobado. Regularizá para evitar interés.`</span>;
+  <span class="k">return</span> <span class="s">`Vence el &lt;b&gt;${fmtShort(d.nextDueDate)}&lt;/b&gt;. Subí el comprobante cuando estés listo.`</span>;
+}
+</pre>
+  </div>
+</div>
+
+</body>
+</html>

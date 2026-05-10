@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GestionAr · Owner Redesign</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="components.css" />
+
+  <style>
+    body {
+      margin: 0;
+      background: #ededeb;
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="icons.jsx"></script>
+  <script type="text/babel" src="mobile-frame.jsx"></script>
+  <script type="text/babel" src="shared.jsx"></script>
+  <script type="text/babel" src="screen-home.jsx"></script>
+  <script type="text/babel" src="screen-pay.jsx"></script>
+  <script type="text/babel" src="screen-history.jsx"></script>
+  <script type="text/babel" src="screen-notices.jsx"></script>
+  <script type="text/babel" src="screen-claims.jsx"></script>
+  <script type="text/babel" src="screen-claim-new.jsx"></script>
+  <script type="text/babel" src="screen-extras.jsx"></script>
+  <script type="text/babel" src="screen-states.jsx"></script>
+
+  <script type="text/babel">
+    const { DesignCanvas, DCSection, DCArtboard } = window;
+
+    /* Color palette swatch */
+    const Swatch = ({ name, hex, label, dark }) => (
+      <div style={{
+        background: hex,
+        borderRadius: 12,
+        padding: 14,
+        border: '1px solid rgba(255,255,255,0.08)',
+        color: dark ? '#0a1408' : '#eef1ed',
+        height: 96,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+      }}>
+        <div style={{ font: '600 12px/1 Inter', textTransform: 'uppercase', letterSpacing: '.1em', opacity: 0.7 }}>{name}</div>
+        <div>
+          <div style={{ font: '700 14px/1 Inter Tight' }}>{label}</div>
+          <div style={{ font: '400 11px/1 JetBrains Mono', opacity: 0.7, marginTop: 4 }}>{hex}</div>
+        </div>
+      </div>
+    );
+
+    const SystemArtboard = () => (
+      <div style={{ width: 760, padding: 28, background: 'var(--bg)', color: 'var(--text)', fontFamily: 'Inter' }}>
+        <div style={{ font: '600 11px/1 Inter', letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--muted)' }}>Mini design system</div>
+        <h1 style={{ font: '700 28px/1.1 Inter Tight', color: 'var(--text-bright)', margin: '6px 0 4px' }}>Tokens & componentes</h1>
+        <p style={{ font: '400 14px/1.5 Inter', color: 'var(--muted)', maxWidth: 560 }}>
+          Evolución del sistema actual. Mantiene paleta verde bosque/neón sobre #0e1512, glassmorphism sutil, Inter / Inter Tight. Implementable en CSS vanilla, sin dependencias.
+        </p>
+
+        <h3 style={{ font: '600 14px/1 Inter Tight', color: 'var(--text-bright)', margin: '24px 0 10px', letterSpacing:'.1em', textTransform:'uppercase' }}>Color</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+          <Swatch name="bg"        hex="#0e1512" label="Fondo" />
+          <Swatch name="surface"   hex="#18221d" label="Card" />
+          <Swatch name="surface-2" hex="#131b17" label="Input" />
+          <Swatch name="border"    hex="#2a342e" label="Borde" />
+          <Swatch name="accent"    hex="#9cf27b" label="Acento" dark />
+          <Swatch name="success"   hex="#6ee897" label="OK" dark />
+          <Swatch name="warning"   hex="#f5c265" label="Aviso" dark />
+          <Swatch name="danger"    hex="#f08a8a" label="Error" dark />
+        </div>
+
+        <h3 style={{ font: '600 14px/1 Inter Tight', color: 'var(--text-bright)', margin: '24px 0 10px', letterSpacing:'.1em', textTransform:'uppercase' }}>Tipografía</h3>
+        <div style={{ background: 'var(--surface)', borderRadius: 12, padding: 18, border: '1px solid var(--border)' }}>
+          <div style={{ font: '700 32px/1.1 Inter Tight', color: 'var(--text-bright)' }}>Hola, Diego</div>
+          <div style={{ font: '700 22px/1.2 Inter Tight', color: 'var(--text-bright)', marginTop: 6 }}>Mis Pagos</div>
+          <div style={{ font: '600 16px/1.3 Inter', color: 'var(--text-bright)', marginTop: 6 }}>Reunión de Consorcio</div>
+          <div style={{ font: '400 14px/1.5 Inter', color: 'var(--text)', marginTop: 6 }}>Recordamos que el período de mayo vence el día 10.</div>
+          <div style={{ font: '600 11px/1 Inter', color: 'var(--muted)', letterSpacing: '.16em', textTransform: 'uppercase', marginTop: 10 }}>EYEBROW · LABELS</div>
+          <div style={{ font: '500 13px/1.4 JetBrains Mono', color: 'var(--accent)', marginTop: 10 }}>$30.000 · tnum</div>
+        </div>
+
+        <h3 style={{ font: '600 14px/1 Inter Tight', color: 'var(--text-bright)', margin: '24px 0 10px', letterSpacing:'.1em', textTransform:'uppercase' }}>Componentes</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div className="card stack-3">
+            <div className="muted" style={{ font: 'var(--t-xs)', letterSpacing: '.12em', textTransform: 'uppercase' }}>Badges</div>
+            <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+              <StatusPill status="paid"/>
+              <StatusPill status="pending"/>
+              <StatusPill status="rejected"/>
+              <StatusPill status="open"/>
+              <StatusPill status="urgent"/>
+              <StatusPill status="info"/>
+            </div>
+          </div>
+
+          <div className="card stack-3">
+            <div className="muted" style={{ font: 'var(--t-xs)', letterSpacing: '.12em', textTransform: 'uppercase' }}>Buttons</div>
+            <div className="stack-2">
+              <button className="btn btn-primary"><Icon name="upload" size={16}/> Acción primaria</button>
+              <button className="btn btn-ghost">Secundaria</button>
+            </div>
+          </div>
+
+          <div className="card stack-3">
+            <div className="muted" style={{ font: 'var(--t-xs)', letterSpacing: '.12em', textTransform: 'uppercase' }}>Form</div>
+            <div className="field">
+              <label className="field-label">Email</label>
+              <input className="input" defaultValue="diego@gmail.com"/>
+            </div>
+          </div>
+
+          <div className="card stack-3">
+            <div className="muted" style={{ font: 'var(--t-xs)', letterSpacing: '.12em', textTransform: 'uppercase' }}>Toggle / Switch</div>
+            <ToggleRow label="Notificaciones" on/>
+            <ToggleRow label="Modo oscuro"/>
+          </div>
+
+          <div className="card">
+            <div className="muted" style={{ font: 'var(--t-xs)', letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: 8 }}>Segmented</div>
+            <div className="seg">
+              <button className="seg-btn is-active">Todos</button>
+              <button className="seg-btn">Aprobados</button>
+              <button className="seg-btn">Pendientes</button>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="muted" style={{ font: 'var(--t-xs)', letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: 8 }}>Progress</div>
+            <div className="progress"><span style={{ width: '60%' }}></span></div>
+            <div className="muted tnum" style={{ font: 'var(--t-xs)', marginTop: 6 }}>60% del período · 3 días restantes</div>
+          </div>
+        </div>
+      </div>
+    );
+
+    const NotesArtboard = () => (
+      <div style={{ width: 720, padding: 28, background: '#fafaf8', color: '#1a1a1a', fontFamily: 'Inter', borderRadius: 8 }}>
+        <div style={{ font: '600 11px/1 Inter', letterSpacing: '.18em', textTransform: 'uppercase', color: '#888' }}>Implementación</div>
+        <h1 style={{ font: '700 26px/1.1 Inter Tight', margin: '6px 0 14px' }}>Cómo aplicar este diseño</h1>
+
+        <h3 style={{ font: '600 16px/1.2 Inter Tight', margin: '14px 0 6px' }}>Estructura sugerida</h3>
+        <pre style={{ background:'#f0f0ec', padding:12, borderRadius:8, font:'500 12px/1.5 JetBrains Mono', overflow:'auto', whiteSpace:'pre' }}>
+{`/css
+  tokens.css          /* variables base — pega tal cual */
+  components.css      /* clases de componentes nuevas */
+  styles.css          /* importa los dos anteriores */
+
+/js/pages/owner/
+  home.js             /* Hero + acciones rápidas + último pago + novedades */
+  pay.js              /* Tabs (Subir / Online) + sticky CTA */
+  history.js          /* Stats + filtros + grupos por mes */
+  notices.js          /* Filter + marcar todo + cards diferenciadas */
+  claims.js           /* Stats + cards con timeline horizontal */
+  expenses.js         /* Selector mes + total + categorías + docs */
+  votes.js            /* Cards con barras + tu opción resaltada */
+  profile.js          /* Identidad + datos + seguridad + notif */
+  visits.js           /* Tabs + filas con dot status */
+  reservations.js     /* Grid de espacios + lista de reservas */`}
+        </pre>
+
+        <h3 style={{ font: '600 16px/1.2 Inter Tight', margin: '18px 0 6px' }}>Clases CSS nuevas (a agregar)</h3>
+        <ul style={{ font:'14px/1.6 Inter', paddingLeft: 18, margin: 0 }}>
+          <li><code>.app-shell · .app-scroll</code> — contenedor mobile + scroll con padding bottom para nav</li>
+          <li><code>.topbar · .avatar · .topbar-icon-btn</code> — header con saludo, notif y avatar</li>
+          <li><code>.bottom-nav · .bn-item</code> — 4 tabs (Inicio, Pagar, Comunidad, Perfil)</li>
+          <li><code>.card · .card-hero · .card-glass</code> — variantes de superficie</li>
+          <li><code>.badge · .badge-success/warning/danger/accent/info</code> — sistema unificado de estados</li>
+          <li><code>.btn · .btn-primary/ghost · .btn-lg/sm · .btn-block</code></li>
+          <li><code>.seg · .seg-btn</code> — segmented filter (reemplaza tabs viejos)</li>
+          <li><code>.qa-card</code> — quick action en home</li>
+          <li><code>.notice · .is-unread</code> — accent en borde izq con sombra inset</li>
+          <li><code>.timeline · .tl-step · .tl-dot</code> — estado de reclamo</li>
+          <li><code>.upload-area</code> — dashed border con hover verde</li>
+          <li><code>.progress</code>, <code>.dot-status</code>, <code>.skeleton</code>, <code>.toast</code>, <code>.empty</code></li>
+          <li><code>.switch</code> — toggle accesible</li>
+          <li><code>.sheet</code> — bottom sheet modal</li>
+        </ul>
+
+        <h3 style={{ font: '600 16px/1.2 Inter Tight', margin: '18px 0 6px' }}>Cosas que se reutilizan del actual</h3>
+        <ul style={{ font:'14px/1.6 Inter', paddingLeft: 18, margin: 0 }}>
+          <li>Variables <code>--bg, --surface, --accent</code> y familia se mantienen, solo se ajusta <code>--text</code> y <code>--muted</code> a un punto más alto de contraste para AA.</li>
+          <li>Tu glassmorphism (<code>backdrop-filter</code>) se conserva en el bottom-nav y la <code>.card-glass</code>.</li>
+          <li>Inter / Inter Tight se mantienen — solo se sistematizan en variables <code>--t-*</code>.</li>
+        </ul>
+
+        <h3 style={{ font: '600 16px/1.2 Inter Tight', margin: '18px 0 6px' }}>UX por pantalla — decisiones</h3>
+        <ul style={{ font:'14px/1.6 Inter', paddingLeft: 18, margin: 0 }}>
+          <li><b>Inicio</b> — un solo "hero" con monto, vencimiento y CTA primaria. Saca ruido (la "racha" pasa a Historial).</li>
+          <li><b>Pagar</b> — tabs Subir/Online unifican lo que antes eran 2 secciones. Sticky CTA en pie. Pago online en la paleta del sistema (no azul).</li>
+          <li><b>Historial</b> — agrupado por mes, montos en tnum, estado con dot+badge consistente.</li>
+          <li><b>Comunicados</b> — accent inset 3px en no-leídos, badge de tipo con color de su semántica, bulk "marcar todo".</li>
+          <li><b>Reclamos</b> — timeline horizontal compacta dentro de cada card.</li>
+          <li><b>Gastos</b> — quitamos donut multicolor (rompía paleta); barras horizontales con un solo color por categoría dentro de la familia.</li>
+          <li><b>Votaciones</b> — la opción votada se resalta con bg <code>--accent-lt</code> y check.</li>
+          <li><b>Perfil</b> — separa Identidad / Datos / Seguridad / Notificaciones en bloques.</li>
+          <li><b>Bottom nav</b> — 4 tabs (Historial entra a Pagar). Tap target 44px+.</li>
+        </ul>
+
+        <h3 style={{ font: '600 16px/1.2 Inter Tight', margin: '18px 0 6px' }}>Datos mockeados</h3>
+        <ul style={{ font:'14px/1.6 Inter', paddingLeft: 18, margin: 0 }}>
+          <li>Cuota mensual fija: $30.000 (vence día 10) · extraordinarios eventuales</li>
+          <li>Estados de pago: aprobado / pendiente / rechazado</li>
+          <li>Categorías de reclamo: Infraestructura, Mantenimiento, Seguridad, Limpieza</li>
+          <li>Tipos de aviso: urgente, importante, informativo</li>
+          <li>Espacios reservables: Pileta, Cancha, SUM, Gimnasio</li>
+        </ul>
+      </div>
+    );
+
+    const App = () => (
+      <DesignCanvas title="GestionAr · Owner Redesign" subtitle="Propuesta visual completa · 10 pantallas + sistema">
+        <DCSection id="hi-fi" title="Pantallas principales · Alta fidelidad">
+          <DCArtboard id="home" label="01 · Inicio" width={406} height={860}>
+            <MobileFrame label="Inicio" w={390} h={844}><ScreenHome/></MobileFrame>
+          </DCArtboard>
+          <DCArtboard id="pay" label="02 · Pagar" width={406} height={860}>
+            <MobileFrame label="Pagar" w={390} h={844}><ScreenPay/></MobileFrame>
+          </DCArtboard>
+          <DCArtboard id="history" label="03 · Historial" width={406} height={860}>
+            <MobileFrame label="Historial" w={390} h={844}><ScreenHistory/></MobileFrame>
+          </DCArtboard>
+          <DCArtboard id="notices" label="04 · Comunicados" width={406} height={860}>
+            <MobileFrame label="Comunicados" w={390} h={844}><ScreenNotices/></MobileFrame>
+          </DCArtboard>
+          <DCArtboard id="claims" label="05 · Reclamos" width={406} height={860}>
+            <MobileFrame label="Reclamos" w={390} h={844}><ScreenClaims/></MobileFrame>
+          </DCArtboard>
+          <DCArtboard id="claim-new" label="05b · Nuevo reclamo" width={406} height={860}>
+            <MobileFrame label="Nuevo reclamo" w={390} h={844}><ScreenNewClaim/></MobileFrame>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="resumed" title="Pantallas complementarias">
+          <DCArtboard id="expenses" label="06 · Gastos" width={406} height={860}>
+            <MobileFrame label="Gastos" w={390} h={844}><ScreenExpenses/></MobileFrame>
+          </DCArtboard>
+          <DCArtboard id="votes" label="07 · Votaciones" width={406} height={860}>
+            <MobileFrame label="Votaciones" w={390} h={844}><ScreenVotes/></MobileFrame>
+          </DCArtboard>
+          <DCArtboard id="profile" label="08 · Perfil" width={406} height={860}>
+            <MobileFrame label="Perfil" w={390} h={844}><ScreenProfile/></MobileFrame>
+          </DCArtboard>
+          <DCArtboard id="visits" label="09 · Visitas" width={406} height={860}>
+            <MobileFrame label="Visitas" w={390} h={844}><ScreenVisits/></MobileFrame>
+          </DCArtboard>
+          <DCArtboard id="reservations" label="10 · Reservas" width={406} height={860}>
+            <MobileFrame label="Reservas" w={390} h={844}><ScreenReservations/></MobileFrame>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="states" title="Estados (empty · loading · error · toasts)">
+          <DCArtboard id="states-screen" label="Sistema de estados" width={406} height={860}>
+            <MobileFrame label="Estados" w={390} h={844}><ScreenStates/></MobileFrame>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="system" title="Mini design system">
+          <DCArtboard id="ds" label="Tokens & componentes" width={820} height={1240}>
+            <SystemArtboard/>
+          </DCArtboard>
+          <DCArtboard id="notes" label="Notas de implementación" width={780} height={1240}>
+            <NotesArtboard/>
+          </DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+    );
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>

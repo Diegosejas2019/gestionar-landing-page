@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GestionAr · Reservas Mobile · Rediseño</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="components.css" />
+  <link rel="stylesheet" href="screen-reservas.css" />
+
+  <style>
+    body { margin: 0; background: #ededeb; font-family: 'Inter', sans-serif; }
+
+    /* Mobile frame minimal (idéntico look al resto del proyecto) */
+    .mf-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .mf-label { font: 600 11px/1 'Inter', sans-serif; letter-spacing: 0.1em; text-transform: uppercase; color: #6b7066; }
+    .mf-device {
+      background: #000;
+      border-radius: 44px;
+      padding: 8px;
+      box-shadow: 0 30px 60px -20px rgba(0,0,0,0.35), 0 0 0 1.5px rgba(0,0,0,0.5);
+      position: relative;
+    }
+    .mf-screen {
+      border-radius: 36px;
+      overflow: hidden;
+      background: var(--bg);
+      position: relative;
+    }
+    .mf-notch {
+      position: absolute;
+      top: 18px; left: 50%; transform: translateX(-50%);
+      width: 110px; height: 28px;
+      background: #000;
+      border-radius: 16px;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="icons.jsx"></script>
+  <script type="text/babel" src="mobile-frame.jsx"></script>
+  <script type="text/babel" src="shared.jsx"></script>
+  <script type="text/babel" src="screen-reservas.jsx"></script>
+
+  <script type="text/babel">
+    const { DesignCanvas, DCSection, DCArtboard, MobileFrame } = window;
+
+    const NotesCard = () => (
+      <div style={{
+        width: 720, padding: 28, background: '#fff', borderRadius: 18,
+        border: '1px solid #e2e2dd', fontFamily: 'Inter', color: '#1a1f1c',
+      }}>
+        <div style={{ font: '600 11px/1 Inter', letterSpacing: '.18em', textTransform: 'uppercase', color: '#7a8079' }}>Rediseño</div>
+        <h1 style={{ font: '700 30px/1.1 "Inter Tight"', margin: '6px 0 8px', letterSpacing: '-0.02em' }}>Reservas / Visitas — estilo calendario</h1>
+        <p style={{ font: '400 14.5px/1.55 Inter', color: '#3c423e', maxWidth: 600, margin: 0 }}>
+          Tres direcciones para la sección "Mis Visitas" en mobile, manteniendo la paleta verde bosque + lima del producto.
+          Trato visual cercano a un calendario moderno: tira semanal, color por tipo, riel horario, indicador de "ahora".
+        </p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginTop: 22 }}>
+          <div style={{ padding: 14, background: '#f6f6f3', borderRadius: 12, border: '1px solid #e6e6e0' }}>
+            <div style={{ font: '700 13px/1.2 "Inter Tight"', marginBottom: 4 }}>A · Agenda</div>
+            <div style={{ font: '400 12.5px/1.45 Inter', color: '#5a605c' }}>
+              Tira semanal con puntos por evento, chips de tipo, lista agrupada por día con riel de hora + bandera de color por categoría.
+            </div>
+          </div>
+          <div style={{ padding: 14, background: '#f6f6f3', borderRadius: 12, border: '1px solid #e6e6e0' }}>
+            <div style={{ font: '700 13px/1.2 "Inter Tight"', marginBottom: 4 }}>B · Day timeline</div>
+            <div style={{ font: '400 12.5px/1.45 Inter', color: '#5a605c' }}>
+              Vista día tipo Google Calendar: riel horario 06–22, eventos posicionados, segmento Día/Sem/Mes, línea de "ahora" con glow.
+            </div>
+          </div>
+          <div style={{ padding: 14, background: '#f6f6f3', borderRadius: 12, border: '1px solid #e6e6e0' }}>
+            <div style={{ font: '700 13px/1.2 "Inter Tight"', marginBottom: 4 }}>C · Nueva visita</div>
+            <div style={{ font: '400 12.5px/1.45 Inter', color: '#5a605c' }}>
+              Bottom-sheet renovado. Tipo como chips visuales con color, strip de días, slots de hora rápidos y resumen vivo antes del CTA.
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 22, padding: 14, background: '#f0f5ec', borderRadius: 12, border: '1px solid #d8e7d0' }}>
+          <div style={{ font: '700 12px/1.2 "Inter Tight"', marginBottom: 6, color: '#2d4a23' }}>Sistema de color por tipo</div>
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', font: '500 12px/1.2 Inter', color: '#3c423e' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><i style={{ width: 10, height: 10, borderRadius: 50, background: '#f5a85f' }} /> Delivery</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><i style={{ width: 10, height: 10, borderRadius: 50, background: '#7cc6f0' }} /> Proveedor</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><i style={{ width: 10, height: 10, borderRadius: 50, background: '#9cf27b' }} /> Visita</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><i style={{ width: 10, height: 10, borderRadius: 50, background: '#b89cf2' }} /> Servicio</span>
+          </div>
+        </div>
+      </div>
+    );
+
+    const App = () => (
+      <DesignCanvas title="Reservas Mobile · Rediseño calendario" defaultZoom={0.9}>
+        <DCSection id="intro" title="Brief">
+          <DCArtboard id="notes" label="Notas de diseño" width={760} height={460}>
+            <NotesCard />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="screens" title="Mockups mobile">
+          <DCArtboard id="agenda" label="A · Agenda + tira semanal" width={406} height={870}>
+            <MobileFrame label="" w={390} h={844}>
+              <ScreenReservasAgenda />
+            </MobileFrame>
+          </DCArtboard>
+
+          <DCArtboard id="timeline" label="B · Day timeline (Google Cal)" width={406} height={870}>
+            <MobileFrame label="" w={390} h={844}>
+              <ScreenReservasTimeline />
+            </MobileFrame>
+          </DCArtboard>
+
+          <DCArtboard id="nueva" label="C · Sheet — Nueva visita" width={406} height={870}>
+            <MobileFrame label="" w={390} h={844}>
+              <ScreenNuevaVisita />
+            </MobileFrame>
+          </DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+    );
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

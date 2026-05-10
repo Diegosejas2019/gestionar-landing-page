@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GestionAr — Sistema de marca · Bracket</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  :root {
+    --bg: #0e1512; --bg-2: #131b17; --surface: #18221d;
+    --border: rgba(255,255,255,0.08); --border-strong: rgba(255,255,255,0.14);
+    --text: #eef1ed; --text-dim: #a8b3ac; --text-faint: #6b7870;
+    --green: #9cf27b; --green-soft: rgba(156, 242, 123, 0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 48px 32px 120px; -webkit-font-smoothing: antialiased; }
+  h1, h2, h3, h4 { font-family: 'Inter Tight', sans-serif; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
+  .container { max-width: 1280px; margin: 0 auto; }
+  header { margin-bottom: 56px; padding-bottom: 32px; border-bottom: 1px solid var(--border); }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 10px; background: var(--green-soft); border: 1px solid rgba(156, 242, 123, 0.2); border-radius: 999px; font-size: 11px; font-weight: 500; color: var(--green); margin-bottom: 18px; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.05em; }
+  .eyebrow .dot { width:6px; height:6px; border-radius:50%; background: var(--green); }
+  header h1 { font-size: 44px; margin-bottom: 14px; }
+  header h1 em { color: var(--green); font-style: italic; font-weight: 500; }
+  header p { color: var(--text-dim); max-width: 680px; font-size: 16px; text-wrap: pretty; }
+
+  .section { margin-bottom: 64px; }
+  .section-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+  .section-label::before { content: ''; width: 24px; height: 1px; background: var(--text-faint); }
+  .section h2 { font-size: 26px; margin-bottom: 24px; }
+
+  .grid { display: grid; gap: 16px; }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-2 { grid-template-columns: 1.1fr 0.9fr; }
+  @media (max-width: 900px) { .grid-3, .grid-4, .grid-2 { grid-template-columns: 1fr; } }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; }
+  .card-body { padding: 20px 22px 22px; border-top: 1px solid var(--border); background: var(--bg-2); }
+  .card-title { font-family: 'Inter Tight', sans-serif; font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+  .card-meta { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-faint); letter-spacing: 0.05em; }
+
+  .canvas { aspect-ratio: 1/1; display: grid; place-items: center; position: relative; overflow: hidden; }
+  .canvas.dark { background: var(--bg); }
+  .canvas.darker { background: #080c0a; }
+  .canvas.light { background: #f4f0e8; }
+  .canvas.white { background: #fff; }
+  .canvas.green { background: var(--green); }
+  .canvas.checker { background-color: #1a241f; background-image: linear-gradient(45deg, rgba(255,255,255,0.03) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,0.03) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.03) 75%), linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.03) 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, 10px 0; }
+
+  .hero-card { background: linear-gradient(135deg, #18221d, #0e1512); border: 1px solid var(--border); border-radius: 24px; padding: 64px 48px; position: relative; overflow: hidden; }
+  .hero-card::before { content: ''; position: absolute; top: -80px; right: -80px; width: 320px; height: 320px; background: radial-gradient(circle, rgba(156, 242, 123, 0.08), transparent 70%); pointer-events: none; }
+  .hero-lockup { display: flex; align-items: center; gap: 32px; }
+  @media (max-width: 720px) { .hero-lockup { flex-direction: column; align-items: flex-start; gap: 20px; } }
+
+  .word { font-family: 'Inter Tight', sans-serif; font-weight: 700; letter-spacing: -0.04em; line-height: 1; }
+  .word .ar { color: var(--green); font-style: italic; font-weight: 500; }
+
+  .phone { width: 280px; aspect-ratio: 280 / 580; background: #000; border-radius: 44px; padding: 10px; box-shadow: inset 0 0 0 2px rgba(255,255,255,0.06), 0 30px 60px -20px rgba(0,0,0,0.6); margin: 0 auto; position: relative; }
+  .phone-screen { width: 100%; height: 100%; border-radius: 36px; overflow: hidden; position: relative; background: var(--bg); }
+  .notch { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 100px; height: 28px; background: #000; border-radius: 14px; z-index: 10; }
+
+  .push-stack { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .push { background: rgba(255,255,255,0.88); backdrop-filter: blur(20px); color: #0e1512; border-radius: 18px; padding: 12px 14px; display: flex; gap: 12px; align-items: flex-start; font-family: -apple-system, 'SF Pro', system-ui, sans-serif; }
+  .push-icon { width: 38px; height: 38px; flex-shrink: 0; border-radius: 9px; background: var(--bg); display: grid; place-items: center; }
+  .push-body { flex: 1; min-width: 0; }
+  .push-head { display: flex; justify-content: space-between; font-size: 12px; color: #333; margin-bottom: 2px; }
+  .push-title { font-weight: 600; color: #111; }
+  .push-time { color: #666; font-size: 11px; }
+  .push-msg { font-size: 13px; line-height: 1.3; color: #222; }
+  .push.dark { background: rgba(30,38,33,0.92); color: var(--text); }
+  .push.dark .push-title { color: var(--text); }
+  .push.dark .push-head { color: var(--text-dim); }
+  .push.dark .push-msg { color: var(--text-dim); }
+  .push.dark .push-time { color: var(--text-faint); }
+  .push.dark .push-icon { background: #0e1512; }
+
+  .swatch { aspect-ratio: 1 / 1; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; justify-content: flex-end; border: 1px solid var(--border); }
+  .sw-hex { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 500; }
+  .sw-name { font-family: 'Inter Tight', sans-serif; font-weight: 500; font-size: 13px; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<div class="container" id="root"></div>
+
+<script type="text/babel" data-presets="env,react">
+  const { useState } = React;
+
+  // ========== THE BRACKET MARK ==========
+  // Two angular brackets containing a central square unit.
+  // fg = brackets color, accent = central square color
+  const MarkSymbol = ({ size = 96, variant = 'dark', rounded = true, bare = false }) => {
+    let bg, fg, accent;
+    if (variant === 'dark')      { bg = '#0e1512'; fg = '#9cf27b'; accent = '#eef1ed'; }
+    else if (variant === 'green'){ bg = '#9cf27b'; fg = '#0e1512'; accent = '#0e1512'; }
+    else if (variant === 'light'){ bg = '#ffffff'; fg = '#0e1512'; accent = '#9cf27b'; }
+    else if (variant === 'outline'){ bg = 'transparent'; fg = '#0e1512'; accent = '#0e1512'; }
+    else if (variant === 'mono-white'){ bg = 'transparent'; fg = '#ffffff'; accent = '#ffffff'; }
+    else { bg = '#0e1512'; fg = '#9cf27b'; accent = '#eef1ed'; }
+
+    const radius = rounded && !bare ? size * 0.22 : 0;
+
+    return (
+      <svg width={size} height={size} viewBox="0 0 100 100" style={{ display: 'block' }}>
+        {!bare && variant !== 'outline' && variant !== 'mono-white' && (
+          <rect x="0" y="0" width="100" height="100" rx={radius/size*100} ry={radius/size*100} fill={bg}/>
+        )}
+        {!bare && variant === 'outline' && (
+          <rect x="1" y="1" width="98" height="98" rx={radius/size*100} ry={radius/size*100} fill="transparent" stroke="#0e1512" strokeWidth="2"/>
+        )}
+        {/* Left bracket */}
+        <path d="M 30 22 L 18 22 L 18 78 L 30 78" stroke={fg} strokeWidth="8" fill="none" strokeLinecap="square" strokeLinejoin="miter"/>
+        {/* Right bracket */}
+        <path d="M 70 22 L 82 22 L 82 78 L 70 78" stroke={fg} strokeWidth="8" fill="none" strokeLinecap="square" strokeLinejoin="miter"/>
+        {/* Central unit */}
+        <rect x="40" y="40" width="20" height="20" fill={accent}/>
+      </svg>
+    );
+  };
+
+  const Wordmark = ({ size = 40, color = '#eef1ed', accent = '#9cf27b' }) => (
+    <span style={{ fontFamily: "'Inter Tight', sans-serif", fontWeight: 700, letterSpacing: '-0.04em', fontSize: size, lineHeight: 1, color }}>
+      Gestion<span style={{ color: accent, fontStyle: 'italic', fontWeight: 500 }}>Ar</span>
+    </span>
+  );
+
+  // ========== SPLASH SCREENS ==========
+  const SplashScreen = () => (
+    <div style={{ position:'absolute', inset:0, background: 'radial-gradient(120% 80% at 50% 10%, #18221d 0%, #0e1512 55%, #080c0a 100%)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', color:'#eef1ed' }}>
+      <div style={{ position:'absolute', top: 22, left:0, right:0, display:'flex', justifyContent:'space-between', padding:'0 28px', fontFamily:'-apple-system, SF Pro, system-ui', fontSize: 12, fontWeight: 600, color:'#eef1ed' }}>
+        <span>9:41</span>
+        <span style={{display:'flex', gap:5, alignItems:'center'}}>
+          <svg width="16" height="10" viewBox="0 0 16 10" fill="none"><path d="M1 8h2M4 6h2M7 4h2M10 2h2M13 0h2" stroke="#eef1ed" strokeWidth="1.8" strokeLinecap="round"/></svg>
+          <svg width="24" height="10" viewBox="0 0 24 10" fill="none"><rect x="0.5" y="0.5" width="20" height="9" rx="2" stroke="#eef1ed"/><rect x="2" y="2" width="17" height="6" rx="1" fill="#eef1ed"/><rect x="21" y="3" width="2" height="4" rx="0.5" fill="#eef1ed"/></svg>
+        </span>
+      </div>
+      <div style={{ position:'absolute', top:'25%', left:'50%', transform:'translateX(-50%)', width: 260, height: 260, background: 'radial-gradient(circle, rgba(156,242,123,0.22), transparent 65%)', pointerEvents:'none', filter:'blur(10px)' }}/>
+      <MarkSymbol size={110} variant="dark" rounded={true} />
+      <div style={{ marginTop: 22 }}><Wordmark size={32} /></div>
+      <div style={{ marginTop: 6, fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: '#6b7870', textTransform:'uppercase', letterSpacing: '0.25em' }}>Administración de barrios</div>
+      <div style={{position:'absolute', bottom: 90, left:'50%', transform:'translateX(-50%)'}}>
+        <div style={{ width: 38, height: 38, borderRadius: '50%', border: '2px solid rgba(156,242,123,0.2)', borderTopColor: '#9cf27b', animation: 'spin 0.9s linear infinite' }}/>
+      </div>
+      <div style={{ position:'absolute', bottom: 32, fontFamily:"'JetBrains Mono', monospace", fontSize: 10, color:'#6b7870', letterSpacing:'0.1em' }}>v 2.4.1</div>
+      <div style={{ position:'absolute', bottom: 8, left:'50%', transform:'translateX(-50%)', width: 120, height: 4, borderRadius: 2, background:'#eef1ed', opacity:0.35 }}/>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+
+  const SplashGreen = () => (
+    <div style={{ position:'absolute', inset:0, background:'#9cf27b', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
+      <MarkSymbol size={120} variant="green" />
+      <div style={{marginTop: 22}}>
+        <span style={{ fontFamily:"'Inter Tight', sans-serif", fontWeight:700, fontSize: 34, letterSpacing:'-0.04em', color:'#0e1512' }}>
+          Gestion<span style={{fontStyle:'italic', fontWeight:500}}>Ar</span>
+        </span>
+      </div>
+      <div style={{ position:'absolute', bottom: 8, left:'50%', transform:'translateX(-50%)', width: 120, height: 4, borderRadius: 2, background:'#0e1512', opacity:0.35 }}/>
+    </div>
+  );
+
+  const App = () => (
+    <>
+      <header>
+        <div className="eyebrow"><span className="dot"/> SISTEMA DE MARCA · DIRECCIÓN 01 · BRACKET</div>
+        <h1>Identidad <em>GestionAr</em>.</h1>
+        <p>Logo "Bracket" desarrollado en todas sus aplicaciones: símbolo, variantes cromáticas, escala, splash screens y push notifications. Concepto: dos corchetes que contienen la unidad central — gestión que estructura y protege.</p>
+      </header>
+
+      {/* 01 LOCKUP PRINCIPAL */}
+      <div className="section">
+        <div className="section-label">01 — Lockup principal</div>
+        <div className="hero-card">
+          <div className="hero-lockup">
+            <MarkSymbol size={160} variant="dark" rounded={true} />
+            <div>
+              <div style={{marginBottom: 14}}><Wordmark size={72} /></div>
+              <div style={{fontFamily:"'JetBrains Mono', monospace", fontSize: 12, color:'var(--text-faint)', letterSpacing:'0.1em', textTransform:'uppercase'}}>Administración de barrios privados</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 02 VARIANTES */}
+      <div className="section">
+        <div className="section-label">02 — Variantes del símbolo</div>
+        <h2>Cuatro fondos, una identidad</h2>
+        <div className="grid grid-4">
+          <div className="card">
+            <div className="canvas dark"><MarkSymbol size={180} variant="dark"/></div>
+            <div className="card-body">
+              <div className="card-title">Primario · Oscuro</div>
+              <div className="card-meta">BG #0E1512 · FG #9CF27B</div>
+            </div>
+          </div>
+          <div className="card">
+            <div className="canvas green"><MarkSymbol size={180} variant="green"/></div>
+            <div className="card-body">
+              <div className="card-title">Acento · Verde</div>
+              <div className="card-meta">BG #9CF27B · FG #0E1512</div>
+            </div>
+          </div>
+          <div className="card">
+            <div className="canvas white"><MarkSymbol size={180} variant="light"/></div>
+            <div className="card-body">
+              <div className="card-title">Claro · Blanco</div>
+              <div className="card-meta">BG #FFFFFF · FG #0E1512</div>
+            </div>
+          </div>
+          <div className="card">
+            <div className="canvas checker"><MarkSymbol size={180} variant="outline" rounded={true} bare={false}/></div>
+            <div className="card-body">
+              <div className="card-title">Outline · Mono</div>
+              <div className="card-meta">DOCUMENTOS · 1 COLOR</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 03 ESCALA */}
+      <div className="section">
+        <div className="section-label">03 — Escala</div>
+        <h2>Funciona desde el favicon hasta la valla</h2>
+        <div className="card">
+          <div className="canvas dark" style={{aspectRatio: 'auto', padding: '56px 40px', justifyContent: 'flex-start'}}>
+            <div style={{display:'flex', alignItems:'flex-end', gap: 40, flexWrap:'wrap'}}>
+              {[16, 24, 40, 64, 96, 140, 200].map(s => (
+                <div key={s} style={{display:'flex', flexDirection:'column', alignItems:'center', gap: 14}}>
+                  <MarkSymbol size={s} variant="dark"/>
+                  <span style={{fontFamily:"'JetBrains Mono', monospace", fontSize: 10, color:'var(--text-faint)', letterSpacing:'0.1em'}}>{s}PX</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 04 SPLASH SCREENS */}
+      <div className="section">
+        <div className="section-label">04 — Splash screens</div>
+        <h2>Pantalla de inicio mobile</h2>
+        <div className="grid grid-2">
+          <div className="card">
+            <div className="canvas darker" style={{padding: '32px 0'}}>
+              <div className="phone"><div className="notch"/><div className="phone-screen"><SplashScreen/></div></div>
+            </div>
+            <div className="card-body">
+              <div className="card-title">Splash primario · Oscuro</div>
+              <div className="card-meta">HALO VERDE · LOADER · VERSIÓN</div>
+            </div>
+          </div>
+          <div className="card">
+            <div className="canvas darker" style={{padding: '32px 0'}}>
+              <div className="phone"><div className="notch"/><div className="phone-screen"><SplashGreen/></div></div>
+            </div>
+            <div className="card-body">
+              <div className="card-title">Splash alternativo · Verde</div>
+              <div className="card-meta">PARA CAMPAÑAS / ONBOARDING</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 05 PUSH */}
+      <div className="section">
+        <div className="section-label">05 — Push notifications</div>
+        <h2>Icono en contexto real</h2>
+        <div className="grid grid-2">
+          <div className="card">
+            <div className="canvas" style={{background: 'linear-gradient(135deg, #2a3f36, #0e1512)', padding: '32px'}}>
+              <div className="push-stack" style={{width: '100%', maxWidth: 360}}>
+                {[
+                  ['Nueva expensa disponible — Las Acacias · Abril 2026 · $184.500', 'ahora'],
+                  ['Tu reclamo #4512 "Poda sector oeste" fue resuelto ✓', 'hace 2h'],
+                  ['Recordatorio: reunión de comisión directiva mañana 19:00 hs', 'ayer'],
+                ].map(([msg, time], i) => (
+                  <div key={i} className="push">
+                    <div className="push-icon"><MarkSymbol size={38} variant="dark" rounded={true}/></div>
+                    <div className="push-body">
+                      <div className="push-head"><span className="push-title">GestionAr</span><span className="push-time">{time}</span></div>
+                      <div className="push-msg">{msg}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="card-body">
+              <div className="card-title">iOS · Light</div>
+              <div className="card-meta">ICONO 38PX · COLOR COMPLETO</div>
+            </div>
+          </div>
+          <div className="card">
+            <div className="canvas" style={{background:'#0e1512', padding: '32px'}}>
+              <div className="push-stack" style={{width: '100%', maxWidth: 360}}>
+                {[
+                  ['Nueva expensa disponible — Las Acacias · Abril 2026', 'ahora'],
+                  ['Tu reclamo #4512 fue resuelto ✓', 'hace 2h'],
+                  ['Recordatorio de reunión de CD mañana 19:00', 'ayer'],
+                ].map(([msg, time], i) => (
+                  <div key={i} className="push dark">
+                    <div className="push-icon"><MarkSymbol size={38} variant="dark" rounded={true}/></div>
+                    <div className="push-body">
+                      <div className="push-head"><span className="push-title">GestionAr</span><span className="push-time">{time}</span></div>
+                      <div className="push-msg">{msg}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="card-body">
+              <div className="card-title">Android · Dark</div>
+              <div className="card-meta">ICONO TINTADO POR SO</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 06 SILHOUETTE */}
+      <div className="section">
+        <div className="section-label">06 — Silhouette monocromática</div>
+        <h2>Versión para Android push</h2>
+        <p style={{color:'var(--text-dim)', fontSize: 14, marginBottom: 24, maxWidth: 580}}>
+          Android tiñe el ícono con el color del sistema. Usá la versión blanca sólida sobre transparente.
+        </p>
+        <div className="grid grid-4">
+          {[
+            { bg:'#9cf27b', name:'Color sistema', meta:'VERDE' },
+            { bg:'#4a4a4a', name:'Silent mode', meta:'GRIS' },
+            { bg:'#0e1512', name:'Dark theme', meta:'OSCURO' },
+            { bg:'#ffffff', name:'Light theme', meta:'CLARO', fg:'#0e1512' },
+          ].map((v, i) => (
+            <div className="card" key={i}>
+              <div className="canvas" style={{background: v.bg}}>
+                <svg width="100" height="100" viewBox="0 0 100 100">
+                  <path d="M 30 22 L 18 22 L 18 78 L 30 78" stroke={v.fg || '#fff'} strokeWidth="8" fill="none" strokeLinecap="square" strokeLinejoin="miter"/>
+                  <path d="M 70 22 L 82 22 L 82 78 L 70 78" stroke={v.fg || '#fff'} strokeWidth="8" fill="none" strokeLinecap="square" strokeLinejoin="miter"/>
+                  <rect x="40" y="40" width="20" height="20" fill={v.fg || '#fff'}/>
+                </svg>
+              </div>
+              <div className="card-body">
+                <div className="card-title">{v.name}</div>
+                <div className="card-meta">{v.meta}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 07 PALETA */}
+      <div className="section">
+        <div className="section-label">07 — Paleta</div>
+        <h2>Colores del sistema</h2>
+        <div className="grid grid-4">
+          <div className="swatch" style={{background:'#9cf27b', color:'#0e1512'}}><div className="sw-name">Verde señal</div><div className="sw-hex">#9CF27B</div></div>
+          <div className="swatch" style={{background:'#0e1512', color:'#eef1ed'}}><div className="sw-name">Verde oscuro</div><div className="sw-hex">#0E1512</div></div>
+          <div className="swatch" style={{background:'#18221d', color:'#eef1ed'}}><div className="sw-name">Superficie</div><div className="sw-hex">#18221D</div></div>
+          <div className="swatch" style={{background:'#eef1ed', color:'#0e1512'}}><div className="sw-name">Crema</div><div className="sw-hex">#EEF1ED</div></div>
+        </div>
+      </div>
+
+    </>
+  );
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

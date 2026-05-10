@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>GestionAr · Admin redesign — propuesta v1</title>
+<meta name="viewport" content="width=1400" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<style>
+  html, body, #root { height: 100%; margin: 0; }
+  body { background: #f0eee9; }
+</style>
+</head>
+<body>
+<template id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+    <rect width="200" height="200" fill="#0e1512"/>
+    <rect x="60" y="60" width="80" height="80" rx="14" fill="#9cf27b"/>
+    <text x="100" y="118" text-anchor="middle" font-family="Inter, sans-serif" font-size="36" font-weight="700" fill="#0e1512">GA</text>
+  </svg>
+</template>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="icons.jsx"></script>
+<script type="text/babel" src="shell.jsx"></script>
+<script type="text/babel" src="screen-inicio.jsx"></script>
+<script type="text/babel" src="screen-finanzas.jsx"></script>
+<script type="text/babel" src="screen-comunidad.jsx"></script>
+<script type="text/babel" src="screen-operaciones.jsx"></script>
+<script type="text/babel" src="screen-administracion.jsx"></script>
+<script type="text/babel" src="screen-extras.jsx"></script>
+
+<script type="text/babel">
+  // Global pulse animation
+  if (!document.getElementById('ga-anim')) {
+    const s = document.createElement('style');
+    s.id = 'ga-anim';
+    s.textContent = `
+      @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    `;
+    document.head.appendChild(s);
+  }
+
+  // Each artboard wraps a full app shell so the user sees the screen in context.
+  // Width 1320 ≈ realistic admin laptop layout.
+  const Frame = ({ children, active }) => (
+    <div className="ga" style={{ height: '100%', overflow: 'hidden' }}>
+      <div className="shell" style={{ height: '100%' }}>
+        <Sidebar active={active} />
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+          <Topbar crumbs={CRUMBS[active] || ['Inicio']} />
+          <div style={{ flex: 1, overflow: 'auto' }}>
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const CRUMBS = {
+    inicio: ['Workspace', 'Inicio'],
+    finanzas: ['Workspace', 'Finanzas', 'Cobranza'],
+    propietarios: ['Comunidad', 'Propietarios'],
+    comunicados: ['Comunidad', 'Comunicados'],
+    reclamos: ['Comunidad', 'Reclamos'],
+    votaciones: ['Operaciones', 'Votaciones'],
+    reservas: ['Operaciones', 'Reservas'],
+    visitas: ['Operaciones', 'Visitas'],
+    personal: ['Administración', 'Personal'],
+    proveedores: ['Administración', 'Proveedores'],
+    soporte: ['Administración', 'Soporte'],
+    config: ['Administración', 'Configuración'],
+  };
+
+  const App = () => (
+    <DesignCanvas>
+      <DCSection
+        id="overview"
+        title="GestionAr Admin · rediseño"
+        subtitle="Una propuesta cohesiva: misma identidad (oscuro + verde), nueva jerarquía, más densidad útil, mejor priorización del trabajo del día. — v1, marzo 2025"
+      >
+        <DCArtboard id="inicio" label="01 · Inicio (home)" width={1320} height={1480} data-screen-label="01 Inicio">
+          <Frame active="inicio"><InicioScreen /></Frame>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection
+        id="finanzas"
+        title="Finanzas"
+        subtitle="Cobranza, gastos y conciliación — donde el admin pasa más horas. Foco en hacer escaneable el estado de cada lote."
+      >
+        <DCArtboard id="finanzas" label="02 · Finanzas — Cobranza" width={1320} height={1280} data-screen-label="02 Finanzas">
+          <Frame active="finanzas"><FinanzasScreen /></Frame>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection
+        id="comunidad"
+        title="Comunidad"
+        subtitle="Propietarios, comunicados y reclamos — los tres puntos de contacto con la gente que vive en el barrio."
+      >
+        <DCArtboard id="propietarios" label="03 · Propietarios" width={1320} height={1180} data-screen-label="03 Propietarios">
+          <Frame active="propietarios"><PropietariosScreen /></Frame>
+        </DCArtboard>
+        <DCArtboard id="comunicados" label="04 · Comunicados" width={1320} height={1280} data-screen-label="04 Comunicados">
+          <Frame active="comunicados"><ComunicadosScreen /></Frame>
+        </DCArtboard>
+        <DCArtboard id="reclamos" label="05 · Reclamos (kanban)" width={1320} height={1180} data-screen-label="05 Reclamos">
+          <Frame active="reclamos"><ReclamosScreen /></Frame>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection
+        id="operaciones"
+        title="Operaciones"
+        subtitle="Votaciones digitales, reservas de amenities y control de accesos — los flujos del día a día."
+      >
+        <DCArtboard id="votaciones" label="06 · Votaciones" width={1320} height={1280} data-screen-label="06 Votaciones">
+          <Frame active="votaciones"><VotacionesScreen /></Frame>
+        </DCArtboard>
+        <DCArtboard id="reservas" label="07 · Reservas (calendario semanal)" width={1320} height={1080} data-screen-label="07 Reservas">
+          <Frame active="reservas"><ReservasScreen /></Frame>
+        </DCArtboard>
+        <DCArtboard id="visitas" label="08 · Visitas (timeline tiempo real)" width={1320} height={1180} data-screen-label="08 Visitas">
+          <Frame active="visitas"><VisitasScreen /></Frame>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection
+        id="administracion"
+        title="Administración"
+        subtitle="Personal, proveedores, soporte y configuración del consorcio."
+      >
+        <DCArtboard id="personal" label="09 · Personal" width={1320} height={980} data-screen-label="09 Personal">
+          <Frame active="personal"><PersonalScreen /></Frame>
+        </DCArtboard>
+        <DCArtboard id="proveedores" label="10 · Proveedores" width={1320} height={1380} data-screen-label="10 Proveedores">
+          <Frame active="proveedores"><ProveedoresScreen /></Frame>
+        </DCArtboard>
+        <DCArtboard id="soporte" label="11 · Soporte" width={1320} height={1080} data-screen-label="11 Soporte">
+          <Frame active="soporte"><SoporteScreen /></Frame>
+        </DCArtboard>
+        <DCArtboard id="config" label="12 · Configuración" width={1320} height={1480} data-screen-label="12 Configuración">
+          <Frame active="config"><ConfigScreen /></Frame>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection
+        id="mobile"
+        title="Mobile"
+        subtitle="Patrón general — bottom tab bar + cards densas. Mostramos Inicio y Cobranza como referencia."
+      >
+        <DCArtboard id="mobile-inicio" label="06 · Mobile · Inicio" width={400} height={820} data-screen-label="06 Mobile Inicio">
+          <div style={{ background: '#1c1c1c', height: '100%', display: 'grid', placeItems: 'center' }}>
+            <div className="ga"><MobileInicio /></div>
+          </div>
+        </DCArtboard>
+        <DCArtboard id="mobile-fin" label="07 · Mobile · Cobranza" width={400} height={820} data-screen-label="07 Mobile Cobranza">
+          <div style={{ background: '#1c1c1c', height: '100%', display: 'grid', placeItems: 'center' }}>
+            <div className="ga"><MobileFinanzas /></div>
+          </div>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection
+        id="states"
+        title="Componentes &amp; estados"
+        subtitle="Lenguaje visual del sistema y un ejemplo de modal de confirmación."
+      >
+        <DCArtboard id="ds" label="08 · Sistema visual" width={1100} height={1080} data-screen-label="08 Sistema">
+          <div className="ga" style={{ height: '100%', overflow: 'auto' }}>
+            <DesignSystemShowcase />
+          </div>
+        </DCArtboard>
+        <DCArtboard id="modal" label="09 · Modal de confirmación" width={900} height={680} data-screen-label="09 Modal">
+          <div className="ga" style={{ height: '100%', position: 'relative' }}>
+            {/* Faint mockup behind for context */}
+            <div style={{ position: 'absolute', inset: 0, background: 'var(--bg-1)', filter: 'blur(2px)', opacity: 0.7, padding: 30 }}>
+              <div style={{ background: 'var(--bg-2)', height: '100%', borderRadius: 8, border: '1px solid var(--line-1)' }}></div>
+            </div>
+            <ModalShowcase />
+          </div>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection
+        id="notes"
+        title="Notas de diseño"
+        subtitle=""
+      >
+        <DCArtboard id="rationale" label="Decisiones &amp; próximos pasos" width={720} height={680}>
+          <Rationale />
+        </DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+
+  const Rationale = () => (
+    <div className="ga" style={{ height: '100%', overflow: 'auto' }}>
+      <div style={{ padding: 28, background: 'var(--bg-1)', height: '100%', minHeight: '100%' }}>
+        <div className="kicker"><span className="dot"></span>Por qué este rediseño</div>
+        <h2 style={{ fontSize: 24, marginTop: 6, marginBottom: 18 }}>Tres apuestas</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
+          {[
+            { n: '01', title: 'El hero te dice qué hacer', body: 'En lugar de un slogan, el panel "Hoy te necesita" prioriza 2-4 acciones concretas con SLA visible. Reduce la fatiga del admin que abre el sistema sin saber por dónde empezar.' },
+            { n: '02', title: 'Densidad útil, no compresión', body: 'Pasamos de cards muy aireadas a una grilla de 4 KPIs + tablas de 11px-13px con tabular numerals. Cabe un 40% más de información sin sentirse apretado, gracias a la jerarquía tipográfica de Inter Tight + Inter.' },
+            { n: '03', title: 'El verde se gana su lugar', body: 'Antes el acento aparecía en todos lados. Ahora se reserva para CTAs primarios, métricas clave y métricas en vivo (votaciones). Los estados usan paletas funcionales (rojo / naranja / azul) para que el verde signifique algo.' },
+          ].map((p, i) => (
+            <div key={i} style={{ display: 'flex', gap: 14 }}>
+              <div className="mono" style={{ fontSize: 14, color: 'var(--acc-1)', fontWeight: 600 }}>{p.n}</div>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink-0)', marginBottom: 4 }}>{p.title}</div>
+                <div style={{ fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.55 }}>{p.body}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ height: 1, background: 'var(--line-1)', margin: '8px 0 18px' }}></div>
+
+        <div className="kicker"><span className="dot"></span>Próximos pasos sugeridos</div>
+        <h2 style={{ fontSize: 18, marginTop: 6, marginBottom: 12 }}>¿Qué exploro a continuación?</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {[
+            'Operaciones: votaciones (vista detalle), reservas (calendario), visitas (timeline)',
+            'Configuración: roles, permisos, integraciones (MP, Galicia, WhatsApp Business)',
+            'Tablero del propietario (vista pública): cómo lo ve un vecino al loguearse',
+            'Estados vacíos, errores, cargas — y la primera vez que un admin entra al producto',
+            'Variante alternativa: navegación por topbar + tabs (sin sidebar) para horizontalizar',
+          ].map((n, i) => (
+            <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 0', borderBottom: i < 4 ? '1px solid var(--line-1)' : 'none' }}>
+              <Icon name="arrowRight" size={14} style={{ color: 'var(--acc-1)', marginTop: 3 }} />
+              <span style={{ fontSize: 12.5, color: 'var(--ink-1)' }}>{n}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  // Wait for all babel scripts to register their globals before mounting.
+  const tryMount = () => {
+    if (window.DesignCanvas && window.InicioScreen && window.FinanzasScreen
+        && window.PropietariosScreen && window.ComunicadosScreen && window.ReclamosScreen
+        && window.VotacionesScreen && window.ReservasScreen && window.VisitasScreen
+        && window.PersonalScreen && window.ProveedoresScreen && window.SoporteScreen && window.ConfigScreen
+        && window.MobileInicio && window.DesignSystemShowcase) {
+      ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    } else {
+      setTimeout(tryMount, 30);
+    }
+  };
+  tryMount();
+</script>
+</body>
+</html>

@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GestionAr — Exploración de logo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  :root {
+    --bg: #0e1512;
+    --bg-2: #131b17;
+    --surface: #18221d;
+    --border: rgba(255,255,255,0.08);
+    --text: #eef1ed;
+    --text-dim: #a8b3ac;
+    --text-faint: #6b7870;
+    --green: #9cf27b;
+    --green-soft: rgba(156, 242, 123, 0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 48px 32px 120px;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Inter Tight', sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  .container { max-width: 1280px; margin: 0 auto; }
+
+  header { margin-bottom: 56px; padding-bottom: 32px; border-bottom: 1px solid var(--border); }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px 6px 10px;
+    background: var(--green-soft);
+    border: 1px solid rgba(156, 242, 123, 0.2);
+    border-radius: 999px;
+    font-size: 11px; font-weight: 500; color: var(--green);
+    margin-bottom: 18px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+  .eyebrow .dot { width:6px; height:6px; border-radius:50%; background: var(--green); }
+  header h1 { font-size: 44px; margin-bottom: 14px; }
+  header h1 em { color: var(--green); font-style: italic; font-weight: 500; }
+  header p { color: var(--text-dim); max-width: 680px; font-size: 16px; text-wrap: pretty; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 48px;
+  }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  .option {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  .option:hover {
+    border-color: rgba(156, 242, 123, 0.25);
+    transform: translateY(-2px);
+  }
+
+  .opt-head {
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .opt-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--green);
+    letter-spacing: 0.08em;
+  }
+  .opt-title {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+  .opt-desc {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+
+  .big-canvas {
+    aspect-ratio: 1 / 0.9;
+    background: var(--bg);
+    display: grid;
+    place-items: center;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .big-canvas::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 40%, rgba(156,242,123,0.04), transparent 60%);
+    pointer-events: none;
+  }
+
+  .variants {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+  }
+  .var-cell {
+    aspect-ratio: 1/1;
+    display: grid;
+    place-items: center;
+  }
+  .var-cell.bg-green { background: var(--green); }
+  .var-cell.bg-light { background: #eef1ed; }
+  .var-cell.bg-dark { background: var(--bg); }
+
+  .opt-foot {
+    padding: 16px 22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .lockup {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .word {
+    font-family: 'Inter Tight', sans-serif;
+    font-weight: 700;
+    font-size: 32px;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+  .word .ar { color: var(--green); font-style: italic; font-weight: 500; }
+
+  .note {
+    font-size: 13px;
+    color: var(--text-faint);
+    margin-top: 48px;
+    padding: 20px 24px;
+    border-left: 2px solid var(--green);
+    background: var(--bg-2);
+    border-radius: 0 10px 10px 0;
+    line-height: 1.6;
+    max-width: 720px;
+  }
+</style>
+</head>
+<body>
+<div class="container" id="root"></div>
+
+<script type="text/babel" data-presets="env,react">
+
+// ============================================================================
+// OPTION 1 — "Bracket" · Corchetes angulares tipo terminal/tech
+// Idea: gestión = estructura. Dos llaves que contienen algo (el barrio).
+// ============================================================================
+const LogoBracket = ({ size = 100, fg = '#9cf27b', accent = '#eef1ed' }) => (
+  <svg width={size} height={size} viewBox="0 0 100 100">
+    <path d="M 30 22 L 18 22 L 18 78 L 30 78" stroke={fg} strokeWidth="8" fill="none" strokeLinecap="square" strokeLinejoin="miter"/>
+    <path d="M 70 22 L 82 22 L 82 78 L 70 78" stroke={fg} strokeWidth="8" fill="none" strokeLinecap="square" strokeLinejoin="miter"/>
+    <rect x="40" y="40" width="20" height="20" fill={accent}/>
+  </svg>
+);
+
+// ============================================================================
+// OPTION 2 — "Hoja-Flecha" · Una hoja estilizada que apunta hacia arriba
+// Idea: crecimiento + naturaleza (verde del barrio). Orgánico.
+// ============================================================================
+const LogoLeaf = ({ size = 100, fg = '#9cf27b', accent = '#0e1512' }) => (
+  <svg width={size} height={size} viewBox="0 0 100 100">
+    <path
+      d="M 50 12 C 72 12, 84 28, 84 52 C 84 72, 68 84, 50 88 C 32 84, 16 72, 16 52 C 16 28, 28 12, 50 12 Z"
+      fill={fg}
+    />
+    <path
+      d="M 50 22 L 50 78 M 50 40 L 36 50 M 50 52 L 36 62 M 50 40 L 64 50 M 50 52 L 64 62"
+      stroke={accent}
+      strokeWidth="3"
+      strokeLinecap="round"
+      fill="none"
+    />
+  </svg>
+);
+
+// ============================================================================
+// OPTION 3 — "Casas-G" · Tres techos formando una G monograma
+// Idea: literal y directo. Comunidad de casas + inicial.
+// ============================================================================
+const LogoHouses = ({ size = 100, fg = '#9cf27b', accent = '#eef1ed' }) => (
+  <svg width={size} height={size} viewBox="0 0 100 100">
+    {/* Techo 1 */}
+    <path d="M 18 54 L 35 38 L 52 54 L 52 74 L 18 74 Z" fill={fg}/>
+    {/* Techo 2 en frente, desplazado */}
+    <path d="M 48 54 L 65 38 L 82 54 L 82 74 L 48 74 Z" fill={accent}/>
+    {/* Ventana indicando G */}
+    <rect x="62" y="60" width="6" height="8" fill={fg}/>
+    <rect x="72" y="60" width="6" height="8" fill={fg}/>
+    {/* Arco superior abstracto */}
+    <path d="M 20 38 Q 50 18 80 38" stroke={fg} strokeWidth="5" fill="none" strokeLinecap="round"/>
+  </svg>
+);
+
+// ============================================================================
+// OPTION 4 — "Círculo infinito" · Un círculo hecho de un trazo que se cierra
+// Idea: gestión continua, ciclo, confianza. Muy limpio y escalable.
+// Sutil "notch" que lo hace reconocible como G.
+// ============================================================================
+const LogoCircle = ({ size = 100, fg = '#9cf27b', accent = '#0e1512' }) => (
+  <svg width={size} height={size} viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="32" fill="none" stroke={fg} strokeWidth="10"/>
+    {/* Notch que convierte el círculo en G */}
+    <rect x="50" y="44" width="28" height="10" fill="#0e1512"/>
+    <rect x="66" y="44" width="12" height="10" fill={fg}/>
+    <circle cx="50" cy="50" r="4" fill={fg}/>
+  </svg>
+);
+
+// ============================================================================
+// OPTION 5 — "Monograma GA" · Las dos letras G + A fusionadas
+// Idea: ligadura tipográfica custom. Elegante y profesional.
+// La G contiene la A en su interior.
+// ============================================================================
+const LogoMonogram = ({ size = 100, fg = '#9cf27b', accent = '#0e1512' }) => (
+  <svg width={size} height={size} viewBox="0 0 100 100">
+    {/* Rect contenedor con radio */}
+    <rect x="0" y="0" width="100" height="100" rx="24" fill={accent}/>
+    {/* La G: arco grueso */}
+    <path
+      d="M 50 24
+         A 26 26 0 1 0 76 50
+         L 52 50"
+      stroke={fg}
+      strokeWidth="10"
+      fill="none"
+      strokeLinecap="butt"
+    />
+    {/* La A: triángulo dentro */}
+    <path d="M 44 72 L 54 50 L 64 72 M 48 64 L 60 64" stroke={fg} strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+// ============================================================================
+// OPTION 6 — "Grid vecinal" · 9 puntos en grilla, algunos conectados
+// Idea: barrio = red de unidades. Abstracto, moderno, muy memorable.
+// Forma una G implícita a través de los puntos conectados.
+// ============================================================================
+const LogoGrid = ({ size = 100, fg = '#9cf27b', accent = '#eef1ed' }) => {
+  // Pattern: highlighted dots form a G shape
+  // Grid is 3x3 at positions 25, 50, 75
+  const positions = [[25,25],[50,25],[75,25],[25,50],[75,50],[25,75],[50,75],[75,75],[50,50]];
+  // G-shape highlighted indices: top row, left col, middle-right, bottom-right
+  const gShape = new Set([0,1,2,3,5,6,7,8]); // outer ring
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100">
+      {/* Connecting lines forming G */}
+      <path
+        d="M 25 25 L 75 25 M 25 25 L 25 75 L 75 75 L 75 50 L 50 50"
+        stroke={fg}
+        strokeWidth="5"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* Dots */}
+      {positions.map(([x,y], i) => (
+        <circle key={i} cx={x} cy={y} r={gShape.has(i) ? 5 : 3} fill={gShape.has(i) ? fg : accent} opacity={gShape.has(i) ? 1 : 0.4}/>
+      ))}
+    </svg>
+  );
+};
+
+// ============================================================================
+const OPTIONS = [
+  {
+    num: '01',
+    name: 'Bracket',
+    tag: 'ESTRUCTURAL · TECH',
+    desc: 'Corchetes angulares que contienen un punto central. Evoca orden, sistema, gestión. Minimalista y muy versátil en tamaños chicos.',
+    Logo: LogoBracket,
+    hint: 'NEGRITA · GEOMÉTRICO'
+  },
+  {
+    num: '02',
+    name: 'Hoja + Flecha',
+    tag: 'ORGÁNICO · CRECIMIENTO',
+    desc: 'Silueta de hoja con una flecha interior apuntando al cielo. Alude al verde del barrio privado y al crecimiento financiero.',
+    Logo: LogoLeaf,
+    hint: 'ORGÁNICO · NATURAL'
+  },
+  {
+    num: '03',
+    name: 'Casas',
+    tag: 'LITERAL · CALIDO',
+    desc: 'Dos techos superpuestos con un arco que sugiere una G mayúscula. Directo al sector y muy reconocible.',
+    Logo: LogoHouses,
+    hint: 'ILUSTRATIVO · CÁLIDO'
+  },
+  {
+    num: '04',
+    name: 'Ciclo',
+    tag: 'ABSTRACTO · CONTINUIDAD',
+    desc: 'Un círculo con un corte preciso que lo convierte en una G. Sugiere gestión continua, proceso, confianza. El más minimalista.',
+    Logo: LogoCircle,
+    hint: 'MINIMALISTA · ICÓNICO'
+  },
+  {
+    num: '05',
+    name: 'Monograma GA',
+    tag: 'TIPOGRÁFICO · ELEGANTE',
+    desc: 'La A encerrada dentro de la G. Ligadura custom que se lee como monograma. Profesional, sobrio, aspiracional.',
+    Logo: LogoMonogram,
+    hint: 'TIPOGRÁFICO · PREMIUM'
+  },
+  {
+    num: '06',
+    name: 'Grid vecinal',
+    tag: 'CONCEPTUAL · MODERNO',
+    desc: 'Nueve puntos en grilla unidos por trazos que dibujan una G. El barrio como red de unidades conectadas. Muy memorable y diferente.',
+    Logo: LogoGrid,
+    hint: 'CONCEPTUAL · DIFERENCIADO'
+  },
+];
+
+const App = () => (
+  <>
+    <header>
+      <div className="eyebrow"><span className="dot"/> EXPLORACIÓN · 6 DIRECCIONES</div>
+      <h1>Seis caminos para el logo de <em>GestionAr</em></h1>
+      <p>Cada opción toma un ángulo conceptual distinto: estructural, orgánico, literal, abstracto, tipográfico y conceptual. Elegí uno (o pedimos remezclar) y lo llevo a producción con sus variantes, splash y push.</p>
+    </header>
+
+    <div className="grid">
+      {OPTIONS.map((opt, i) => {
+        const L = opt.Logo;
+        return (
+          <div className="option" key={i}>
+            <div className="opt-head">
+              <div>
+                <div className="opt-num">{opt.num} · {opt.tag}</div>
+                <div className="opt-title">{opt.name}</div>
+                <div className="opt-desc">{opt.desc}</div>
+              </div>
+            </div>
+            <div className="big-canvas">
+              <div className="lockup">
+                <L size={72} />
+                <span className="word">Gestion<span className="ar">Ar</span></span>
+              </div>
+            </div>
+            <div className="variants">
+              <div className="var-cell bg-dark"><L size={64} fg="#9cf27b" accent="#eef1ed"/></div>
+              <div className="var-cell bg-green"><L size={64} fg="#0e1512" accent="#0e1512"/></div>
+              <div className="var-cell bg-light"><L size={64} fg="#0e1512" accent="#9cf27b"/></div>
+            </div>
+            <div className="opt-foot">
+              <span>{opt.hint}</span>
+              <span>3 FONDOS</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+
+    <div className="note">
+      <strong style={{color:'var(--text)'}}>Cómo elegir:</strong> mirá cada logo a tamaño chico (las celdas inferiores son de 64px) — el que sigue siendo nítido y memorable a ese tamaño es el ganador para favicon y push notification. Decime qué número te gusta y lo desarrollo completo con todas sus aplicaciones.
+    </div>
+  </>
+);
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

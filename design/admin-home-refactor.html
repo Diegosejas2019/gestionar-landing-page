@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Home · Refactor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #0a0f0d;
+    --bg-2: #0e1512;
+    --surface: #141c18;
+    --surface-2: #1a231e;
+    --border: rgba(255,255,255,0.07);
+    --border-strong: rgba(255,255,255,0.14);
+    --text: #eef1ed;
+    --text-dim: #98a49c;
+    --text-faint: #5f6b65;
+    --green: #9cf27b;
+    --green-2: #7de05b;
+    --green-deep: #2a5234;
+    --green-soft: rgba(156, 242, 123, 0.12);
+    --yellow: #f5c24a;
+    --yellow-soft: rgba(245, 194, 74, 0.12);
+    --red: #f07567;
+    --red-soft: rgba(240, 117, 103, 0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #070a09;
+    color: var(--text);
+    padding: 48px 24px 120px;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Inter Tight', sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  .container { max-width: 1400px; margin: 0 auto; }
+
+  header {
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px 6px 10px;
+    background: var(--green-soft);
+    border: 1px solid rgba(156, 242, 123, 0.2);
+    border-radius: 999px;
+    font-size: 11px; font-weight: 500; color: var(--green);
+    margin-bottom: 18px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+  .eyebrow .dot { width:6px; height:6px; border-radius:50%; background: var(--green); }
+  header h1 { font-size: 40px; margin-bottom: 12px; }
+  header h1 em { color: var(--green); font-style: italic; font-weight: 500; }
+  header p { color: var(--text-dim); max-width: 640px; font-size: 15px; text-wrap: pretty; }
+
+  /* Comparison layout */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+  @media (max-width: 1100px) { .compare { grid-template-columns: 1fr; } }
+
+  .col-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+  .col-title .tag {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+  }
+  .col-title .tag.before { background: rgba(240, 117, 103, 0.12); color: var(--red); border: 1px solid rgba(240,117,103,0.2); }
+  .col-title .tag.after { background: var(--green-soft); color: var(--green); border: 1px solid rgba(156,242,123,0.2); }
+
+  /* Phone frame */
+  .phone-wrap { display: flex; justify-content: center; margin-bottom: 24px; }
+  .phone {
+    width: 390px;
+    height: 780px;
+    background: #000;
+    border-radius: 48px;
+    padding: 10px;
+    box-shadow:
+      inset 0 0 0 2px rgba(255,255,255,0.06),
+      0 40px 80px -30px rgba(0,0,0,0.8);
+    position: relative;
+  }
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    background: var(--bg);
+    border-radius: 40px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .notch {
+    position: absolute;
+    top: 12px; left: 50%;
+    transform: translateX(-50%);
+    width: 110px; height: 32px;
+    background: #000;
+    border-radius: 16px;
+    z-index: 20;
+  }
+  .statusbar {
+    height: 44px;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    padding-top: 14px;
+  }
+  .status-icons { display: flex; gap: 5px; align-items: center; }
+
+  /* App chrome */
+  .app-nav {
+    padding: 8px 20px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .logo-mini {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Inter Tight', sans-serif;
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: -0.03em;
+  }
+  .logo-mini .mark {
+    width: 24px; height: 24px;
+    display: grid;
+    place-items: center;
+  }
+  .logo-mini .ar { color: var(--green); font-style: italic; font-weight: 500; }
+  .logo-mini .dot-live { width: 6px; height: 6px; border-radius: 50%; background: var(--green); margin-left: 2px; }
+
+  .nav-right { display: flex; align-items: center; gap: 10px; }
+  .avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--green);
+    color: var(--bg);
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    font-size: 12px;
+    font-family: 'Inter Tight', sans-serif;
+  }
+  .avatar-info { line-height: 1.2; }
+  .avatar-name { font-size: 12px; font-weight: 600; }
+  .avatar-role { font-size: 10px; color: var(--text-faint); }
+  .icon-btn {
+    width: 32px; height: 32px;
+    border-radius: 9px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: grid;
+    place-items: center;
+    color: var(--text-dim);
+  }
+
+  /* Scroll body */
+  .app-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 16px 100px;
+  }
+  .app-body::-webkit-scrollbar { width: 0; }
+
+  /* Tab bar */
+  .tabbar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(14, 21, 18, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    padding: 10px 0 24px;
+    display: flex;
+    justify-content: space-around;
+    z-index: 10;
+  }
+  .tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--text-faint);
+    font-weight: 500;
+    position: relative;
+    padding: 4px 12px;
+  }
+  .tab.active {
+    color: var(--green);
+  }
+  .tab.active::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    width: 28px; height: 2px;
+    background: var(--green);
+    border-radius: 2px;
+  }
+
+  /* ============ BEFORE styles (legacy) ============ */
+  .old-h { font-family: 'Inter Tight', sans-serif; font-weight: 700; letter-spacing: -0.02em; }
+  .old-h1 { font-size: 28px; margin-bottom: 2px; }
+  .old-h-sub-pre { font-size: 12px; color: var(--text-dim); margin-bottom: 2px; font-weight: 500; }
+  .old-h-sub { font-size: 12px; color: var(--text-faint); margin-bottom: 18px; }
+  .old-kpi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .old-kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+  }
+  .old-kpi .lbl { font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--text-faint); letter-spacing: 0.08em; margin-bottom: 6px; }
+  .old-kpi .val { font-family: 'Inter Tight', sans-serif; font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 8px; }
+  .old-kpi .sub { font-size: 11px; color: var(--text-dim); }
+  .old-kpi .val.y { color: var(--yellow); }
+  .old-kpi .val.g { color: var(--green); }
+  .old-kpi .val.r { color: var(--red); }
+  .old-reminder {
+    background: linear-gradient(90deg, rgba(156,242,123,0.08), transparent);
+    border: 1px solid rgba(156,242,123,0.2);
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .old-reminder-body { flex: 1; }
+  .old-reminder h4 { font-size: 13px; margin-bottom: 2px; }
+  .old-reminder p { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
+  .old-btn-green {
+    background: var(--green);
+    color: var(--bg);
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .old-list-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .old-list-head {
+    padding: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .old-list-head h3 { font-size: 14px; }
+  .badge-y {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--yellow-soft);
+    color: var(--yellow);
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .old-row {
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .old-row:last-child { border-bottom: 0; }
+  .old-row-body { flex: 1; min-width: 0; }
+  .old-row-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .old-row-meta { font-size: 11px; color: var(--text-dim); }
+  .old-row-link { font-size: 11px; color: var(--green); text-decoration: underline; margin-top: 3px; display: inline-block; }
+  .old-btn-sm {
+    width: 34px; height: 30px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+  }
+  .old-btn-sm.ok { background: rgba(156,242,123,0.15); color: var(--green); border: 1px solid rgba(156,242,123,0.25); }
+  .old-btn-sm.no { background: rgba(240,117,103,0.12); color: var(--red); border: 1px solid rgba(240,117,103,0.25); }
+
+  /* ============ AFTER styles ============ */
+  .new-greeting {
+    padding: 4px 0 12px;
+  }
+  .new-greeting .hello {
+    font-size: 12px;
+    color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .new-greeting h1 {
+    font-size: 26px;
+    line-height: 1.15;
+    margin-bottom: 6px;
+  }
+  .new-greeting h1 em { color: var(--green); font-style: normal; font-weight: 600; }
+  .new-greeting .loc {
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .new-greeting .loc svg { flex-shrink: 0; }
+  .new-greeting .loc .sep { color: var(--text-faint); }
+
+  /* HERO estado general */
+  .hero-status {
+    margin-top: 14px;
+    background: linear-gradient(140deg, #18241e 0%, #101816 100%);
+    border: 1px solid var(--border-strong);
+    border-radius: 22px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-status::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 180px; height: 180px;
+    background: radial-gradient(circle, rgba(156,242,123,0.18), transparent 60%);
+    pointer-events: none;
+  }
+  .hero-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .hero-label {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--green);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .hero-label .pulse {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 0 3px rgba(156,242,123,0.2);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  .hero-period {
+    font-size: 10px;
+    color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .hero-main {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .hero-percent {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 56px;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+    color: var(--text);
+    display: flex;
+    align-items: flex-start;
+  }
+  .hero-percent .pct { font-size: 22px; margin-top: 10px; margin-left: 2px; color: var(--green); font-weight: 600; }
+  .hero-percent .arrow {
+    font-size: 13px;
+    color: var(--green);
+    font-weight: 500;
+    margin-left: 10px;
+    margin-bottom: 10px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .hero-desc {
+    flex: 1;
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.45;
+    padding-bottom: 6px;
+  }
+  .hero-desc strong { color: var(--text); font-weight: 600; }
+
+  /* Progress bar */
+  .hero-bar {
+    height: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 14px;
+  }
+  .hero-bar .fill {
+    height: 100%;
+    width: 83%;
+    background: linear-gradient(90deg, var(--green), var(--green-2));
+    border-radius: 999px;
+  }
+
+  /* Hero quick stats */
+  .hero-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+    position: relative;
+  }
+  .hero-stat {
+    padding: 0 4px;
+    position: relative;
+  }
+  .hero-stat + .hero-stat::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 4px; bottom: 4px;
+    width: 1px;
+    background: var(--border);
+  }
+  .hero-stat .num {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 3px;
+  }
+  .hero-stat.warn .num { color: var(--yellow); }
+  .hero-stat.alert .num { color: var(--red); }
+  .hero-stat .lbl {
+    font-size: 10px;
+    color: var(--text-dim);
+    line-height: 1.2;
+  }
+
+  /* Section title */
+  .section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 26px;
+    margin-bottom: 12px;
+  }
+  .section-title h2 {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .section-title .caption {
+    font-size: 10px;
+    color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* Quick actions */
+  .actions-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .action {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+    position: relative;
+    overflow: hidden;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .action:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+  .action .ico {
+    width: 30px; height: 30px;
+    border-radius: 9px;
+    background: var(--green-soft);
+    color: var(--green);
+    display: grid;
+    place-items: center;
+    margin-bottom: 12px;
+  }
+  .action.warn .ico { background: var(--yellow-soft); color: var(--yellow); }
+  .action.alert .ico { background: var(--red-soft); color: var(--red); }
+  .action .title {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 3px;
+    line-height: 1.2;
+  }
+  .action .sub {
+    font-size: 10px;
+    color: var(--text-dim);
+    line-height: 1.35;
+  }
+  .action .badge {
+    position: absolute;
+    top: 12px; right: 12px;
+    min-width: 18px; height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--yellow);
+    color: var(--bg);
+    font-size: 10px;
+    font-weight: 700;
+    display: grid;
+    place-items: center;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .action.alert .badge { background: var(--red); color: #fff; }
+
+  .action-wide {
+    grid-column: span 2;
+    background: linear-gradient(100deg, rgba(156,242,123,0.1) 0%, var(--surface) 60%);
+    border: 1px solid rgba(156,242,123,0.25);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+  }
+  .action-wide .ico { margin-bottom: 0; width: 38px; height: 38px; flex-shrink: 0; }
+  .action-wide .ico-body { flex: 1; }
+  .action-wide .title { margin-bottom: 1px; font-size: 13px; }
+  .action-wide .sub { font-size: 11px; }
+  .action-wide .chev { color: var(--green); flex-shrink: 0; }
+
+  /* Reminders card */
+  .reminder-card {
+    background: linear-gradient(135deg, #2b4a2f 0%, #1a2d1d 100%);
+    border: 1px solid rgba(156,242,123,0.3);
+    border-radius: 16px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    margin-top: 10px;
+  }
+  .reminder-card::before {
+    content: '';
+    position: absolute;
+    top: -20px; right: -20px;
+    width: 140px; height: 140px;
+    background: radial-gradient(circle, rgba(156,242,123,0.2), transparent 60%);
+    pointer-events: none;
+  }
+  .reminder-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+    position: relative;
+  }
+  .reminder-tag {
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--green);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: rgba(156,242,123,0.12);
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(156,242,123,0.2);
+  }
+  .reminder-card .big {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+    position: relative;
+  }
+  .reminder-card .big em {
+    color: var(--green);
+    font-style: normal;
+    font-weight: 700;
+  }
+  .reminder-card p {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.4;
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .reminder-btn {
+    width: 100%;
+    background: var(--green);
+    color: var(--bg);
+    border: none;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-family: inherit;
+    cursor: pointer;
+    position: relative;
+  }
+
+  /* Pending list */
+  .pending-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-top: 10px;
+  }
+  .pending-head {
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .pending-head h3 {
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pending-count {
+    background: var(--yellow-soft);
+    color: var(--yellow);
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .pending-view-all {
+    font-size: 11px;
+    color: var(--green);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .pending-row {
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .pending-row:last-child { border-bottom: 0; }
+  .pending-ava {
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    background: var(--surface-2);
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-dim);
+    flex-shrink: 0;
+    font-family: 'Inter Tight', sans-serif;
+  }
+  .pending-info { flex: 1; min-width: 0; }
+  .pending-name {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.2;
+    margin-bottom: 3px;
+  }
+  .pending-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .pending-meta .amt { color: var(--green); font-weight: 500; }
+  .pending-meta .dot { color: var(--text-faint); }
+  .pending-meta .period { color: var(--text-dim); }
+  .pending-actions {
+    display: flex;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+  .pa-btn {
+    width: 32px; height: 32px;
+    border-radius: 9px;
+    display: grid;
+    place-items: center;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .pa-btn.ok {
+    background: var(--green-soft);
+    color: var(--green);
+    border-color: rgba(156,242,123,0.2);
+  }
+  .pa-btn.ok:hover { background: rgba(156,242,123,0.2); }
+  .pa-btn.no {
+    background: var(--red-soft);
+    color: var(--red);
+    border-color: rgba(240,117,103,0.2);
+  }
+  .pa-btn.view {
+    width: auto;
+    padding: 0 10px;
+    background: transparent;
+    color: var(--text-dim);
+    border-color: var(--border);
+    font-size: 11px;
+    font-weight: 500;
+    gap: 3px;
+    display: flex;
+  }
+
+  /* Last updated chip */
+  .last-updated {
+    margin-top: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 10px;
+    color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+  .last-updated .tick {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 0 3px rgba(156,242,123,0.15);
+  }
+
+  /* Annotations */
+  .annot {
+    max-width: 380px;
+    margin-top: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .annot-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    position: relative;
+  }
+  .annot-item::before {
+    content: '';
+    position: absolute;
+    left: -1px; top: 14px; bottom: 14px;
+    width: 3px;
+    background: var(--green);
+    border-radius: 0 3px 3px 0;
+  }
+  .annot-item.remove::before { background: var(--red); }
+  .annot-item .a-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--green);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .annot-item.remove .a-label { color: var(--red); }
+  .annot-item .a-title {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .annot-item p {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  /* Principles */
+  .principles {
+    margin-top: 64px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+  .principles h2 {
+    font-size: 22px;
+    margin-bottom: 24px;
+  }
+  .principles-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  @media (max-width: 900px) { .principles-grid { grid-template-columns: 1fr; } }
+  .principle {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 24px;
+  }
+  .principle .n {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--green);
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+  }
+  .principle h3 {
+    font-size: 17px;
+    margin-bottom: 8px;
+  }
+  .principle p {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.55;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="eyebrow"><span class="dot"></span> REFACTOR · ADMIN HOME</div>
+    <h1>De dashboard duplicado a pantalla <em>operativa</em>.</h1>
+    <p>La pantalla Inicio ya no compite con Finanzas. Responde una sola pregunta: <strong style="color:var(--text)">¿qué tengo que hacer ahora?</strong> Los KPIs históricos y gráficos viven en Finanzas; acá manda lo accionable.</p>
+  </header>
+
+  <div class="compare">
+
+    <!-- ================== BEFORE ================== -->
+    <div>
+      <div class="col-title">
+        <span class="tag before">ANTES</span>
+        <span>Estado actual · duplicado del dashboard</span>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="phone-screen">
+            <div class="statusbar">
+              <span>9:41</span>
+              <span class="status-icons">
+                <svg width="14" height="10" viewBox="0 0 14 10" fill="none"><path d="M1 8h2M4 6h2M7 4h2M10 2h2" stroke="#eef1ed" stroke-width="1.6" stroke-linecap="round"/></svg>
+                <svg width="22" height="10" viewBox="0 0 22 10" fill="none"><rect x="0.5" y="0.5" width="18" height="9" rx="2" stroke="#eef1ed"/><rect x="2" y="2" width="15" height="6" rx="1" fill="#eef1ed"/><rect x="19" y="3" width="2" height="4" rx="0.5" fill="#eef1ed"/></svg>
+              </span>
+            </div>
+            <div class="app-nav">
+              <div class="logo-mini">
+                <span class="mark">
+                  <svg width="22" height="22" viewBox="0 0 100 100">
+                    <path d="M 30 22 L 18 22 L 18 78 L 30 78" stroke="#eef1ed" stroke-width="10" fill="none" stroke-linecap="square"/>
+                    <path d="M 70 22 L 82 22 L 82 78 L 70 78" stroke="#eef1ed" stroke-width="10" fill="none" stroke-linecap="square"/>
+                    <rect x="40" y="40" width="20" height="20" fill="#9cf27b"/>
+                  </svg>
+                </span>
+                Gestion<span class="ar">Ar</span><span class="dot-live"></span>
+              </div>
+              <div class="nav-right">
+                <div class="avatar">AB</div>
+                <div class="avatar-info">
+                  <div class="avatar-name">Administración Barrio</div>
+                  <div class="avatar-role">Administrador</div>
+                </div>
+                <div class="icon-btn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="app-body">
+              <div class="old-h-sub-pre">Panel de</div>
+              <div class="old-h old-h1">Administración</div>
+              <div class="old-h-sub">Barrio El Edén 1 ·</div>
+
+              <div class="old-kpi-grid">
+                <div class="old-kpi">
+                  <div class="lbl">PENDIENTES</div>
+                  <div class="val y">5</div>
+                  <div class="sub">por revisar ›</div>
+                </div>
+                <div class="old-kpi">
+                  <div class="lbl">CUMPLIMIENTO</div>
+                  <div class="val g">83%</div>
+                  <div class="sub">10 de 12 ›</div>
+                </div>
+                <div class="old-kpi">
+                  <div class="lbl">MOROSOS</div>
+                  <div class="val r">2</div>
+                  <div class="sub">propietarios ›</div>
+                </div>
+                <div class="old-kpi">
+                  <div class="lbl">RECAUDADO</div>
+                  <div class="val g">$180k</div>
+                  <div class="sub">histórico ›</div>
+                </div>
+              </div>
+
+              <div class="old-reminder">
+                <div class="old-reminder-body">
+                  <h4>Recordatorios de vencimiento</h4>
+                  <p>Envía push a propietarios sin pago aprobado este mes</p>
+                </div>
+                <span class="old-btn-green">Enviar ahora</span>
+              </div>
+
+              <div class="old-list-card">
+                <div class="old-list-head">
+                  <h3>Comprobantes Pendientes</h3>
+                  <span class="badge-y">5</span>
+                </div>
+                <div class="old-row">
+                  <div class="old-row-body">
+                    <div class="old-row-name">Diego Sejas2</div>
+                    <div class="old-row-meta">1 · Ene 2026 · $30.000</div>
+                    <a class="old-row-link">Ver comprobante ↗</a>
+                  </div>
+                  <span class="old-btn-sm ok">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </span>
+                  <span class="old-btn-sm no">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </span>
+                </div>
+                <div class="old-row">
+                  <div class="old-row-body">
+                    <div class="old-row-name">Diego Sejas2</div>
+                    <div class="old-row-meta">1 · Jun 2026 · $30.000</div>
+                  </div>
+                  <span class="old-btn-sm ok">✓</span>
+                  <span class="old-btn-sm no">✕</span>
+                </div>
+                <div class="old-row">
+                  <div class="old-row-body">
+                    <div class="old-row-name">Diego Sejas2</div>
+                    <div class="old-row-meta">1 · Feb 2026 · $30.000</div>
+                  </div>
+                  <span class="old-btn-sm ok">✓</span>
+                  <span class="old-btn-sm no">✕</span>
+                </div>
+              </div>
+            </div>
+            <div class="tabbar">
+              <div class="tab active">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                <span>Inicio</span>
+              </div>
+              <div class="tab">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                <span>Finanzas</span>
+              </div>
+              <div class="tab">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span>Comunidad</span>
+              </div>
+              <div class="tab">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                <span>Más</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="annot">
+        <div class="annot-item remove">
+          <div class="a-label">Problema</div>
+          <div class="a-title">4 KPIs del mismo peso visual</div>
+          <p>"Recaudado $180k" y "Cumplimiento 83%" son retrospectivos — no son accionables. Pertenecen a Finanzas, no a Inicio.</p>
+        </div>
+        <div class="annot-item remove">
+          <div class="a-label">Problema</div>
+          <div class="a-title">Sin foco en acciones</div>
+          <p>Todo se ve igual. La comisión no sabe dónde tocar primero. El botón "Enviar ahora" queda perdido entre los KPIs.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================== AFTER ================== -->
+    <div>
+      <div class="col-title">
+        <span class="tag after">DESPUÉS</span>
+        <span>Operativo · "¿qué tengo que hacer ahora?"</span>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="phone-screen">
+            <div class="statusbar">
+              <span>9:41</span>
+              <span class="status-icons">
+                <svg width="14" height="10" viewBox="0 0 14 10" fill="none"><path d="M1 8h2M4 6h2M7 4h2M10 2h2" stroke="#eef1ed" stroke-width="1.6" stroke-linecap="round"/></svg>
+                <svg width="22" height="10" viewBox="0 0 22 10" fill="none"><rect x="0.5" y="0.5" width="18" height="9" rx="2" stroke="#eef1ed"/><rect x="2" y="2" width="15" height="6" rx="1" fill="#eef1ed"/><rect x="19" y="3" width="2" height="4" rx="0.5" fill="#eef1ed"/></svg>
+              </span>
+            </div>
+            <div class="app-nav">
+              <div class="logo-mini">
+                <span class="mark">
+                  <svg width="22" height="22" viewBox="0 0 100 100">
+                    <path d="M 30 22 L 18 22 L 18 78 L 30 78" stroke="#eef1ed" stroke-width="10" fill="none" stroke-linecap="square"/>
+                    <path d="M 70 22 L 82 22 L 82 78 L 70 78" stroke="#eef1ed" stroke-width="10" fill="none" stroke-linecap="square"/>
+                    <rect x="40" y="40" width="20" height="20" fill="#9cf27b"/>
+                  </svg>
+                </span>
+                Gestion<span class="ar">Ar</span><span class="dot-live"></span>
+              </div>
+              <div class="nav-right">
+                <div class="avatar">AB</div>
+                <div class="icon-btn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="app-body">
+              <!-- Greeting -->
+              <div class="new-greeting">
+                <div class="hello">BUENOS DÍAS · VIE 24 ABR</div>
+                <h1>Hola, <em>Agustín</em> 👋</h1>
+                <div class="loc">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  Barrio El Edén 1
+                  <span class="sep">·</span>
+                  12 propietarios
+                </div>
+              </div>
+
+              <!-- HERO estado general -->
+              <div class="hero-status">
+                <div class="hero-top">
+                  <div class="hero-label"><span class="pulse"></span> ESTADO DEL CONSORCIO</div>
+                  <div class="hero-period">ABRIL 2026</div>
+                </div>
+
+                <div class="hero-main">
+                  <div class="hero-percent">
+                    83<span class="pct">%</span>
+                    <span class="arrow">↑ 4</span>
+                  </div>
+                  <div class="hero-desc">
+                    <strong>10 de 12</strong> propietarios al día este mes
+                  </div>
+                </div>
+
+                <div class="hero-bar"><div class="fill"></div></div>
+
+                <div class="hero-stats">
+                  <div class="hero-stat warn">
+                    <div class="num">5</div>
+                    <div class="lbl">Pagos por revisar</div>
+                  </div>
+                  <div class="hero-stat alert">
+                    <div class="num">2</div>
+                    <div class="lbl">Propietarios morosos</div>
+                  </div>
+                  <div class="hero-stat">
+                    <div class="num">0</div>
+                    <div class="lbl">Reclamos abiertos</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Acciones rápidas -->
+              <div class="section-title">
+                <h2>Acciones rápidas</h2>
+                <span class="caption">3 PENDIENTES</span>
+              </div>
+
+              <div class="actions-row">
+                <button class="action warn">
+                  <span class="badge">5</span>
+                  <div class="ico">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 15 11 17 15 13"/></svg>
+                  </div>
+                  <div class="title">Comprobantes por revisar</div>
+                  <div class="sub">Aprobá o rechazá pagos</div>
+                </button>
+
+                <button class="action alert">
+                  <span class="badge">2</span>
+                  <div class="ico">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  </div>
+                  <div class="title">Gestionar morosos</div>
+                  <div class="sub">Seguimiento y acuerdos</div>
+                </button>
+
+                <button class="action action-wide">
+                  <div class="ico">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                  </div>
+                  <div class="ico-body">
+                    <div class="title">Nuevo reclamo o comunicado</div>
+                    <div class="sub">Crear ticket, aviso de corte o evento</div>
+                  </div>
+                  <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+              </div>
+
+              <!-- Recordatorios destacado -->
+              <div class="reminder-card">
+                <div class="reminder-head">
+                  <span class="reminder-tag">RECORDATORIO PUSH</span>
+                </div>
+                <div class="big"><em>5 propietarios</em> sin pago<br>aprobado este mes</div>
+                <p>Enviá un recordatorio automático a quienes todavía no subieron comprobante.</p>
+                <button class="reminder-btn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                  Enviar recordatorios ahora
+                </button>
+              </div>
+
+              <!-- Pending list refinada -->
+              <div class="section-title">
+                <h2>Comprobantes por revisar</h2>
+              </div>
+              <div class="pending-card">
+                <div class="pending-head">
+                  <h3>5 esperando aprobación <span class="pending-count">NUEVOS</span></h3>
+                  <span class="pending-view-all">Ver todos →</span>
+                </div>
+
+                <div class="pending-row">
+                  <div class="pending-ava">DS</div>
+                  <div class="pending-info">
+                    <div class="pending-name">Diego Sejas</div>
+                    <div class="pending-meta">
+                      <span class="period">Ene 2026</span>
+                      <span class="dot">·</span>
+                      <span class="amt">$30.000</span>
+                    </div>
+                  </div>
+                  <div class="pending-actions">
+                    <div class="pa-btn ok">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                    <div class="pa-btn no">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="pending-row">
+                  <div class="pending-ava">MT</div>
+                  <div class="pending-info">
+                    <div class="pending-name">María Torres</div>
+                    <div class="pending-meta">
+                      <span class="period">Feb 2026</span>
+                      <span class="dot">·</span>
+                      <span class="amt">$30.000</span>
+                    </div>
+                  </div>
+                  <div class="pending-actions">
+                    <div class="pa-btn ok">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                    <div class="pa-btn no">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="pending-row">
+                  <div class="pending-ava">RM</div>
+                  <div class="pending-info">
+                    <div class="pending-name">Ricardo Morales</div>
+                    <div class="pending-meta">
+                      <span class="period">Mar 2026</span>
+                      <span class="dot">·</span>
+                      <span class="amt">$30.000</span>
+                    </div>
+                  </div>
+                  <div class="pending-actions">
+                    <div class="pa-btn ok">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                    <div class="pa-btn no">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="last-updated">
+                <span class="tick"></span>
+                Actualizado hace 2 min · sincronizando…
+              </div>
+
+            </div>
+            <div class="tabbar">
+              <div class="tab active">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                <span>Inicio</span>
+              </div>
+              <div class="tab">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                <span>Finanzas</span>
+              </div>
+              <div class="tab">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span>Comunidad</span>
+              </div>
+              <div class="tab">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                <span>Más</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="annot">
+        <div class="annot-item">
+          <div class="a-label">Cambio 01 · Hero</div>
+          <div class="a-title">Un solo número que importa: 83%</div>
+          <p>El estado del consorcio protagoniza la pantalla. Los 3 chips debajo (pendientes, morosos, reclamos) son accesos directos, no KPIs pasivos.</p>
+        </div>
+        <div class="annot-item">
+          <div class="a-label">Cambio 02 · Acciones</div>
+          <div class="a-title">3 acciones con jerarquía clara</div>
+          <p>Badges numéricos + iconos semánticos (amarillo/rojo/verde). El tercer botón es ancho porque es la acción creadora principal.</p>
+        </div>
+        <div class="annot-item">
+          <div class="a-label">Cambio 03 · Recordatorios</div>
+          <div class="a-title">Card protagónica, no embedada</div>
+          <p>Verde saturado, dato grande ("5 propietarios sin pago") y CTA ancho al 100%. Es la acción más usada cada cierre de mes.</p>
+        </div>
+        <div class="annot-item">
+          <div class="a-label">Cambio 04 · Lista</div>
+          <div class="a-title">Comprobantes más densos y accionables</div>
+          <p>Avatar con iniciales, meta en una línea, botones ✓/✕ grandes con color semántico. "Ver comprobante" se abre tocando la fila.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Principios -->
+  <section class="principles">
+    <div class="eyebrow"><span class="dot"></span> PRINCIPIOS</div>
+    <h2>Por qué este refactor funciona</h2>
+    <div class="principles-grid">
+      <div class="principle">
+        <div class="n">01</div>
+        <h3>Separación de intenciones</h3>
+        <p>Inicio = ¿qué hago ahora? Finanzas = ¿cómo venimos? Comunidad = ¿quiénes son? Cada tab responde una pregunta distinta, sin duplicar datos.</p>
+      </div>
+      <div class="principle">
+        <div class="n">02</div>
+        <h3>Una métrica importa más</h3>
+        <p>Cuatro KPIs del mismo tamaño = cero jerarquía. Un solo número grande (83%) con contexto abajo cuenta la historia en 2 segundos.</p>
+      </div>
+      <div class="principle">
+        <div class="n">03</div>
+        <h3>Color semántico, no decorativo</h3>
+        <p>El amarillo es "revisar", el rojo es "urgente", el verde es "ya está". Las acciones urgentes pesan más visualmente que las rutinarias.</p>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

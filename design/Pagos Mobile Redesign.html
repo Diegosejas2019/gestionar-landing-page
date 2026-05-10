@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GestionAr · Pagos Mobile · Rediseño</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="components.css" />
+  <link rel="stylesheet" href="screen-pay-redesign.css" />
+
+  <style>
+    body { margin: 0; background: #ededeb; font-family: 'Inter', sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="icons.jsx"></script>
+  <script type="text/babel" src="mobile-frame.jsx"></script>
+  <script type="text/babel" src="shared.jsx"></script>
+  <script type="text/babel" src="screen-pay-redesign.jsx"></script>
+
+  <script type="text/babel">
+    const { DesignCanvas, DCSection, DCArtboard, MobileFrame } = window;
+
+    const NotesCard = () => (
+      <div style={{
+        width: 760, padding: 28, background: '#fff', borderRadius: 18,
+        border: '1px solid #e2e2dd', fontFamily: 'Inter', color: '#1a1f1c',
+      }}>
+        <div style={{ font: '600 11px/1 Inter', letterSpacing: '.18em', textTransform: 'uppercase', color: '#7a8079' }}>Rediseño · Pagos</div>
+        <h1 style={{ font: '700 30px/1.1 "Inter Tight"', margin: '6px 0 8px', letterSpacing: '-0.02em' }}>
+          Pagar / Subir comprobante — versión mobile
+        </h1>
+        <p style={{ font: '400 14.5px/1.55 Inter', color: '#3c423e', maxWidth: 640, margin: 0 }}>
+          Tres direcciones para resolver el mismo problema. Todas eliminan el área de "Arrastrá tu archivo"
+          gigante (en mobile no se arrastra) y redistribuyen la pantalla para que el resumen y el CTA
+          de envío sean lo más visible. Mantenemos paleta dark + lima.
+        </p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginTop: 22 }}>
+          <div style={{ padding: 14, background: '#f6f6f3', borderRadius: 12, border: '1px solid #e6e6e0' }}>
+            <div style={{ font: '700 13px/1.2 "Inter Tight"', marginBottom: 4 }}>A · Compacto</div>
+            <div style={{ font: '400 12.5px/1.45 Inter', color: '#5a605c' }}>
+              Cambio mínimo. El upload pasa a un tile de un renglón con icono + texto. Nota colapsable.
+              Footer flotante con total + CTA siempre a la vista.
+            </div>
+          </div>
+          <div style={{ padding: 14, background: '#f6f6f3', borderRadius: 12, border: '1px solid #e6e6e0' }}>
+            <div style={{ font: '700 13px/1.2 "Inter Tight"', marginBottom: 4 }}>B · Por pasos</div>
+            <div style={{ font: '400 12.5px/1.45 Inter', color: '#5a605c' }}>
+              1·2·3. Una decisión por pantalla. En el paso de comprobante, dos cards grandes:
+              "Subir archivo" y "Tomar foto" — pensadas para el dedo, no para arrastrar.
+            </div>
+          </div>
+          <div style={{ padding: 14, background: '#f6f6f3', borderRadius: 12, border: '1px solid #e6e6e0' }}>
+            <div style={{ font: '700 13px/1.2 "Inter Tight"', marginBottom: 4 }}>C · Sheet nativo</div>
+            <div style={{ font: '400 12.5px/1.45 Inter', color: '#5a605c' }}>
+              Total destacado en hero. Adjuntar comprobante abre un bottom-sheet con
+              tres opciones: foto, archivo, o pago online. Lenguaje 100% mobile.
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 22, padding: 14, background: '#f0f5ec', borderRadius: 12, border: '1px solid #d8e7d0' }}>
+          <div style={{ font: '700 12px/1.2 "Inter Tight"', marginBottom: 6, color: '#2d4a23' }}>
+            Decisiones comunes a las 3 variantes
+          </div>
+          <ul style={{ font: '400 12.5px/1.55 Inter', color: '#3c423e', margin: 0, paddingLeft: 18 }}>
+            <li>Eliminamos el copy "Arrastrá tu archivo" — irrelevante en mobile.</li>
+            <li>El icono de upload baja a 40px (era 52px) y vive dentro del control, no separado.</li>
+            <li>El total se muestra siempre, sin scroll, junto al CTA principal.</li>
+            <li>Nota es opcional — colapsable o secundaria, nunca por encima del CTA.</li>
+            <li>Estado "archivo adjunto" con feedback visual (tilde verde + nombre + tamaño).</li>
+          </ul>
+        </div>
+      </div>
+    );
+
+    const App = () => (
+      <DesignCanvas title="Pagos Mobile · Rediseño" defaultZoom={0.85}>
+        <DCSection id="intro" title="Brief">
+          <DCArtboard id="notes" label="Notas de diseño" width={800} height={460}>
+            <NotesCard />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="screens" title="Mockups mobile">
+          <DCArtboard id="compact" label="A · Compacto" width={406} height={870}>
+            <MobileFrame label="" w={390} h={844}>
+              <ScreenPayCompact />
+            </MobileFrame>
+          </DCArtboard>
+
+          <DCArtboard id="steps" label="B · Por pasos (2 de 3)" width={406} height={870}>
+            <MobileFrame label="" w={390} h={844}>
+              <ScreenPaySteps />
+            </MobileFrame>
+          </DCArtboard>
+
+          <DCArtboard id="sheet" label="C · Sheet nativo" width={406} height={870}>
+            <MobileFrame label="" w={390} h={844}>
+              <ScreenPaySheet />
+            </MobileFrame>
+          </DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+    );
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
