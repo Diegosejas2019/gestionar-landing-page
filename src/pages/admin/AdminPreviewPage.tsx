@@ -55,8 +55,10 @@ const nav = [
   { key: 'inicio', label: 'Inicio', icon: Home },
   { key: 'finanzas', label: 'Finanzas', icon: CreditCard },
   { key: 'personal', label: 'Personal', icon: UserRoundCog },
-  { key: 'comunidad', label: 'Comunidad', icon: Users },
-  { key: 'operaciones', label: 'Operaciones', icon: CalendarCheck },
+  { key: 'propietarios', label: 'Comunidad', icon: Users },
+  { key: 'votaciones', label: 'Votaciones', icon: Vote },
+  { key: 'reservas', label: 'Reservas', icon: CalendarCheck },
+  { key: 'visitas', label: 'Visitas', icon: LogIn },
   { key: 'proveedores', label: 'Proveedores', icon: Landmark },
   { key: 'config', label: 'Configuracion', icon: Settings }
 ] as const;
@@ -389,6 +391,14 @@ function expensesByCategory(expenses: any[]): Array<{ cat: string; label: string
 
 export function AdminPreviewPage() {
   const [tab, setTab] = useState<TabKey>(getInitialTab);
+  useEffect(() => {
+    const onHash = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (VALID_TABS.includes(hash as TabKey)) setTab(hash as TabKey);
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
   const [finSubTab, setFinSubTab] = useState<'cobranza' | 'egresos'>('cobranza');
   const [dashPeriod, setDashPeriod] = useState<'mes' | 'trimestre' | 'año' | 'todo'>('año');
   const [loading, setLoading] = useState(true);
@@ -450,7 +460,9 @@ export function AdminPreviewPage() {
   const moduleEnabled = (key: FeatureKey) => features?.[key] ?? defaultFeatures[key];
   const hasOperations = moduleEnabled('votes') || moduleEnabled('reservations') || moduleEnabled('visits');
   const visibleNav = nav.filter((item) => {
-    if (item.key === 'operaciones') return hasOperations;
+    if (item.key === 'votaciones') return moduleEnabled('votes');
+    if (item.key === 'reservas') return moduleEnabled('reservations');
+    if (item.key === 'visitas') return moduleEnabled('visits');
     if (item.key === 'proveedores') return moduleEnabled('providers');
     return true;
   });
