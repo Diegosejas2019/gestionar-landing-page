@@ -9,7 +9,7 @@ import { isSuperAdminRole } from '../../services/authService';
 import { useAdminStore } from '../../stores/adminStore';
 import { Table } from '../../components/Table';
 
-type TabKey = 'inicio' | 'finanzas' | 'personal' | 'propietarios' | 'comunicados' | 'reclamos' | 'votaciones' | 'reservas' | 'visitas' | 'proveedores' | 'config';
+type TabKey = 'inicio' | 'finanzas' | 'empleados' | 'sueldos' | 'propietarios' | 'comunicados' | 'reclamos' | 'votaciones' | 'reservas' | 'visitas' | 'proveedores' | 'config';
 type Notice = { type: 'ok' | 'error'; text: string } | null;
 type FeatureKey = 'visits' | 'reservations' | 'votes' | 'claims' | 'notices' | 'expenses' | 'providers';
 type GridFilter = {
@@ -41,7 +41,7 @@ const unitLabel = (row: any) => unitNames(row).join(', ') || '-';
 const dateLabel = (value: unknown) => value ? new Date(String(value)).toLocaleDateString('es-AR') : '-';
 const formObject = (event: FormEvent<HTMLFormElement>) => Object.fromEntries(new FormData(event.currentTarget).entries());
 
-const VALID_TABS: TabKey[] = ['inicio', 'finanzas', 'personal', 'propietarios', 'comunicados', 'reclamos', 'votaciones', 'reservas', 'visitas', 'proveedores', 'config'];
+const VALID_TABS: TabKey[] = ['inicio', 'finanzas', 'empleados', 'sueldos', 'propietarios', 'comunicados', 'reclamos', 'votaciones', 'reservas', 'visitas', 'proveedores', 'config'];
 const getInitialTab = (): TabKey => {
   const hash = window.location.hash.replace('#', '');
   return VALID_TABS.includes(hash as TabKey) ? (hash as TabKey) : 'inicio';
@@ -54,7 +54,8 @@ function navigateToTab(key: TabKey) {
 const nav = [
   { key: 'inicio', label: 'Inicio', icon: Home },
   { key: 'finanzas', label: 'Finanzas', icon: CreditCard },
-  { key: 'personal', label: 'Personal', icon: UserRoundCog },
+  { key: 'empleados', label: 'Empleados', icon: UserRoundCog },
+  { key: 'sueldos', label: 'Sueldos', icon: WalletCards },
   { key: 'propietarios', label: 'Comunidad', icon: Users },
   { key: 'votaciones', label: 'Votaciones', icon: Vote },
   { key: 'reservas', label: 'Reservas', icon: CalendarCheck },
@@ -574,13 +575,18 @@ export function AdminPreviewPage() {
       );
     }
 
-    if (target === 'personal') {
-      const [employees, salaries] = await Promise.all([
-        adminApi.employees.list({ isActive: '', limit: 200 }),
-        adminApi.salaries.list({ limit: 200, period: month })
-      ]);
+    if (target === 'empleados') {
+      const employees = await adminApi.employees.list({ isActive: '', limit: 200 });
       next.employees = pick(employees, 'employees', []);
+    }
+
+    if (target === 'sueldos') {
+      const [salaries, employees] = await Promise.all([
+        adminApi.salaries.list({ limit: 200, period: month }),
+        adminApi.employees.list({ isActive: '', limit: 200 })
+      ]);
       next.salaries = pick(salaries, 'salaries', []);
+      next.employees = pick(employees, 'employees', []);
     }
 
     if (target === 'votaciones') {
@@ -1181,8 +1187,11 @@ export function AdminPreviewPage() {
           )}
 
           <div className="admin-nav-group-label">Administración</div>
-          <button className={tab === 'personal' ? 'active' : ''} onClick={() => navigateToTab('personal')}>
-            <UserRoundCog size={16} /> <span>Personal</span>
+          <button className={tab === 'empleados' ? 'active' : ''} onClick={() => navigateToTab('empleados')}>
+            <UserRoundCog size={16} /> <span>Empleados</span>
+          </button>
+          <button className={tab === 'sueldos' ? 'active' : ''} onClick={() => navigateToTab('sueldos')}>
+            <WalletCards size={16} /> <span>Sueldos</span>
           </button>
           {moduleEnabled('providers') && (
             <button className={tab === 'proveedores' ? 'active' : ''} onClick={() => navigateToTab('proveedores')}>
@@ -1450,25 +1459,22 @@ export function AdminPreviewPage() {
           </>
         )}
 
-        {tab === 'personal' && (
+        {tab === 'empleados' && (
           <>
             <div className="admin-page-head">
               <div>
                 <div className="admin-page-kicker"><span className="dot" />Administración</div>
-                <h1 className="admin-page-title">Personal</h1>
+                <h1 className="admin-page-title">Empleados</h1>
                 <div className="admin-page-sub">{employees?.filter((e: any) => e.isActive).length || 0} colaboradores activos · {config?.consortiumName || 'Tu organización'}</div>
               </div>
               <div className="admin-page-actions">
                 <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
-                <button className="btn btn-ghost" onClick={() => { setEditingSalary(null); setShowSalaryModal(true); }}><WalletCards size={14} />Nueva liquidacion</button>
                 <button className="btn btn-primary" onClick={() => { setEditingEmployee(null); setEmpModalRole('maintenance'); setEmployeeFiles([]); setShowEmployeeModal(true); }}><UserRoundCog size={14} />Nuevo empleado</button>
               </div>
             </div>
             <div className="metric-grid">
               <Metric loading={loading} label="Empleados activos" value={employees?.filter((e: any) => e.isActive).length || 0} hint="Colaboradores" icon={UserRoundCog} />
-              <Metric loading={loading} label="Sueldos pendientes" value={money(salaries.filter((s: any) => ['pending', 'partially_paid'].includes(s.status)).reduce((sum: number, s: any) => sum + salaryRemainingAmount(s), 0))} hint={month} icon={WalletCards} />
-              <Metric loading={loading} label="Sueldos pagados" value={money(salaries.reduce((sum: number, s: any) => sum + salaryPaidAmount(s), 0))} hint="Período visible" icon={ShieldCheck} />
-              <Metric loading={loading} label="Liquidaciones" value={salaries.length || 0} hint="Período visible" icon={FileText} />
+              <Metric loading={loading} label="Total empleados" value={employees?.length || 0} hint="Incluye dados de baja" icon={Users} />
             </div>
             <div className="admin-grid">
             <Panel title="Empleados" icon={UserRoundCog}>
@@ -1501,35 +1507,6 @@ export function AdminPreviewPage() {
                     ? <button className="danger-action" onClick={() => run(idOf(e), () => adminApi.employees.delete(idOf(e)), 'Empleado dado de baja.')}>Baja</button>
                     : <button onClick={() => run(idOf(e), () => adminApi.employees.update(idOf(e), { isActive: true, endDate: null }), 'Empleado reactivado.')}>Reactivar</button>}
                 </Actions>]
-              ]} />
-            </Panel>
-
-            <Panel
-              title="Sueldos"
-              icon={WalletCards}
-              action={<div className="period-controls"><input type="month" value={month} onChange={(event) => setMonth(event.target.value)} /></div>}
-            >
-              <Table loading={loading} searchPlaceholder="Buscar empleado o periodo" filters={[
-                statusFilter(['pending', 'partially_paid', 'paid', 'cancelled']),
-                monthFilter((s) => s.period || '', month)
-              ]} rows={salaries} columns={[
-                ['Periodo', (s: any) => s.period],
-                ['Empleado', (s: any) => s.employee?.name || '-'],
-                ['Rol', (s: any) => roleLabel(s.employee)],
-                ['Total', (s: any) => money(s.totalAmount)],
-                ['Pagado', (s: any) => money(salaryPaidAmount(s))],
-                ['Pendiente', (s: any) => money(salaryRemainingAmount(s))],
-                ['Estado', (s: any) => <Status value={s.status} />],
-                ['Acciones', (s: any) => {
-                  const canPay = s.status !== 'paid' && s.status !== 'cancelled' && salaryRemainingAmount(s) > 0;
-                  const canEdit = s.status !== 'paid' && s.status !== 'cancelled';
-                  return <Actions>
-                    {canEdit && <button onClick={() => openEditSalary(s)}>Editar</button>}
-                    {canPay && <button onClick={() => { setSalaryForPayment(s); setSalaryPaymentType('advance'); setShowSalaryPaymentModal(true); }}>Adelanto</button>}
-                    {canPay && <button onClick={() => { setSalaryForPayment(s); setSalaryPaymentType('salary_payment'); setShowSalaryPaymentModal(true); }}>Registrar pago</button>}
-                    {s.status !== 'cancelled' && <button className="danger-action" onClick={() => run(idOf(s), () => adminApi.salaries.delete(idOf(s)), 'Liquidacion cancelada.')}>Cancelar</button>}
-                  </Actions>;
-                }]
               ]} />
             </Panel>
             </div>
@@ -1630,6 +1607,57 @@ export function AdminPreviewPage() {
                 </div>
               </div>
             )}
+          </>
+        )}
+
+        {tab === 'sueldos' && (
+          <>
+            <div className="admin-page-head">
+              <div>
+                <div className="admin-page-kicker"><span className="dot" />Administración</div>
+                <h1 className="admin-page-title">Sueldos</h1>
+                <div className="admin-page-sub">{salaries.length || 0} liquidaciones · {config?.consortiumName || 'Tu organización'}</div>
+              </div>
+              <div className="admin-page-actions">
+                <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
+                <button className="btn btn-primary" onClick={() => { setEditingSalary(null); setShowSalaryModal(true); }}><WalletCards size={14} />Nueva liquidacion</button>
+              </div>
+            </div>
+            <div className="metric-grid">
+              <Metric loading={loading} label="Sueldos pendientes" value={money(salaries.filter((s: any) => ['pending', 'partially_paid'].includes(s.status)).reduce((sum: number, s: any) => sum + salaryRemainingAmount(s), 0))} hint={month} icon={WalletCards} />
+              <Metric loading={loading} label="Sueldos pagados" value={money(salaries.reduce((sum: number, s: any) => sum + salaryPaidAmount(s), 0))} hint="Período visible" icon={ShieldCheck} />
+              <Metric loading={loading} label="Liquidaciones" value={salaries.length || 0} hint="Período visible" icon={FileText} />
+            </div>
+            <div className="admin-grid">
+            <Panel
+              title="Sueldos"
+              icon={WalletCards}
+              action={<div className="period-controls"><input type="month" value={month} onChange={(event) => setMonth(event.target.value)} /></div>}
+            >
+              <Table loading={loading} searchPlaceholder="Buscar empleado o periodo" filters={[
+                statusFilter(['pending', 'partially_paid', 'paid', 'cancelled']),
+                monthFilter((s) => s.period || '', month)
+              ]} rows={salaries} columns={[
+                ['Periodo', (s: any) => s.period],
+                ['Empleado', (s: any) => s.employee?.name || '-'],
+                ['Rol', (s: any) => roleLabel(s.employee)],
+                ['Total', (s: any) => money(s.totalAmount)],
+                ['Pagado', (s: any) => money(salaryPaidAmount(s))],
+                ['Pendiente', (s: any) => money(salaryRemainingAmount(s))],
+                ['Estado', (s: any) => <Status value={s.status} />],
+                ['Acciones', (s: any) => {
+                  const canPay = s.status !== 'paid' && s.status !== 'cancelled' && salaryRemainingAmount(s) > 0;
+                  const canEdit = s.status !== 'paid' && s.status !== 'cancelled';
+                  return <Actions>
+                    {canEdit && <button onClick={() => openEditSalary(s)}>Editar</button>}
+                    {canPay && <button onClick={() => { setSalaryForPayment(s); setSalaryPaymentType('advance'); setShowSalaryPaymentModal(true); }}>Adelanto</button>}
+                    {canPay && <button onClick={() => { setSalaryForPayment(s); setSalaryPaymentType('salary_payment'); setShowSalaryPaymentModal(true); }}>Registrar pago</button>}
+                    {s.status !== 'cancelled' && <button className="danger-action" onClick={() => run(idOf(s), () => adminApi.salaries.delete(idOf(s)), 'Liquidacion cancelada.')}>Cancelar</button>}
+                  </Actions>;
+                }]
+              ]} />
+            </Panel>
+            </div>
 
             {showSalaryModal && (
               <div className="modal-backdrop" role="dialog" aria-modal="true"
