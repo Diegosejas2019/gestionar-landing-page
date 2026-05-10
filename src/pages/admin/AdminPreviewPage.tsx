@@ -2105,12 +2105,10 @@ export function AdminPreviewPage() {
               </div>
 
               <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: 20 }}>
-                <Metric loading={loading} label="Abiertas" value={open.length} hint="En curso" icon={Vote}
-                  delta={open.length > 0 ? { text: 'activas ahora', trend: 'pos' } : undefined} />
-                <Metric loading={loading} label="Con cierre programado" value={open.filter((v: any) => v.endsAt).length} hint="Con fecha límite" icon={AlertTriangle}
-                  delta={open.filter((v: any) => v.endsAt).length > 0 ? { text: 'cierran próximamente', trend: 'warn' } : undefined} />
-                <Metric loading={loading} label="Cerradas" value={closed.length} hint="Finalizadas" icon={CheckCircle2} />
-                <Metric loading={loading} label="Total" value={vs.length} hint="Historial completo" icon={FileText} />
+                <Metric loading={loading} label="Abiertas" value={open.length} icon={Vote} />
+                <Metric loading={loading} label="Con cierre" value={open.filter((v: any) => v.endsAt).length} icon={AlertTriangle} />
+                <Metric loading={loading} label="Cerradas" value={closed.length} icon={CheckCircle2} />
+                <Metric loading={loading} label="Total" value={vs.length} icon={FileText} />
               </div>
 
               {loading ? (
@@ -2313,46 +2311,6 @@ export function AdminPreviewPage() {
                 </div>
               </div>
 
-              {loading ? (
-                <div className="metric-grid" style={{ marginBottom: 16 }}>
-                  {[1,2,3,4].map(i => <div key={i} className="metric-card skeleton" />)}
-                </div>
-              ) : (
-                <div className="metric-grid" style={{ marginBottom: 16 }}>
-                  <div className="metric-card">
-                    <div className="metric-icon"><CalendarCheck size={18} /></div>
-                    <div className="metric-body">
-                      <div className="metric-label">Esta semana</div>
-                      <div className="metric-value">{weekRs.length}</div>
-                      <div className="metric-hint">reservas</div>
-                    </div>
-                  </div>
-                  <div className="metric-card" style={{ background: pendingCount > 0 ? 'rgba(250,173,20,0.06)' : undefined }}>
-                    <div className="metric-icon" style={{ color: 'var(--warn)' }}><Bell size={18} /></div>
-                    <div className="metric-body">
-                      <div className="metric-label">Pendientes</div>
-                      <div className="metric-value" style={{ color: pendingCount > 0 ? 'var(--warn)' : undefined }}>{pendingCount}</div>
-                      <div className="metric-hint">de aprobación</div>
-                    </div>
-                  </div>
-                  <div className={`metric-card${approvedCount > 0 ? ' pos-card' : ''}`}>
-                    <div className="metric-icon"><CheckCircle2 size={18} /></div>
-                    <div className="metric-body">
-                      <div className="metric-label">Aprobadas</div>
-                      <div className="metric-value">{approvedCount}</div>
-                      <div className="metric-hint">en total</div>
-                    </div>
-                  </div>
-                  <div className="metric-card">
-                    <div className="metric-icon"><Building2 size={18} /></div>
-                    <div className="metric-body">
-                      <div className="metric-label">Espacios</div>
-                      <div className="metric-value">{sp.length}</div>
-                      <div className="metric-hint">activos</div>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
                 {sp.map((s: any) => (
