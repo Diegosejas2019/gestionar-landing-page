@@ -130,9 +130,19 @@ function pick<T>(response: any, key: string, fallback: T): T {
   return response?.data?.[key] ?? fallback;
 }
 
-const Metric = memo(function Metric({ loading, label, value, hint, icon: Icon, delta }: {
-  loading?: boolean; label: string; value: string | number; hint?: string; icon: any; delta?: { text: string; trend: string }
+const Metric = memo(function Metric({ loading, label, value, hint, icon: Icon, delta, row }: {
+  loading?: boolean; label: string; value: string | number; hint?: string; icon: any; delta?: { text: string; trend: string }; row?: boolean
 }) {
+  if (row) {
+    return (
+      <div className={`metric-card ${loading ? 'skeleton' : ''}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: '10px 14px' }}>
+        <div className="metric-icon" style={{ marginBottom: 0 }}><Icon size={16} /></div>
+        <span className="metric-label" style={{ margin: 0, flexShrink: 0 }}>{label}</span>
+        {loading ? <div className="skeleton-val" style={{ flex: 1 }} /> : <span className="metric-value" style={{ fontSize: '1.15rem', lineHeight: 1, marginLeft: 'auto' }}>{value}</span>}
+        {hint && !loading && <span className="metric-hint" style={{ margin: 0, flexShrink: 0 }}>{hint}</span>}
+      </div>
+    );
+  }
   return (
     <div className={`metric-card ${loading ? 'skeleton' : ''}`}>
       <div className="metric-icon"><Icon size={18} /></div>
@@ -2105,10 +2115,10 @@ export function AdminPreviewPage() {
               </div>
 
               <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: 20 }}>
-                <Metric loading={loading} label="Abiertas" value={open.length} icon={Vote} />
-                <Metric loading={loading} label="Con cierre" value={open.filter((v: any) => v.endsAt).length} icon={AlertTriangle} />
-                <Metric loading={loading} label="Cerradas" value={closed.length} icon={CheckCircle2} />
-                <Metric loading={loading} label="Total" value={vs.length} icon={FileText} />
+                <Metric row loading={loading} label="Abiertas" value={open.length} hint="En curso" icon={Vote} />
+                <Metric row loading={loading} label="Con cierre programado" value={open.filter((v: any) => v.endsAt).length} hint="Con fecha límite" icon={AlertTriangle} />
+                <Metric row loading={loading} label="Cerradas" value={closed.length} hint="Finalizadas" icon={CheckCircle2} />
+                <Metric row loading={loading} label="Total" value={vs.length} hint="Historial completo" icon={FileText} />
               </div>
 
               {loading ? (
