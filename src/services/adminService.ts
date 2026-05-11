@@ -1,5 +1,5 @@
 import { apiBlob, apiClient } from './apiClient';
-import { cacheGet, cacheSet, cacheDelete, cacheKey, cachedApiCall } from './cache';
+import { cacheGet, cacheSet, cacheDelete, cacheDeletePrefix, cacheKey, cachedApiCall } from './cache';
 
 type Params = Record<string, string | number | boolean | undefined | null>;
 type Payload = Record<string, unknown> | FormData;
@@ -199,8 +199,9 @@ export const adminApi = {
       cacheKey('documents:list', params),
       () => apiClient<any>(`/organization-documents${qs(params)}`, { auth: true })
     ),
-    create: (data: FormData) => { cacheDelete('documents:list'); return apiClient<any>('/organization-documents', { method: 'POST', auth: true, body: data }); },
-    delete: (id: string) => { cacheDelete('documents:list'); return apiClient<any>(`/organization-documents/${id}`, { method: 'DELETE', auth: true }); },
+    create: (data: FormData) => { cacheDeletePrefix('documents:list'); return apiClient<any>('/organization-documents', { method: 'POST', auth: true, body: data }); },
+    update: (id: string, data: FormData) => { cacheDeletePrefix('documents:list'); return apiClient<any>(`/organization-documents/${id}`, { method: 'PATCH', auth: true, body: data }); },
+    delete: (id: string) => { cacheDeletePrefix('documents:list'); return apiClient<any>(`/organization-documents/${id}`, { method: 'DELETE', auth: true }); },
     download: (id: string) => apiBlob(`/organization-documents/${id}/download`, { auth: true })
   },
 

@@ -9,7 +9,7 @@ import { isSuperAdminRole } from '../../services/authService';
 import { useAdminStore } from '../../stores/adminStore';
 import { Table } from '../../components/Table';
 
-type TabKey = 'inicio' | 'finanzas' | 'empleados' | 'sueldos' | 'propietarios' | 'comunicados' | 'reclamos' | 'votaciones' | 'reservas' | 'visitas' | 'proveedores' | 'config';
+type TabKey = 'inicio' | 'finanzas' | 'empleados' | 'sueldos' | 'propietarios' | 'comunicados' | 'reclamos' | 'votaciones' | 'reservas' | 'visitas' | 'proveedores' | 'documentos' | 'config';
 type Notice = { type: 'ok' | 'error'; text: string } | null;
 type FeatureKey = 'visits' | 'reservations' | 'votes' | 'claims' | 'notices' | 'expenses' | 'providers';
 type GridFilter = {
@@ -41,7 +41,7 @@ const unitLabel = (row: any) => unitNames(row).join(', ') || '-';
 const dateLabel = (value: unknown) => value ? new Date(String(value)).toLocaleDateString('es-AR') : '-';
 const formObject = (event: FormEvent<HTMLFormElement>) => Object.fromEntries(new FormData(event.currentTarget).entries());
 
-const VALID_TABS: TabKey[] = ['inicio', 'finanzas', 'empleados', 'sueldos', 'propietarios', 'comunicados', 'reclamos', 'votaciones', 'reservas', 'visitas', 'proveedores', 'config'];
+const VALID_TABS: TabKey[] = ['inicio', 'finanzas', 'empleados', 'sueldos', 'propietarios', 'comunicados', 'reclamos', 'votaciones', 'reservas', 'visitas', 'proveedores', 'documentos', 'config'];
 const getInitialTab = (): TabKey => {
   const hash = window.location.hash.replace('#', '');
   return VALID_TABS.includes(hash as TabKey) ? (hash as TabKey) : 'inicio';
@@ -61,6 +61,7 @@ const nav = [
   { key: 'reservas', label: 'Reservas', icon: CalendarCheck },
   { key: 'visitas', label: 'Visitas', icon: LogIn },
   { key: 'proveedores', label: 'Proveedores', icon: Landmark },
+  { key: 'documentos', label: 'Documentos', icon: FileText },
   { key: 'config', label: 'Configuracion', icon: Settings }
 ] as const;
 
@@ -332,6 +333,7 @@ const tabCrumbs: Record<string, string[]> = {
   reservas: ['Operaciones', 'Reservas'],
   visitas: ['Operaciones', 'Visitas e ingresos'],
   proveedores: ['Administración', 'Proveedores'],
+  documentos: ['Administración', 'Documentos'],
   config: ['Administración', 'Configuración'],
 };
 
@@ -442,6 +444,8 @@ export function AdminPreviewPage() {
   const [salaryPaymentType, setSalaryPaymentType] = useState('advance');
   const [showProviderModal, setShowProviderModal] = useState(false);
   const [editingProvider, setEditingProvider] = useState<any>(null);
+  const [showOrgDocumentModal, setShowOrgDocumentModal] = useState(false);
+  const [editingOrgDocument, setEditingOrgDocument] = useState<any>(null);
   const [visitFilter, setVisitFilter] = useState<'all'|'inside'|'exited'|'expected'>('all');
   const [reservasWeekOffset, setReservasWeekOffset] = useState(0);
   const [reservasSpaceFilter, setReservasSpaceFilter] = useState<string[]>([]);
@@ -618,7 +622,7 @@ export function AdminPreviewPage() {
       next.yearExpenses = pick(expenses, 'expenses', []).filter((e: any) => (e.date || e.createdAt || '').slice(0, 4) === yearStr);
     }
 
-    if (target === 'config') {
+    if (target === 'documentos') {
       const documents = await adminApi.documents.list();
       next.orgDocuments = pick(documents, 'documents', []);
     }
@@ -704,8 +708,10 @@ export function AdminPreviewPage() {
       await action();
       setNotice({ type: 'ok', text: success });
       await refresh(tab);
+      return true;
     } catch (error) {
       setNotice({ type: 'error', text: error instanceof Error ? error.message : 'No pudimos completar la accion.' });
+      return false;
     } finally {
       setBusy('');
     }
@@ -1091,18 +1097,29 @@ export function AdminPreviewPage() {
     event.currentTarget.reset();
   }
 
-  function submitOrgDocument(event: FormEvent<HTMLFormElement>) {
+  async function submitOrgDocument(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     const file = (form.elements.namedItem('file') as HTMLInputElement | null)?.files?.[0];
-    if (!file) {
+    if (!editingOrgDocument && !file) {
       setNotice({ type: 'error', text: 'Selecciona un archivo para guardar.' });
       return;
     }
 
     const formData = new FormData(form);
-    run('org-document', () => adminApi.documents.create(formData), 'Archivo de organizacion guardado.');
-    form.reset();
+    const label = editingOrgDocument ? idOf(editingOrgDocument) : 'org-document';
+    const success = await run(
+      label,
+      () => editingOrgDocument
+        ? adminApi.documents.update(idOf(editingOrgDocument), formData)
+        : adminApi.documents.create(formData),
+      editingOrgDocument ? 'Documento actualizado.' : 'Documento guardado.'
+    );
+    if (success) {
+      form.reset();
+      setShowOrgDocumentModal(false);
+      setEditingOrgDocument(null);
+    }
   }
 
   async function downloadOrgDocument(document: any) {
@@ -1198,6 +1215,9 @@ export function AdminPreviewPage() {
               <Landmark size={16} /> <span>Proveedores</span>
             </button>
           )}
+          <button className={tab === 'documentos' ? 'active' : ''} onClick={() => navigateToTab('documentos')}>
+            <FileText size={16} /> <span>Documentos</span>
+          </button>
           <button className={tab === 'config' ? 'active' : ''} onClick={() => navigateToTab('config')}>
             <Settings size={16} /> <span>Configuración</span>
           </button>
@@ -2840,6 +2860,109 @@ export function AdminPreviewPage() {
           </>
         )}
 
+        {tab === 'documentos' && (
+          <>
+            <div className="admin-page-head">
+              <div>
+                <div className="admin-page-kicker"><span className="dot" />Administración</div>
+                <h1 className="admin-page-title">Documentos</h1>
+                <div className="admin-page-sub">
+                  {orgDocuments?.length || 0} documento{(orgDocuments?.length || 0) !== 1 ? 's' : ''} · {config?.consortiumName || 'Tu organización'}
+                </div>
+              </div>
+              <div className="admin-page-actions">
+                <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
+                <button className="btn btn-primary" onClick={() => { setEditingOrgDocument(null); setShowOrgDocumentModal(true); }}><Plus size={14} />Nuevo documento</button>
+              </div>
+            </div>
+
+            <div className="card">
+              <Table loading={loading} searchPlaceholder="Buscar documento, categoria o visibilidad" filters={[
+                {
+                  key: 'category',
+                  label: 'Categoria',
+                  allLabel: 'Todas las categorias',
+                  options: Object.entries(documentCategoryLabels).map(([value, label]) => ({ value, label })),
+                  match: (row, value) => row.category === value
+                },
+                {
+                  key: 'visibility',
+                  label: 'Visibilidad',
+                  allLabel: 'Todas',
+                  options: Object.entries(documentVisibilityLabels).map(([value, label]) => ({ value, label })),
+                  match: (row, value) => row.visibility === value
+                }
+              ]} rows={orgDocuments} columns={[
+                ['Documento', (doc: any) => (
+                  <div>
+                    <div style={{ fontWeight: 500, fontSize: 12.5, color: 'var(--ink-0)' }}>{doc.title}</div>
+                    {doc.description && <div style={{ fontSize: 11, color: 'var(--ink-2)' }}>{doc.description}</div>}
+                  </div>
+                )],
+                ['Categoria', (doc: any) => <span className="pill muted">{doc.categoryLabel || documentCategoryLabels[doc.category] || doc.category}</span>],
+                ['Visibilidad', (doc: any) => (
+                  <span className={`pill ${doc.visibility === 'owners' ? 'pos' : 'warn'}`}>
+                    <span className="d" />{doc.visibilityLabel || documentVisibilityLabels[doc.visibility] || doc.visibility}
+                  </span>
+                )],
+                ['Archivo', (doc: any) => {
+                  const meta = [doc.fileTypeLabel, doc.formattedSize].filter(Boolean).join(' · ');
+                  return (
+                    <div>
+                      <div style={{ fontSize: 12 }}>{doc.file?.filename || '-'}</div>
+                      {meta && <div style={{ fontSize: 11, color: 'var(--ink-2)' }}>{meta}</div>}
+                    </div>
+                  );
+                }],
+                ['Fecha', (doc: any) => dateLabel(doc.createdAt)],
+                ['Acciones', (doc: any) => <Actions>
+                  <button onClick={() => downloadOrgDocument(doc)}>Descargar</button>
+                  <button onClick={() => { setEditingOrgDocument(doc); setShowOrgDocumentModal(true); }}>Editar</button>
+                  <button className="danger-action" onClick={() => run(idOf(doc), () => adminApi.documents.delete(idOf(doc)), 'Documento eliminado.')}>Eliminar</button>
+                </Actions>]
+              ]} />
+            </div>
+
+            {showOrgDocumentModal && (
+              <div className="modal-backdrop" role="dialog" aria-modal="true"
+                onClick={(e) => { if (e.target === e.currentTarget) { setShowOrgDocumentModal(false); setEditingOrgDocument(null); } }}>
+                <div className="form-modal">
+                  <div className="form-modal-head">
+                    <div className="form-modal-title"><FileText size={16} />{editingOrgDocument ? 'Editar documento' : 'Nuevo documento'}</div>
+                    <button className="icon-btn" onClick={() => { setShowOrgDocumentModal(false); setEditingOrgDocument(null); }}><X size={16} /></button>
+                  </div>
+                  <form key={editingOrgDocument ? idOf(editingOrgDocument) : 'new'} className="admin-form" onSubmit={submitOrgDocument}>
+                    <Field label="Titulo" name="title" required defaultValue={editingOrgDocument?.title} />
+                    <SelectField label="Categoria" name="category" defaultValue={editingOrgDocument?.category || 'other'}>
+                      {Object.entries(documentCategoryLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                    </SelectField>
+                    <SelectField label="Visibilidad" name="visibility" defaultValue={editingOrgDocument?.visibility || 'owners'}>
+                      {Object.entries(documentVisibilityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                    </SelectField>
+                    <label className="admin-field">
+                      <span>{editingOrgDocument ? 'Reemplazar archivo' : 'Archivo'}</span>
+                      <input name="file" type="file" accept=".pdf,application/pdf,image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" required={!editingOrgDocument} />
+                      {editingOrgDocument?.file?.filename && (
+                        <small style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 2 }}>Actual: {editingOrgDocument.file.filename}</small>
+                      )}
+                    </label>
+                    <label className="admin-field full">
+                      <span>Descripcion</span>
+                      <textarea name="description" rows={3} defaultValue={editingOrgDocument?.description || ''} maxLength={500} />
+                    </label>
+                    <div className="form-modal-foot">
+                      <button type="button" className="btn btn-ghost" onClick={() => { setShowOrgDocumentModal(false); setEditingOrgDocument(null); }}>Cancelar</button>
+                      <button className="btn btn-primary" disabled={busy === 'org-document' || (!!editingOrgDocument && busy === idOf(editingOrgDocument))}>
+                        {editingOrgDocument ? 'Guardar cambios' : 'Guardar documento'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
         {tab === 'config' && (
           <>
             <div className="admin-page-head">
@@ -2884,49 +3007,6 @@ export function AdminPreviewPage() {
                 <p className="admin-form-note">Por seguridad, el Access Token no se muestra. Si lo dejas vacio, se conserva el valor actual.</p>
                 <button className="btn btn-primary" disabled={busy === 'mercadopago'}>Guardar MercadoPago</button>
               </form>
-            </Panel>
-            <Panel title="Archivos de organizacion" icon={FileText}>
-              <form className="admin-form" onSubmit={submitOrgDocument}>
-                <Field label="Titulo" name="title" required />
-                <SelectField label="Categoria" name="category" defaultValue="other">
-                  {Object.entries(documentCategoryLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                </SelectField>
-                <SelectField label="Visibilidad" name="visibility" defaultValue="owners">
-                  {Object.entries(documentVisibilityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                </SelectField>
-                <label className="admin-field">
-                  <span>Archivo</span>
-                  <input name="file" type="file" accept=".pdf,image/*" required />
-                </label>
-                <label className="admin-field full"><span>Descripcion</span><textarea name="description" rows={2} /></label>
-                <button className="btn btn-primary" disabled={busy === 'org-document'}>Guardar archivo</button>
-              </form>
-              <Table loading={loading} searchPlaceholder="Buscar archivo, categoria o visibilidad" filters={[
-                {
-                  key: 'category',
-                  label: 'Categoria',
-                  allLabel: 'Todas las categorias',
-                  options: Object.entries(documentCategoryLabels).map(([value, label]) => ({ value, label })),
-                  match: (row, value) => row.category === value
-                },
-                {
-                  key: 'visibility',
-                  label: 'Visibilidad',
-                  allLabel: 'Todas',
-                  options: Object.entries(documentVisibilityLabels).map(([value, label]) => ({ value, label })),
-                  match: (row, value) => row.visibility === value
-                }
-              ]} rows={orgDocuments} columns={[
-                ['Titulo', (doc: any) => doc.title],
-                ['Categoria', (doc: any) => doc.categoryLabel || documentCategoryLabels[doc.category] || doc.category],
-                ['Visibilidad', (doc: any) => doc.visibilityLabel || documentVisibilityLabels[doc.visibility] || doc.visibility],
-                ['Archivo', (doc: any) => doc.file?.filename || doc.fileTypeLabel || '-'],
-                ['Fecha', (doc: any) => dateLabel(doc.createdAt)],
-                ['Acciones', (doc: any) => <Actions>
-                  <button onClick={() => downloadOrgDocument(doc)}>Descargar</button>
-                  <button className="danger-action" onClick={() => run(idOf(doc), () => adminApi.documents.delete(idOf(doc)), 'Archivo eliminado.')}>Eliminar</button>
-                </Actions>]
-              ]} />
             </Panel>
             </div>
           </>
