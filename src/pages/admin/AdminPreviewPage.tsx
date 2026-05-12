@@ -1500,12 +1500,12 @@ export function AdminPreviewPage() {
               </div>
             </div>
             <div className="metric-grid">
-              <Metric loading={loading} label="Activos" value={employees?.filter((e: any) => e.isActive && !e.isOnLeave).length || 0} hint="Colaboradores" icon={UserRoundCog} />
-              <Metric loading={loading} label="En licencia" value={employees?.filter((e: any) => e.isOnLeave).length || 0} hint="Con cobertura activa" icon={Users} />
-              <Metric loading={loading} label="Total personal" value={employees?.filter((e: any) => e.isActive).length || 0} hint="Activos + licencia" icon={Users} />
-              <Metric loading={loading} label="Dados de baja" value={employees?.filter((e: any) => !e.isActive).length || 0} hint="Histórico" icon={UserRoundCog} />
+              <Metric row loading={loading} label="Activos" value={employees?.filter((e: any) => e.isActive && !e.isOnLeave).length || 0} hint="Colaboradores" icon={UserRoundCog} />
+              <Metric row loading={loading} label="En licencia" value={employees?.filter((e: any) => e.isOnLeave).length || 0} hint="Con cobertura activa" icon={Users} />
+              <Metric row loading={loading} label="Total personal" value={employees?.filter((e: any) => e.isActive).length || 0} hint="Activos + licencia" icon={Users} />
+              <Metric row loading={loading} label="Dados de baja" value={employees?.filter((e: any) => !e.isActive).length || 0} hint="Histórico" icon={UserRoundCog} />
             </div>
-            <div className="admin-grid">
+            <div className="admin-grid full">
             <Panel title="Personal" icon={UserRoundCog}>
               <Table loading={loading} searchPlaceholder="Buscar por nombre o DNI" filters={[
                 {
