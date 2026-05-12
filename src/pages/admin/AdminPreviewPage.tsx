@@ -158,16 +158,16 @@ const Metric = memo(function Metric({ loading, label, value, hint, icon: Icon, d
   );
 });
 
-const Status = memo(function Status({ value }: { value?: string }) {
+const Status = memo(function Status({ value, label }: { value?: string; label?: string }) {
   const tone = (value === 'approved' || value === 'paid' || value === 'resolved' || value === 'exited' || value === 'active') ? 'pos'
     : (value === 'rejected' || value === 'cancelled') ? 'neg'
-    : (value === 'pending' || value === 'partially_paid' || value === 'open' || value === 'in_progress' || value === 'inside') ? 'warn'
+    : (value === 'pending' || value === 'partially_paid' || value === 'open' || value === 'in_progress' || value === 'inside' || value === 'leave') ? 'warn'
     : (value === 'closed') ? 'muted'
     : '';
   return (
     <span className={`pill ${tone}`}>
       <span className="d" />
-      {statusText[value || ''] || value || '-'}
+      {label || statusText[value || ''] || value || '-'}
     </span>
   );
 });
@@ -437,6 +437,7 @@ export function AdminPreviewPage() {
   const [editingEmployee, setEditingEmployee] = useState<any>(null);
   const [employeeFiles, setEmployeeFiles] = useState<File[]>([]);
   const [empModalRole, setEmpModalRole] = useState('maintenance');
+  const [empIsOnLeave, setEmpIsOnLeave] = useState(false);
   const [showSalaryModal, setShowSalaryModal] = useState(false);
   const [editingSalary, setEditingSalary] = useState<any>(null);
   const [showSalaryPaymentModal, setShowSalaryPaymentModal] = useState(false);
@@ -916,10 +917,11 @@ export function AdminPreviewPage() {
     const form = event.currentTarget;
     const data = formObject(event);
     const fd = new FormData();
-    ['name','role','customRole','documentNumber','phone','email','startDate','notes'].forEach(k => {
+    ['name','role','customRole','documentNumber','phone','email','startDate','notes','schedule','leaveNote'].forEach(k => {
       const v = data[k];
       if (v && String(v)) fd.append(k, String(v));
     });
+    fd.append('isOnLeave', String(empIsOnLeave));
     employeeFiles.forEach(f => fd.append('documents', f));
     const isEdit = !!editingEmployee;
     run(isEdit ? idOf(editingEmployee) : 'employee', async () => {
@@ -980,6 +982,7 @@ export function AdminPreviewPage() {
   function editEmployee(employee: any) {
     setEditingEmployee(employee);
     setEmpModalRole(employee.role || 'maintenance');
+    setEmpIsOnLeave(!!employee.isOnLeave);
     setEmployeeFiles([]);
     setShowEmployeeModal(true);
   }
@@ -1484,43 +1487,70 @@ export function AdminPreviewPage() {
             <div className="admin-page-head">
               <div>
                 <div className="admin-page-kicker"><span className="dot" />Administración</div>
-                <h1 className="admin-page-title">Empleados</h1>
-                <div className="admin-page-sub">{employees?.filter((e: any) => e.isActive).length || 0} colaboradores activos · {config?.consortiumName || 'Tu organización'}</div>
+                <h1 className="admin-page-title">Personal</h1>
+                <div className="admin-page-sub">
+                  {employees?.filter((e: any) => e.isActive && !e.isOnLeave).length || 0} colaboradores activos
+                  {(employees?.filter((e: any) => e.isOnLeave).length || 0) > 0 && ` · ${employees.filter((e: any) => e.isOnLeave).length} en licencia`}
+                  {' · '}{config?.consortiumName || 'Tu organización'}
+                </div>
               </div>
               <div className="admin-page-actions">
                 <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
-                <button className="btn btn-primary" onClick={() => { setEditingEmployee(null); setEmpModalRole('maintenance'); setEmployeeFiles([]); setShowEmployeeModal(true); }}><UserRoundCog size={14} />Nuevo empleado</button>
+                <button className="btn btn-primary" onClick={() => { setEditingEmployee(null); setEmpModalRole('maintenance'); setEmpIsOnLeave(false); setEmployeeFiles([]); setShowEmployeeModal(true); }}><UserRoundCog size={14} />Alta</button>
               </div>
             </div>
             <div className="metric-grid">
-              <Metric loading={loading} label="Empleados activos" value={employees?.filter((e: any) => e.isActive).length || 0} hint="Colaboradores" icon={UserRoundCog} />
-              <Metric loading={loading} label="Total empleados" value={employees?.length || 0} hint="Incluye dados de baja" icon={Users} />
+              <Metric loading={loading} label="Activos" value={employees?.filter((e: any) => e.isActive && !e.isOnLeave).length || 0} hint="Colaboradores" icon={UserRoundCog} />
+              <Metric loading={loading} label="En licencia" value={employees?.filter((e: any) => e.isOnLeave).length || 0} hint="Con cobertura activa" icon={Users} />
+              <Metric loading={loading} label="Total personal" value={employees?.filter((e: any) => e.isActive).length || 0} hint="Activos + licencia" icon={Users} />
+              <Metric loading={loading} label="Dados de baja" value={employees?.filter((e: any) => !e.isActive).length || 0} hint="Histórico" icon={UserRoundCog} />
             </div>
             <div className="admin-grid">
-            <Panel title="Empleados" icon={UserRoundCog}>
-              <Table loading={loading} searchPlaceholder="Buscar empleado, rol o DNI" filters={[
+            <Panel title="Personal" icon={UserRoundCog}>
+              <Table loading={loading} searchPlaceholder="Buscar por nombre o DNI" filters={[
                 {
-                  key: 'role',
-                  label: 'Rol',
-                  allLabel: 'Todos los roles',
+                  key: 'dept',
+                  label: 'Departamento',
+                  allLabel: 'Todos los departamentos',
                   options: Object.entries(roleLabels).map(([value, label]) => ({ value, label })),
-                  match: (row, value) => row.role === value
+                  match: (row: any, value: string) => row.role === value
                 },
                 {
-                  key: 'active',
+                  key: 'empstatus',
                   label: 'Estado',
                   allLabel: 'Todos',
-                  options: [{ value: 'yes', label: 'Activos' }, { value: 'no', label: 'Dados de baja' }],
-                  match: (row, value) => value === 'yes' ? !!row.isActive : !row.isActive
+                  options: [
+                    { value: 'active', label: 'Activos' },
+                    { value: 'leave', label: 'En licencia' },
+                    { value: 'inactive', label: 'Dados de baja' }
+                  ],
+                  match: (row: any, value: string) => {
+                    if (value === 'active') return !!row.isActive && !row.isOnLeave;
+                    if (value === 'leave') return !!row.isOnLeave;
+                    return !row.isActive;
+                  }
                 }
               ]} rows={employees} columns={[
-                ['Nombre', (e: any) => e.name],
-                ['Rol', (e: any) => roleLabel(e)],
-                ['DNI', (e: any) => e.documentNumber || '-'],
-                ['Telefono', (e: any) => e.phone || '-'],
-                ['Inicio', (e: any) => dateLabel(e.startDate)],
-                ['Archivos', (e: any) => e.documents?.length ? `${e.documents.length} archivo${e.documents.length !== 1 ? 's' : ''}` : '-'],
-                ['Estado', (e: any) => <Status value={e.isActive ? 'active' : 'cancelled'} />],
+                ['Persona', (e: any) => {
+                  const initials = (e.name || '').split(' ').map((p: string) => p[0]).slice(0, 2).join('').toUpperCase();
+                  const subtitle = e.customRole || roleLabels[e.role] || e.role || '-';
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--accent-soft, rgba(74,222,128,0.15))', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{initials}</div>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 13 }}>{e.name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--muted)' }}>{subtitle}</div>
+                      </div>
+                    </div>
+                  );
+                }],
+                ['Departamento', (e: any) => <span className="badge">{roleLabels[e.role] || e.role || '-'}</span>],
+                ['Turno', (e: any) => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{e.schedule || '—'}</span>],
+                ['Antigüedad', (e: any) => e.startDate ? `desde ${new Date(e.startDate).getFullYear()}` : '—'],
+                ['Estado', (e: any) => {
+                  if (e.isOnLeave) return <Status value="leave" label={e.leaveNote || 'En licencia'} />;
+                  return <Status value={e.isActive ? 'active' : 'cancelled'} />;
+                }],
                 ['Acciones', (e: any) => <Actions>
                   <button onClick={() => editEmployee(e)}>Editar</button>
                   {e.isActive
@@ -1533,27 +1563,33 @@ export function AdminPreviewPage() {
 
             {showEmployeeModal && (
               <div className="modal-backdrop" role="dialog" aria-modal="true"
-                onClick={(e) => { if (e.target === e.currentTarget) { setShowEmployeeModal(false); setEditingEmployee(null); setEmployeeFiles([]); } }}>
+                onClick={(e) => { if (e.target === e.currentTarget) { setShowEmployeeModal(false); setEditingEmployee(null); setEmpIsOnLeave(false); setEmployeeFiles([]); } }}>
                 <div className="form-modal form-modal--wide">
                   <div className="form-modal-head">
                     <div className="form-modal-title"><UserRoundCog size={16} />{editingEmployee ? 'Editar empleado' : 'Nuevo empleado'}</div>
-                    <button className="icon-btn" onClick={() => { setShowEmployeeModal(false); setEditingEmployee(null); setEmployeeFiles([]); }}><X size={16} /></button>
+                    <button className="icon-btn" onClick={() => { setShowEmployeeModal(false); setEditingEmployee(null); setEmpIsOnLeave(false); setEmployeeFiles([]); }}><X size={16} /></button>
                   </div>
                   <form key={editingEmployee ? idOf(editingEmployee) : 'new'} className="admin-form" onSubmit={submitEmployee}>
                     <Field label="Nombre" name="name" required defaultValue={editingEmployee?.name} />
                     <label className="admin-field">
-                      <span>Rol</span>
+                      <span>Departamento</span>
                       <select name="role" value={empModalRole} onChange={(e) => setEmpModalRole(e.target.value)}>
                         {Object.entries(roleLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                       </select>
                     </label>
-                    {empModalRole === 'other' && (
-                      <Field label="Rol personalizado" name="customRole" placeholder="Ej: Jardinero" defaultValue={editingEmployee?.customRole} />
-                    )}
+                    <Field label="Cargo / rol específico" name="customRole" placeholder="Ej: Jardinero, Recepción, Seguridad nocturna" defaultValue={editingEmployee?.customRole} />
+                    <Field label="Turno horario" name="schedule" placeholder="Ej: L-V 8-17" defaultValue={editingEmployee?.schedule} />
                     <Field label="DNI" name="documentNumber" defaultValue={editingEmployee?.documentNumber} />
                     <Field label="Telefono" name="phone" defaultValue={editingEmployee?.phone} />
                     <Field label="Email" name="email" type="email" defaultValue={editingEmployee?.email} />
                     <Field label="Fecha de inicio" name="startDate" type="date" defaultValue={editingEmployee?.startDate ? String(editingEmployee.startDate).slice(0, 10) : undefined} />
+                    <label className="admin-field full" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <input type="checkbox" checked={empIsOnLeave} onChange={(e) => setEmpIsOnLeave(e.target.checked)} style={{ width: 16, height: 16 }} />
+                      <span>En licencia</span>
+                    </label>
+                    {empIsOnLeave && (
+                      <Field label="Nota de licencia" name="leaveNote" placeholder="Ej: Vacaciones · vuelve 18/03" defaultValue={editingEmployee?.leaveNote} />
+                    )}
                     <label className="admin-field full"><span>Notas</span><textarea name="notes" rows={2} defaultValue={editingEmployee?.notes} /></label>
 
                     {editingEmployee?.documents?.length > 0 && (
@@ -1618,7 +1654,7 @@ export function AdminPreviewPage() {
                     </div>
 
                     <div className="form-modal-foot">
-                      <button type="button" className="btn btn-ghost" onClick={() => { setShowEmployeeModal(false); setEditingEmployee(null); setEmployeeFiles([]); }}>Cancelar</button>
+                      <button type="button" className="btn btn-ghost" onClick={() => { setShowEmployeeModal(false); setEditingEmployee(null); setEmpIsOnLeave(false); setEmployeeFiles([]); }}>Cancelar</button>
                       <button className="btn btn-primary" disabled={busy === 'employee' || (!!editingEmployee && busy === idOf(editingEmployee)) || busy === 'emp-doc'}>
                         <UserRoundCog size={14} />{editingEmployee ? 'Guardar cambios' : 'Crear empleado'}
                       </button>
