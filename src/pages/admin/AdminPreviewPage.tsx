@@ -140,7 +140,7 @@ const Metric = memo(function Metric({ loading, label, value, hint, icon: Icon, d
       <div className={`metric-card ${loading ? 'skeleton' : ''}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: '10px 14px' }}>
         <div className="metric-icon" style={{ marginBottom: 0 }}><Icon size={16} /></div>
         <span className="metric-label" style={{ margin: 0, flexShrink: 0 }}>{label}</span>
-        {loading ? <div className="skeleton-val" style={{ flex: 1 }} /> : <span className="metric-value" style={{ fontSize: '1.15rem', lineHeight: 1, marginLeft: 'auto' }}>{value}</span>}
+        {loading ? <div className="skeleton-val" style={{ flex: 1 }} /> : <span className="metric-value" style={{ fontSize: '1.15rem', lineHeight: 1 }}>{value}</span>}
         {hint && !loading && <span className="metric-hint" style={{ margin: 0, flexShrink: 0 }}>{hint}</span>}
       </div>
     );
