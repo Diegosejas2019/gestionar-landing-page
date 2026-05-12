@@ -1834,6 +1834,10 @@ footer {
   margin-top: 4px;
   display: block;
 }
+.metric-body { min-width: 0; overflow: hidden; }
+.metric-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; color: var(--text-dim); margin-bottom: 4px; }
+.metric-value { font: 700 clamp(22px,3vw,32px) var(--font-display); color: var(--text); letter-spacing: -0.02em; line-height: 1.1; }
+.metric-hint  { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; color: var(--text-faint); margin-top: 4px; }
 .metric-delta {
   display: inline-flex;
   align-items: center;

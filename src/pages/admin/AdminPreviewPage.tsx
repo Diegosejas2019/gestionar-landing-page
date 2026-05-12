@@ -2571,29 +2571,29 @@ export function AdminPreviewPage() {
               </div>
 
               {/* KPI cards */}
-              <div className="metric-grid" style={{ marginBottom: 16 }}>
+              <div className="metric-grid compact" style={{ marginBottom: 16 }}>
                 <div className={`metric-card pos-card ${loading ? 'skeleton' : ''}`}>
                   <div className="metric-icon"><ShieldCheck size={18} /></div>
-                  <div className="metric-body" style={{ minWidth: 0 }}>
-                    <div className="metric-label" style={{ whiteSpace: 'nowrap' }}>Adentro ahora</div>
-                    {loading ? <div className="skeleton-val" /> : <div className="metric-value" style={{ fontSize: 28 }}>{inside.length}</div>}
-                    <div className="metric-hint" style={{ whiteSpace: 'nowrap' }}>autorizados</div>
+                  <div className="metric-body">
+                    <div className="metric-label">Adentro ahora</div>
+                    {loading ? <div className="skeleton-val" /> : <div className="metric-value">{inside.length}</div>}
+                    <div className="metric-hint">autorizados</div>
                   </div>
                 </div>
                 <div className={`metric-card ${loading ? 'skeleton' : ''}`}>
                   <div className="metric-icon" style={{ color: 'var(--info)' }}><CheckCircle2 size={18} /></div>
-                  <div className="metric-body" style={{ minWidth: 0 }}>
-                    <div className="metric-label" style={{ whiteSpace: 'nowrap' }}>Pre-registrados</div>
+                  <div className="metric-body">
+                    <div className="metric-label">Pre-registrados</div>
                     {loading ? <div className="skeleton-val" /> : <div className="metric-value">{approved.length}</div>}
-                    <div className="metric-hint" style={{ whiteSpace: 'nowrap' }}>aprobados sin ingresar</div>
+                    <div className="metric-hint">aprobados sin ingresar</div>
                   </div>
                 </div>
                 <div className={`metric-card ${loading ? 'skeleton' : ''}`}>
                   <div className="metric-icon" style={{ color: 'var(--accent)' }}><CalendarDays size={18} /></div>
-                  <div className="metric-body" style={{ minWidth: 0 }}>
-                    <div className="metric-label" style={{ whiteSpace: 'nowrap' }}>Visitas hoy</div>
+                  <div className="metric-body">
+                    <div className="metric-label">Visitas hoy</div>
                     {loading ? <div className="skeleton-val" /> : <div className="metric-value">{todayVisits.length}</div>}
-                    <div className="metric-hint" style={{ whiteSpace: 'nowrap' }}>programadas para hoy</div>
+                    <div className="metric-hint">programadas para hoy</div>
                   </div>
                 </div>
               </div>
