@@ -1,6 +1,6 @@
 ﻿import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useState, memo } from 'react';
 import {
-  AlertTriangle, Bell, Building2, CalendarCheck, CheckCircle2, ChevronDown, ChevronRight,
+  AlertTriangle, Bell, Building2, CalendarCheck, CalendarDays, CheckCircle2, ChevronDown, ChevronRight,
   CreditCard, Download, FileText, Home, Inbox, Landmark, LogIn, LogOut, Mail, Megaphone, MessageSquare, MoreVertical,
   Paperclip, Plus, RefreshCw, Search, Settings, ShieldCheck, TrendingUp, UserRoundCog, Users, Vote, WalletCards, X
 } from 'lucide-react';
@@ -2532,6 +2532,8 @@ export function AdminPreviewPage() {
           const pending = vs.filter((v: any) => v.status === 'pending');
           const approved = vs.filter((v: any) => v.status === 'approved');
           const rejected = vs.filter((v: any) => v.status === 'rejected');
+          const todayStr = new Date().toISOString().slice(0, 10);
+          const todayVisits = vs.filter((v: any) => v.expectedDate?.slice(0, 10) === todayStr);
           const exited = vs.filter((v: any) => v.status === 'exited');
           const filtered = visitFilter === 'all' ? vs
             : visitFilter === 'inside' ? inside
@@ -2572,34 +2574,26 @@ export function AdminPreviewPage() {
               <div className="metric-grid" style={{ marginBottom: 16 }}>
                 <div className={`metric-card pos-card ${loading ? 'skeleton' : ''}`}>
                   <div className="metric-icon"><ShieldCheck size={18} /></div>
-                  <div className="metric-body">
-                    <div className="metric-label">Adentro ahora</div>
+                  <div className="metric-body" style={{ minWidth: 0 }}>
+                    <div className="metric-label" style={{ whiteSpace: 'nowrap' }}>Adentro ahora</div>
                     {loading ? <div className="skeleton-val" /> : <div className="metric-value" style={{ fontSize: 28 }}>{inside.length}</div>}
-                    <div className="metric-hint">autorizados</div>
+                    <div className="metric-hint" style={{ whiteSpace: 'nowrap' }}>autorizados</div>
                   </div>
                 </div>
                 <div className={`metric-card ${loading ? 'skeleton' : ''}`}>
                   <div className="metric-icon" style={{ color: 'var(--info)' }}><CheckCircle2 size={18} /></div>
-                  <div className="metric-body">
-                    <div className="metric-label">Pre-registrados</div>
+                  <div className="metric-body" style={{ minWidth: 0 }}>
+                    <div className="metric-label" style={{ whiteSpace: 'nowrap' }}>Pre-registrados</div>
                     {loading ? <div className="skeleton-val" /> : <div className="metric-value">{approved.length}</div>}
-                    <div className="metric-hint">aprobados sin ingresar</div>
+                    <div className="metric-hint" style={{ whiteSpace: 'nowrap' }}>aprobados sin ingresar</div>
                   </div>
                 </div>
                 <div className={`metric-card ${loading ? 'skeleton' : ''}`}>
-                  <div className="metric-icon" style={{ color: 'var(--warn)' }}><Bell size={18} /></div>
-                  <div className="metric-body">
-                    <div className="metric-label">Pendientes</div>
-                    {loading ? <div className="skeleton-val" /> : <div className="metric-value">{pending.length}</div>}
-                    <div className="metric-hint">esperando aprobación</div>
-                  </div>
-                </div>
-                <div className={`metric-card ${loading ? 'skeleton' : ''}`}>
-                  <div className="metric-icon" style={{ color: 'var(--neg)' }}><AlertTriangle size={18} /></div>
-                  <div className="metric-body">
-                    <div className="metric-label">Bloqueados</div>
-                    {loading ? <div className="skeleton-val" /> : <div className="metric-value">{rejected.length}</div>}
-                    <div className="metric-hint">rechazados</div>
+                  <div className="metric-icon" style={{ color: 'var(--accent)' }}><CalendarDays size={18} /></div>
+                  <div className="metric-body" style={{ minWidth: 0 }}>
+                    <div className="metric-label" style={{ whiteSpace: 'nowrap' }}>Visitas hoy</div>
+                    {loading ? <div className="skeleton-val" /> : <div className="metric-value">{todayVisits.length}</div>}
+                    <div className="metric-hint" style={{ whiteSpace: 'nowrap' }}>programadas para hoy</div>
                   </div>
                 </div>
               </div>
