@@ -243,10 +243,10 @@ export function SuperAdminPage() {
         </section>
 
         <div className="metric-grid">
-          <Metric loading={loading} label="Organizaciones" value={organizations.length} hint="Total SaaS" icon={Building2} />
-          <Metric loading={loading} label="Activas" value={activeCount} hint="Operativas" icon={Check} />
-          <Metric loading={loading} label="Inactivas" value={inactiveCount} hint="Desactivadas" icon={LayoutDashboard} />
-          <Metric loading={loading} label="Miembros org" value={members.length} hint={selectedOrg?.name || 'Seleccion actual'} icon={Users} />
+          <Metric row loading={loading} label="Organizaciones" value={organizations.length} hint="Total SaaS" icon={Building2} />
+          <Metric row loading={loading} label="Activas" value={activeCount} hint="Operativas" icon={Check} />
+          <Metric row loading={loading} label="Inactivas" value={inactiveCount} hint="Desactivadas" icon={LayoutDashboard} />
+          <Metric row loading={loading} label="Miembros org" value={members.length} hint={selectedOrg?.name || 'Seleccion actual'} icon={Users} />
         </div>
 
         <div className="admin-grid">
@@ -432,7 +432,7 @@ function SelectField(props: { label: string; name: string; defaultValue?: string
   );
 }
 
-function Metric({ label, value, hint, icon: Icon, loading }: { label: string; value: string | number; hint: string; icon: any; loading?: boolean }) {
+function Metric({ label, value, hint, icon: Icon, loading, row }: { label: string; value: string | number; hint: string; icon: any; loading?: boolean; row?: boolean }) {
   if (loading) {
     return (
       <article className="metric-card">
@@ -440,6 +440,17 @@ function Metric({ label, value, hint, icon: Icon, loading }: { label: string; va
         <span className="skeleton-line short" />
         <span className="skeleton-line big" />
         <span className="skeleton-line" />
+      </article>
+    );
+  }
+
+  if (row) {
+    return (
+      <article className="metric-card" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: '10px 14px' }}>
+        <div className="metric-icon" style={{ marginBottom: 0 }}><Icon size={16} /></div>
+        <small style={{ margin: 0, flexShrink: 0 }}>{label}</small>
+        <b style={{ fontSize: '1.15rem', lineHeight: '1' }}>{value}</b>
+        <span style={{ margin: 0, flexShrink: 0 }}>{hint}</span>
       </article>
     );
   }

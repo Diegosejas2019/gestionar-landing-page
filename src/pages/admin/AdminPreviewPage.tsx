@@ -1287,13 +1287,13 @@ export function AdminPreviewPage() {
             </div>
 
             <div className="metric-grid">
-              <Metric loading={loading} label="Recaudacion anual" value={money(totalIncome)} hint={`${dashboard?.approved || 0} pagos aprobados`} icon={ShieldCheck}
+              <Metric row loading={loading} label="Recaudacion anual" value={money(totalIncome)} hint={`${dashboard?.approved || 0} pagos aprobados`} icon={ShieldCheck}
                 delta={(dashboard?.approved ?? 0) > 0 ? { text: `${dashboard.approved} aprobados`, trend: 'pos' } : undefined} />
-              <Metric loading={loading} label="Pagos pendientes" value={dashboard?.pending || 0} hint="MP acreditado queda en revision" icon={CreditCard}
+              <Metric row loading={loading} label="Pagos pendientes" value={dashboard?.pending || 0} hint="MP acreditado queda en revision" icon={CreditCard}
                 delta={(dashboard?.pending ?? 0) > 0 ? { text: `${dashboard.pending} por revisar`, trend: 'neg' } : undefined} />
-              <Metric loading={loading} label="Propietarios" value={ownerStats?.totalOwners || owners?.length || 0} hint={`${ownerStats?.upToDate || 0} al dia`} icon={Users}
+              <Metric row loading={loading} label="Propietarios" value={ownerStats?.totalOwners || owners?.length || 0} hint={`${ownerStats?.upToDate || 0} al dia`} icon={Users}
                 delta={(ownerStats?.upToDate ?? 0) > 0 ? { text: `${ownerStats.upToDate} al día`, trend: 'pos' } : undefined} />
-              {moduleEnabled('claims') && <Metric loading={loading} label="Reclamos abiertos" value={claims?.length || 0} hint="Comunidad" icon={MessageSquare}
+              {moduleEnabled('claims') && <Metric row loading={loading} label="Reclamos abiertos" value={claims?.length || 0} hint="Comunidad" icon={MessageSquare}
                 delta={(claims?.length ?? 0) > 0 ? { text: `${claims.length} pendientes`, trend: 'neg' } : undefined} />}
             </div>
 
@@ -1364,15 +1364,15 @@ export function AdminPreviewPage() {
             <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
               {(() => {
                 const bal = totalIncome - (dashboard?.totalExpenses || 0);
-                return <Metric loading={loading} label={`Balance ${year}`} value={money(bal)} hint="Ingresos − egresos anuales" icon={Landmark}
+                return <Metric row loading={loading} label={`Balance ${year}`} value={money(bal)} hint="Ingresos − egresos anuales" icon={Landmark}
                   delta={{ text: bal >= 0 ? '↑ ingresos superan gastos' : '↓ gastos superan ingresos', trend: bal >= 0 ? 'pos' : 'neg' }} />;
               })()}
-              <Metric loading={loading} label="Ingresos" value={money(totalIncome)} hint={`Recaudado ${year}`} icon={CreditCard}
+              <Metric row loading={loading} label="Ingresos" value={money(totalIncome)} hint={`Recaudado ${year}`} icon={CreditCard}
                 delta={payments?.filter((p: any) => p.status === 'approved').length > 0 ? { text: `${payments.filter((p: any) => p.status === 'approved').length} pagos aprobados`, trend: 'pos' } : undefined} />
-              <Metric loading={loading} label="Egresos" value={money(dashboard?.totalExpenses || 0)} hint={`Gastos ${year}`} icon={FileText} />
-              <Metric loading={loading} label="Cumplimiento" value={`${ownerStats?.complianceRate || 0}%`} hint={`${ownerStats?.upToDate || 0} de ${ownerStats?.totalOwners || 0} propietarios`} icon={ShieldCheck}
+              <Metric row loading={loading} label="Egresos" value={money(dashboard?.totalExpenses || 0)} hint={`Gastos ${year}`} icon={FileText} />
+              <Metric row loading={loading} label="Cumplimiento" value={`${ownerStats?.complianceRate || 0}%`} hint={`${ownerStats?.upToDate || 0} de ${ownerStats?.totalOwners || 0} propietarios`} icon={ShieldCheck}
                 delta={(ownerStats?.complianceRate ?? 0) >= 80 ? { text: 'Buen nivel de pago', trend: 'pos' } : { text: 'Requiere atención', trend: 'neg' }} />
-              <Metric loading={loading} label="Morosos" value={ownerStats?.debtors || 0} hint={`${ownerStats?.pendingPayments || 0} pagos pendientes`} icon={Bell}
+              <Metric row loading={loading} label="Morosos" value={ownerStats?.debtors || 0} hint={`${ownerStats?.pendingPayments || 0} pagos pendientes`} icon={Bell}
                 delta={(ownerStats?.debtors || 0) === 0 ? { text: 'Sin morosos', trend: 'pos' } : { text: `${ownerStats.debtors} con deuda`, trend: 'neg' }} />
             </div>
 
@@ -1680,9 +1680,9 @@ export function AdminPreviewPage() {
               </div>
             </div>
             <div className="metric-grid">
-              <Metric loading={loading} label="Sueldos pendientes" value={money(salaries.filter((s: any) => ['pending', 'partially_paid'].includes(s.status)).reduce((sum: number, s: any) => sum + salaryRemainingAmount(s), 0))} hint={month} icon={WalletCards} />
-              <Metric loading={loading} label="Sueldos pagados" value={money(salaries.reduce((sum: number, s: any) => sum + salaryPaidAmount(s), 0))} hint="Período visible" icon={ShieldCheck} />
-              <Metric loading={loading} label="Liquidaciones" value={salaries.length || 0} hint="Período visible" icon={FileText} />
+              <Metric row loading={loading} label="Sueldos pendientes" value={money(salaries.filter((s: any) => ['pending', 'partially_paid'].includes(s.status)).reduce((sum: number, s: any) => sum + salaryRemainingAmount(s), 0))} hint={month} icon={WalletCards} />
+              <Metric row loading={loading} label="Sueldos pagados" value={money(salaries.reduce((sum: number, s: any) => sum + salaryPaidAmount(s), 0))} hint="Período visible" icon={ShieldCheck} />
+              <Metric row loading={loading} label="Liquidaciones" value={salaries.length || 0} hint="Período visible" icon={FileText} />
             </div>
             <div className="admin-grid">
             <Panel
@@ -1820,12 +1820,12 @@ export function AdminPreviewPage() {
               </div>
             </div>
             <div className="metric-grid">
-              <Metric loading={loading} label="Total propietarios" value={owners?.length || 0} hint="Registrados" icon={Users} />
-              <Metric loading={loading} label="Al día" value={ownerStats?.upToDate || 0} hint="Sin deuda activa" icon={ShieldCheck}
+              <Metric row loading={loading} label="Total propietarios" value={owners?.length || 0} hint="Registrados" icon={Users} />
+              <Metric row loading={loading} label="Al día" value={ownerStats?.upToDate || 0} hint="Sin deuda activa" icon={ShieldCheck}
                 delta={(ownerStats?.upToDate ?? 0) > 0 ? { text: `${Math.round(((ownerStats?.upToDate || 0) / Math.max(owners?.length || 1, 1)) * 100)}% de la comunidad`, trend: 'pos' } : undefined} />
-              <Metric loading={loading} label="Con deuda" value={(owners?.filter((o: any) => hasDebt(o)).length) || 0} hint="Deudores activos" icon={CreditCard}
+              <Metric row loading={loading} label="Con deuda" value={(owners?.filter((o: any) => hasDebt(o)).length) || 0} hint="Deudores activos" icon={CreditCard}
                 delta={owners?.filter((o: any) => o.isDebtor).length > 0 ? { text: `${owners.filter((o: any) => o.isDebtor).length} morosos`, trend: 'neg' } : undefined} />
-              <Metric loading={loading} label="Unidades" value={units?.length || 0} hint={`${units?.filter((u: any) => u.owner).length || 0} asignadas`} icon={Building2} />
+              <Metric row loading={loading} label="Unidades" value={units?.length || 0} hint={`${units?.filter((u: any) => u.owner).length || 0} asignadas`} icon={Building2} />
             </div>
             <div className="card" style={{ overflow: 'hidden' }}>
               <Table loading={loading} searchPlaceholder="Buscar nombre, email o unidad" filters={[
@@ -2149,12 +2149,12 @@ export function AdminPreviewPage() {
               </div>
             </div>
             <div className="metric-grid">
-              <Metric loading={loading} label="Abiertos" value={(claims || []).filter((c: any) => c.status === 'open').length} hint="Sin asignar" icon={MessageSquare}
+              <Metric row loading={loading} label="Abiertos" value={(claims || []).filter((c: any) => c.status === 'open').length} hint="Sin asignar" icon={MessageSquare}
                 delta={(claims || []).filter((c: any) => c.status === 'open').length > 0 ? { text: 'Requieren atención', trend: 'neg' } : undefined} />
-              <Metric loading={loading} label="En progreso" value={(claims || []).filter((c: any) => c.status === 'in_progress').length} hint="En gestión" icon={RefreshCw} />
-              <Metric loading={loading} label="Resueltos" value={(claims || []).filter((c: any) => c.status === 'resolved').length} hint="Cerrados" icon={ShieldCheck}
+              <Metric row loading={loading} label="En progreso" value={(claims || []).filter((c: any) => c.status === 'in_progress').length} hint="En gestión" icon={RefreshCw} />
+              <Metric row loading={loading} label="Resueltos" value={(claims || []).filter((c: any) => c.status === 'resolved').length} hint="Cerrados" icon={ShieldCheck}
                 delta={(claims || []).filter((c: any) => c.status === 'resolved').length > 0 ? { text: 'Resueltos', trend: 'pos' } : undefined} />
-              <Metric loading={loading} label="Total" value={(claims || []).length} hint="Histórico" icon={FileText} />
+              <Metric row loading={loading} label="Total" value={(claims || []).length} hint="Histórico" icon={FileText} />
             </div>
             {moduleEnabled('claims') ? (
               <ClaimKanban
