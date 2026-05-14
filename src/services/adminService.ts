@@ -63,6 +63,17 @@ export const adminApi = {
     reminders: () => apiClient<any>('/payments/send-reminders', { method: 'POST', auth: true })
   },
 
+  permissions: {
+    me: () => cachedApiCall('admin:permissions:me', () => apiClient<any>('/admin/permissions/me', { auth: true }))
+  },
+
+  adminUsers: {
+    list: () => cachedApiCall('admin:users', () => apiClient<any>('/admin/users', { auth: true })),
+    invite: (data: Payload) => { cacheDelete('admin:users'); return apiClient<any>('/admin/users/invite', { method: 'POST', auth: true, body: body(data) }); },
+    updateRole: (id: string, role: string) => { cacheDelete('admin:users'); return apiClient<any>(`/admin/users/${id}/role`, { method: 'PATCH', auth: true, body: JSON.stringify({ role }) }); },
+    disable: (id: string) => { cacheDelete('admin:users'); return apiClient<any>(`/admin/users/${id}/disable`, { method: 'PATCH', auth: true }); }
+  },
+
   notices: {
     list: (params?: Params) => cachedApiCall(
       cacheKey('notices:list', params),

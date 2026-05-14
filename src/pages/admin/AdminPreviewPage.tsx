@@ -12,6 +12,7 @@ import { Table } from '../../components/Table';
 type TabKey = 'inicio' | 'finanzas' | 'empleados' | 'sueldos' | 'propietarios' | 'comunicados' | 'reclamos' | 'votaciones' | 'reservas' | 'visitas' | 'proveedores' | 'documentos' | 'config';
 type Notice = { type: 'ok' | 'error'; text: string } | null;
 type FeatureKey = 'visits' | 'reservations' | 'votes' | 'claims' | 'notices' | 'expenses' | 'providers';
+type AdminRoleKey = 'owner_admin' | 'read_only' | 'billing_manager' | 'communications_manager';
 type GridFilter = {
   key: string;
   label: string;
@@ -57,6 +58,8 @@ const nav = [
   { key: 'empleados', label: 'Empleados', icon: UserRoundCog },
   { key: 'sueldos', label: 'Sueldos', icon: WalletCards },
   { key: 'propietarios', label: 'Comunidad', icon: Users },
+  { key: 'comunicados', label: 'Comunicados', icon: Megaphone },
+  { key: 'reclamos', label: 'Reclamos', icon: MessageSquare },
   { key: 'votaciones', label: 'Votaciones', icon: Vote },
   { key: 'reservas', label: 'Reservas', icon: CalendarCheck },
   { key: 'visitas', label: 'Visitas', icon: LogIn },
@@ -64,6 +67,29 @@ const nav = [
   { key: 'documentos', label: 'Documentos', icon: FileText },
   { key: 'config', label: 'Configuracion', icon: Settings }
 ] as const;
+
+const adminRoleLabels: Record<string, string> = {
+  owner_admin: 'Administrador principal',
+  read_only: 'Solo lectura',
+  billing_manager: 'Cobranzas',
+  communications_manager: 'Reclamos y avisos'
+};
+
+const tabPermissions: Record<TabKey, string> = {
+  inicio: 'dashboard.read',
+  finanzas: 'payments.read',
+  empleados: 'employees.read',
+  sueldos: 'salaries.read',
+  propietarios: 'owners.read',
+  comunicados: 'notices.read',
+  reclamos: 'claims.read',
+  votaciones: 'votes.read',
+  reservas: 'reservations.read',
+  visitas: 'visits.read',
+  proveedores: 'providers.read',
+  documentos: 'documents.read',
+  config: 'settings.read'
+};
 
 const defaultFeatures: Record<FeatureKey, boolean> = {
   visits: false,
@@ -447,6 +473,12 @@ export function AdminPreviewPage() {
   const [editingProvider, setEditingProvider] = useState<any>(null);
   const [showOrgDocumentModal, setShowOrgDocumentModal] = useState(false);
   const [editingOrgDocument, setEditingOrgDocument] = useState<any>(null);
+  const [adminRole, setAdminRole] = useState<AdminRoleKey | null>(null);
+  const [permissions, setPermissions] = useState<string[]>([]);
+  const [adminUsers, setAdminUsers] = useState<any[]>([]);
+  const [adminRoles, setAdminRoles] = useState<any[]>([]);
+  const [showAdminInviteModal, setShowAdminInviteModal] = useState(false);
+  const [editingAdminUser, setEditingAdminUser] = useState<any>(null);
   const [visitFilter, setVisitFilter] = useState<'all'|'inside'|'exited'|'expected'>('all');
   const [reservasWeekOffset, setReservasWeekOffset] = useState(0);
   const [reservasSpaceFilter, setReservasSpaceFilter] = useState<string[]>([]);
@@ -475,14 +507,24 @@ export function AdminPreviewPage() {
   const setYearPayments = useAdminStore(s => s.setYearPayments);
   const setReport = useAdminStore(s => s.setReport);
 
+  const hasPermission = useCallback((permission: string) => (
+    adminRole === 'owner_admin' || permissions.includes(permission)
+  ), [adminRole, permissions]);
+  const canSeeTab = useCallback((key: TabKey) => hasPermission(tabPermissions[key]), [hasPermission]);
+
   const moduleEnabled = (key: FeatureKey) => features?.[key] ?? defaultFeatures[key];
-  const hasOperations = moduleEnabled('votes') || moduleEnabled('reservations') || moduleEnabled('visits');
+  const hasOperations = (moduleEnabled('votes') && canSeeTab('votaciones'))
+    || (moduleEnabled('reservations') && canSeeTab('reservas'))
+    || (moduleEnabled('visits') && canSeeTab('visitas'));
   const visibleNav = nav.filter((item) => {
+    if (!canSeeTab(item.key)) return false;
+    if (item.key === 'comunicados') return moduleEnabled('notices');
+    if (item.key === 'reclamos') return moduleEnabled('claims');
     if (item.key === 'votaciones') return moduleEnabled('votes');
     if (item.key === 'reservas') return moduleEnabled('reservations');
     if (item.key === 'visitas') return moduleEnabled('visits');
     if (item.key === 'proveedores') return moduleEnabled('providers');
-    return true;
+    return canSeeTab(item.key);
   });
 
   const totalIncome = useMemo(
@@ -516,30 +558,42 @@ export function AdminPreviewPage() {
   }, []);
 
   async function fetchSession() {
-    const [me, config] = await Promise.all([
+    const [me, permissionsRes] = await Promise.all([
       adminApi.me(),
-      adminApi.config.get()
+      adminApi.permissions.me()
     ]);
+    const role = (permissionsRes?.data?.role || null) as AdminRoleKey | null;
+    const sessionPermissions = permissionsRes?.data?.permissions || [];
+    const can = (permission: string) => role === 'owner_admin' || sessionPermissions.includes(permission);
+    const config = can('settings.read') ? await adminApi.config.get() : null;
     const configData = pick(config, 'config', {});
     const orgId = orgIdFromSession(me, configData);
     const featuresRes = orgId ? await adminApi.organizations.features(orgId) : null;
     const features = { ...defaultFeatures, ...pick<Record<string, boolean>>(featuresRes, 'features', {}) };
-    return { me, config: configData, features };
+    return {
+      me,
+      config: configData,
+      features,
+      permissions: sessionPermissions,
+      adminRole: role,
+      adminRoles: permissionsRes?.data?.roles || []
+    };
   }
 
-  async function fetchForTab(target: TabKey, extra?: { me: any; config: any; features: Record<string, boolean> }) {
+  async function fetchForTab(target: TabKey, extra?: { me: any; config: any; features: Record<string, boolean>; permissions: string[]; adminRole: string | null; adminRoles: any[] }) {
     if (!extra) return;
     const { features } = extra;
     const isEnabled = (key: FeatureKey) => features[key] ?? defaultFeatures[key];
+    const can = (permission: string) => extra.adminRole === 'owner_admin' || extra.permissions.includes(permission);
     const next: any = {};
 
     const core = [
-      adminApi.owners.stats(),
-      adminApi.payments.dashboard(year),
-      adminApi.payments.list({ limit: 8, status: 'pending' }),
-      adminApi.reports.monthly(month),
-      isEnabled('claims') ? adminApi.claims.list({ limit: 8, status: 'open' }) : Promise.resolve(null),
-      isEnabled('notices') ? adminApi.notices.list({ limit: 5 }) : Promise.resolve(null)
+      can('dashboard.read') ? adminApi.owners.stats() : Promise.resolve(null),
+      can('dashboard.read') ? adminApi.payments.dashboard(year) : Promise.resolve(null),
+      can('payments.read') ? adminApi.payments.list({ limit: 8, status: 'pending' }) : Promise.resolve(null),
+      can('reports.read') ? adminApi.reports.monthly(month) : Promise.resolve(null),
+      can('claims.read') && isEnabled('claims') ? adminApi.claims.list({ limit: 8, status: 'open' }) : Promise.resolve(null),
+      can('notices.read') && isEnabled('notices') ? adminApi.notices.list({ limit: 5 }) : Promise.resolve(null)
     ];
     const [ownerStats, dashboard, payments, report, claims, notices] = await Promise.all(core);
     next.ownerStats = ownerStats?.data || {};
@@ -551,10 +605,10 @@ export function AdminPreviewPage() {
 
     if (target === 'propietarios' || target === 'comunicados' || target === 'reclamos' || target === 'inicio') {
       const [owners, units, allClaims, allNotices] = await Promise.all([
-        adminApi.owners.list({ limit: 50 }),
-        adminApi.units.list({ limit: 200 }),
-        isEnabled('claims') ? adminApi.claims.list({ limit: 50 }) : Promise.resolve(null),
-        isEnabled('notices') ? adminApi.notices.list({ limit: 50 }) : Promise.resolve(null)
+        can('owners.read') ? adminApi.owners.list({ limit: 50 }) : Promise.resolve(null),
+        can('units.read') ? adminApi.units.list({ limit: 200 }) : Promise.resolve(null),
+        can('claims.read') && isEnabled('claims') ? adminApi.claims.list({ limit: 50 }) : Promise.resolve(null),
+        can('notices.read') && isEnabled('notices') ? adminApi.notices.list({ limit: 50 }) : Promise.resolve(null)
       ]);
       next.owners = pick(owners, 'owners', []);
       next.units = pick(units, 'units', []);
@@ -564,11 +618,11 @@ export function AdminPreviewPage() {
 
     if (target === 'finanzas') {
       const [allPayments, expenses, allYearExpenses, allYearPayments, units] = await Promise.all([
-        adminApi.payments.list({ limit: 100, effectiveMonth: month }),
-        adminApi.expenses.list({ limit: 50, month }),
-        adminApi.expenses.list({ limit: 500 }),
-        adminApi.payments.list({ limit: 500, status: 'approved' }),
-        adminApi.units.list({ limit: 200 })
+        can('payments.read') ? adminApi.payments.list({ limit: 100, effectiveMonth: month }) : Promise.resolve(null),
+        can('expenses.read') ? adminApi.expenses.list({ limit: 50, month }) : Promise.resolve(null),
+        can('expenses.read') ? adminApi.expenses.list({ limit: 500 }) : Promise.resolve(null),
+        can('payments.read') ? adminApi.payments.list({ limit: 500, status: 'approved' }) : Promise.resolve(null),
+        can('units.read') ? adminApi.units.list({ limit: 200 }) : Promise.resolve(null)
       ]);
       next.payments = sortPayments(pick(allPayments, 'payments', []));
       next.expenses = sortExpenses(pick(expenses, 'expenses', []));
@@ -581,42 +635,42 @@ export function AdminPreviewPage() {
     }
 
     if (target === 'empleados') {
-      const employees = await adminApi.employees.list({ isActive: '', limit: 200 });
+      const employees = can('employees.read') ? await adminApi.employees.list({ isActive: '', limit: 200 }) : null;
       next.employees = pick(employees, 'employees', []);
     }
 
     if (target === 'sueldos') {
       const [salaries, employees] = await Promise.all([
-        adminApi.salaries.list({ limit: 200, period: month }),
-        adminApi.employees.list({ isActive: '', limit: 200 })
+        can('salaries.read') ? adminApi.salaries.list({ limit: 200, period: month }) : Promise.resolve(null),
+        can('employees.read') ? adminApi.employees.list({ isActive: '', limit: 200 }) : Promise.resolve(null)
       ]);
       next.salaries = pick(salaries, 'salaries', []);
       next.employees = pick(employees, 'employees', []);
     }
 
     if (target === 'votaciones') {
-      const votesRes = isEnabled('votes') ? await adminApi.votes.list({ limit: 50 }) : null;
+      const votesRes = can('votes.read') && isEnabled('votes') ? await adminApi.votes.list({ limit: 50 }) : null;
       next.votes = isEnabled('votes') ? pick(votesRes, 'votes', []) : [];
     }
 
     if (target === 'reservas') {
       const [spaces, reservations] = await Promise.all([
-        isEnabled('reservations') ? adminApi.spaces.list() : Promise.resolve(null),
-        isEnabled('reservations') ? adminApi.reservations.list({ limit: 50 }) : Promise.resolve(null)
+        can('spaces.read') && isEnabled('reservations') ? adminApi.spaces.list() : Promise.resolve(null),
+        can('reservations.read') && isEnabled('reservations') ? adminApi.reservations.list({ limit: 50 }) : Promise.resolve(null)
       ]);
       next.spaces = isEnabled('reservations') ? pick(spaces, 'spaces', []) : [];
       next.reservations = isEnabled('reservations') ? pick(reservations, 'reservations', []) : [];
     }
 
     if (target === 'visitas') {
-      const visitsRes = isEnabled('visits') ? await adminApi.visits.list({ limit: 100 }) : null;
+      const visitsRes = can('visits.read') && isEnabled('visits') ? await adminApi.visits.list({ limit: 100 }) : null;
       next.visits = isEnabled('visits') ? pick(visitsRes, 'visits', []) : [];
     }
 
     if (target === 'proveedores') {
       const [providers, expenses] = await Promise.all([
-        isEnabled('providers') ? adminApi.providers.list() : Promise.resolve(null),
-        adminApi.expenses.list({ limit: 500 })
+        can('providers.read') && isEnabled('providers') ? adminApi.providers.list() : Promise.resolve(null),
+        can('expenses.read') ? adminApi.expenses.list({ limit: 500 }) : Promise.resolve(null)
       ]);
       next.providers = isEnabled('providers') ? pick(providers, 'providers', []) : [];
       const yearStr = String(new Date().getFullYear());
@@ -624,8 +678,14 @@ export function AdminPreviewPage() {
     }
 
     if (target === 'documentos') {
-      const documents = await adminApi.documents.list();
+      const documents = can('documents.read') ? await adminApi.documents.list() : null;
       next.orgDocuments = pick(documents, 'documents', []);
+    }
+
+    if (target === 'config' && can('admins.read')) {
+      const admins = await adminApi.adminUsers.list();
+      next.adminUsers = pick(admins, 'admins', []);
+      next.adminRoles = admins?.data?.roles || extra.adminRoles || [];
     }
 
     return next;
@@ -639,6 +699,9 @@ export function AdminPreviewPage() {
       setMe(user, session.me?.data?.membership);
       setConfig(session.config);
       setFeatures(session.features);
+      setAdminRole(session.adminRole);
+      setPermissions(session.permissions);
+      setAdminRoles(session.adminRoles);
 
       const tabData = await fetchForTab(target, session);
       if (tabData) {
@@ -661,6 +724,8 @@ export function AdminPreviewPage() {
         if (tabData.orgDocuments !== undefined) setOrgDocuments(tabData.orgDocuments);
         if (tabData.yearExpenses !== undefined) setYearExpenses(tabData.yearExpenses);
         if (tabData.yearPayments !== undefined) setYearPayments(tabData.yearPayments);
+        if (tabData.adminUsers !== undefined) setAdminUsers(tabData.adminUsers);
+        if (tabData.adminRoles !== undefined) setAdminRoles(tabData.adminRoles);
       }
 
       setNotice(null);
@@ -694,8 +759,13 @@ export function AdminPreviewPage() {
 
   useEffect(() => {
     if (!authChecked) return;
+    if (adminRole && !canSeeTab(tab)) {
+      const fallback = (visibleNav[0]?.key || 'inicio') as TabKey;
+      navigateToTab(fallback);
+      return;
+    }
     refresh(tab);
-  }, [authChecked, tab, month, year]);
+  }, [authChecked, tab, month, year, adminRole, permissions]);
 
   useEffect(() => {
     if ((tab === 'votaciones' || tab === 'reservas') && !hasOperations) setTab('inicio');
@@ -1100,6 +1170,44 @@ export function AdminPreviewPage() {
     event.currentTarget.reset();
   }
 
+  function adminRoleOptions() {
+    return (adminRoles.length ? adminRoles : Object.entries(adminRoleLabels).map(([role, label]) => ({ role, label, permissions: [] })));
+  }
+
+  function permissionsForRole(role: string) {
+    return (adminRoleOptions().find((item: any) => item.role === role)?.permissions || []) as string[];
+  }
+
+  function submitAdminInvite(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = formObject(event);
+    run('admin-invite', async () => {
+      await adminApi.adminUsers.invite({
+        name: String(data.name || '').trim(),
+        email: String(data.email || '').trim(),
+        role: String(data.role || 'read_only')
+      });
+      form.reset();
+      setShowAdminInviteModal(false);
+    }, 'Administrador invitado correctamente.');
+  }
+
+  function submitAdminRole(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editingAdminUser) return;
+    const data = formObject(event);
+    run(idOf(editingAdminUser), async () => {
+      await adminApi.adminUsers.updateRole(idOf(editingAdminUser), String(data.role || 'read_only'));
+      setEditingAdminUser(null);
+    }, 'Rol actualizado correctamente.');
+  }
+
+  function disableAdminUser(admin: any) {
+    if (!window.confirm(`¿Desactivar el acceso administrativo de ${admin.name || admin.email}?`)) return;
+    run(idOf(admin), () => adminApi.adminUsers.disable(idOf(admin)), 'Acceso administrativo desactivado.');
+  }
+
   async function submitOrgDocument(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
@@ -1161,69 +1269,48 @@ export function AdminPreviewPage() {
 
         <nav>
           <div className="admin-nav-group-label">Workspace</div>
-          <button className={tab === 'inicio' ? 'active' : ''} onClick={() => navigateToTab('inicio')}>
-            <Home size={16} /> <span>Inicio</span>
-          </button>
-          <button className={tab === 'finanzas' ? 'active' : ''} onClick={() => navigateToTab('finanzas')}>
-            <CreditCard size={16} /> <span>Finanzas</span>
-            {(dashboard?.pending ?? 0) > 0 && (
-              <span className="admin-nav-badge">{dashboard.pending}</span>
-            )}
-          </button>
+          {visibleNav.filter(item => ['inicio', 'finanzas'].includes(item.key)).map(item => {
+            const Icon = item.icon;
+            return (
+              <button key={item.key} className={tab === item.key ? 'active' : ''} onClick={() => navigateToTab(item.key)}>
+                <Icon size={16} /> <span>{item.label}</span>
+                {item.key === 'finanzas' && (dashboard?.pending ?? 0) > 0 && <span className="admin-nav-badge">{dashboard.pending}</span>}
+              </button>
+            );
+          })}
 
-          <div className="admin-nav-group-label">Comunidad</div>
-          <button className={tab === 'propietarios' ? 'active' : ''} onClick={() => navigateToTab('propietarios')}>
-            <Users size={16} /> <span>Propietarios</span>
-          </button>
-          <button className={tab === 'comunicados' ? 'active' : ''} onClick={() => navigateToTab('comunicados')}>
-            <Megaphone size={16} /> <span>Comunicados</span>
-          </button>
-          <button className={tab === 'reclamos' ? 'active' : ''} onClick={() => navigateToTab('reclamos')}>
-            <MessageSquare size={16} /> <span>Reclamos</span>
-            {(claims?.filter((c: any) => c.status === 'open').length ?? 0) > 0 && (
-              <span className="admin-nav-badge">{claims.filter((c: any) => c.status === 'open').length}</span>
-            )}
-          </button>
+          {visibleNav.some(item => ['propietarios', 'comunicados', 'reclamos'].includes(item.key)) && <div className="admin-nav-group-label">Comunidad</div>}
+          {visibleNav.filter(item => ['propietarios', 'comunicados', 'reclamos'].includes(item.key)).map(item => {
+            const Icon = item.icon;
+            return (
+              <button key={item.key} className={tab === item.key ? 'active' : ''} onClick={() => navigateToTab(item.key)}>
+                <Icon size={16} /> <span>{item.label}</span>
+                {item.key === 'reclamos' && (claims?.filter((c: any) => c.status === 'open').length ?? 0) > 0 && (
+                  <span className="admin-nav-badge">{claims.filter((c: any) => c.status === 'open').length}</span>
+                )}
+              </button>
+            );
+          })}
 
-          {hasOperations && (
-            <>
-              <div className="admin-nav-group-label">Operaciones</div>
-              {moduleEnabled('votes') && (
-                <button className={tab === 'votaciones' ? 'active' : ''} onClick={() => navigateToTab('votaciones')}>
-                  <Vote size={16} /> <span>Votaciones</span>
-                </button>
-              )}
-              {moduleEnabled('reservations') && (
-                <button className={tab === 'reservas' ? 'active' : ''} onClick={() => navigateToTab('reservas')}>
-                  <CalendarCheck size={16} /> <span>Reservas</span>
-                </button>
-              )}
-              {moduleEnabled('visits') && (
-                <button className={tab === 'visitas' ? 'active' : ''} onClick={() => navigateToTab('visitas')}>
-                  <ShieldCheck size={16} /> <span>Visitas</span>
-                </button>
-              )}
-            </>
-          )}
+          {hasOperations && <div className="admin-nav-group-label">Operaciones</div>}
+          {visibleNav.filter(item => ['votaciones', 'reservas', 'visitas'].includes(item.key)).map(item => {
+            const Icon = item.icon;
+            return (
+              <button key={item.key} className={tab === item.key ? 'active' : ''} onClick={() => navigateToTab(item.key)}>
+                <Icon size={16} /> <span>{item.label}</span>
+              </button>
+            );
+          })}
 
-          <div className="admin-nav-group-label">Administración</div>
-          <button className={tab === 'empleados' ? 'active' : ''} onClick={() => navigateToTab('empleados')}>
-            <UserRoundCog size={16} /> <span>Empleados</span>
-          </button>
-          <button className={tab === 'sueldos' ? 'active' : ''} onClick={() => navigateToTab('sueldos')}>
-            <WalletCards size={16} /> <span>Sueldos</span>
-          </button>
-          {moduleEnabled('providers') && (
-            <button className={tab === 'proveedores' ? 'active' : ''} onClick={() => navigateToTab('proveedores')}>
-              <Landmark size={16} /> <span>Proveedores</span>
-            </button>
-          )}
-          <button className={tab === 'documentos' ? 'active' : ''} onClick={() => navigateToTab('documentos')}>
-            <FileText size={16} /> <span>Documentos</span>
-          </button>
-          <button className={tab === 'config' ? 'active' : ''} onClick={() => navigateToTab('config')}>
-            <Settings size={16} /> <span>Configuración</span>
-          </button>
+          {visibleNav.some(item => ['empleados', 'sueldos', 'proveedores', 'documentos', 'config'].includes(item.key)) && <div className="admin-nav-group-label">Administración</div>}
+          {visibleNav.filter(item => ['empleados', 'sueldos', 'proveedores', 'documentos', 'config'].includes(item.key)).map(item => {
+            const Icon = item.icon;
+            return (
+              <button key={item.key} className={tab === item.key ? 'active' : ''} onClick={() => navigateToTab(item.key)}>
+                <Icon size={16} /> <span>{item.label}</span>
+              </button>
+            );
+          })}
         </nav>
 
         <div className="admin-sidebar-foot">
@@ -3022,7 +3109,7 @@ export function AdminPreviewPage() {
                 <Field label="Recargo fijo" name="lateFeeFixed" type="number" defaultValue={config?.lateFeeFixed || 0} />
                 <Field label="Banco" name="bankName" defaultValue={config?.bankName} />
                 <Field label="CBU" name="bankCbu" defaultValue={config?.bankCbu} />
-                <button className="btn btn-primary" disabled={busy === 'config'}>Guardar configuracion</button>
+                {hasPermission('settings.update') && <button className="btn btn-primary" disabled={busy === 'config'}>Guardar configuracion</button>}
               </form>
             </Panel>
             <Panel title="MercadoPago" icon={CreditCard}>
@@ -3035,10 +3122,103 @@ export function AdminPreviewPage() {
                 <Field label="Access Token" name="mpAccessToken" type="password" placeholder="Completar solo para actualizar" />
                 <Field label="Webhook Secret" name="mpWebhookSecret" type="password" placeholder="Opcional" />
                 <p className="admin-form-note">Por seguridad, el Access Token no se muestra. Si lo dejas vacio, se conserva el valor actual.</p>
-                <button className="btn btn-primary" disabled={busy === 'mercadopago'}>Guardar MercadoPago</button>
+                {hasPermission('settings.update') && <button className="btn btn-primary" disabled={busy === 'mercadopago'}>Guardar MercadoPago</button>}
               </form>
             </Panel>
+            {hasPermission('admins.read') && (
+              <Panel
+                title="Usuarios administradores"
+                sub="Accesos internos de esta organización"
+                icon={ShieldCheck}
+                action={hasPermission('admins.create') ? (
+                  <button className="btn btn-primary" onClick={() => setShowAdminInviteModal(true)}><Plus size={14} />Invitar</button>
+                ) : undefined}
+              >
+                <Table
+                  rows={adminUsers}
+                  searchPlaceholder="Buscar administrador"
+                  columns={[
+                    ['Nombre', (row: any) => <strong>{row.name || '-'}</strong>],
+                    ['Email', (row: any) => row.email || '-'],
+                    ['Rol', (row: any) => row.roleLabel || adminRoleLabels[row.role] || row.role || '-'],
+                    ['Estado', (row: any) => <span className={`status ${row.isActive ? 'approved' : 'rejected'}`}>{row.isActive ? 'Activo' : 'Desactivado'}</span>],
+                    ['Acciones', (row: any) => (
+                      <Actions>
+                        {hasPermission('admins.update') && row.isActive && (
+                          <button onClick={() => setEditingAdminUser(row)}>Cambiar rol</button>
+                        )}
+                        {hasPermission('admins.disable') && row.isActive && (
+                          <button className="danger-action" onClick={() => disableAdminUser(row)}>Desactivar</button>
+                        )}
+                      </Actions>
+                    )]
+                  ]}
+                />
+                <div className="admin-role-grid">
+                  {adminRoleOptions().map((role: any) => {
+                    const rolePermissions = permissionsForRole(role.role);
+                    return (
+                      <div className="admin-role-card" key={role.role}>
+                        <strong>{role.label || adminRoleLabels[role.role] || role.role}</strong>
+                        <span>{rolePermissions.length} permisos incluidos</span>
+                        <small>{rolePermissions.slice(0, 6).join(', ')}{rolePermissions.length > 6 ? '...' : ''}</small>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Panel>
+            )}
             </div>
+            {showAdminInviteModal && (
+              <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) setShowAdminInviteModal(false); }}>
+                <div className="form-modal">
+                  <div className="form-modal-head">
+                    <div className="form-modal-title"><ShieldCheck size={16} />Invitar administrador</div>
+                    <button className="icon-btn" onClick={() => setShowAdminInviteModal(false)}><X size={16} /></button>
+                  </div>
+                  <form className="admin-form" onSubmit={submitAdminInvite}>
+                    <Field label="Nombre" name="name" required />
+                    <Field label="Email" name="email" type="email" required />
+                    <SelectField label="Rol" name="role" defaultValue="read_only">
+                      {adminRoleOptions().map((role: any) => (
+                        <option key={role.role} value={role.role}>{role.label || adminRoleLabels[role.role] || role.role}</option>
+                      ))}
+                    </SelectField>
+                    <p className="admin-form-note">Si el email ya existe, se agrega a esta organización sin modificar su contraseña.</p>
+                    <div className="form-modal-foot">
+                      <button type="button" className="btn btn-ghost" onClick={() => setShowAdminInviteModal(false)}>Cancelar</button>
+                      <button className="btn btn-primary" disabled={busy === 'admin-invite'}>Enviar invitación</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+            {editingAdminUser && (
+              <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) setEditingAdminUser(null); }}>
+                <div className="form-modal">
+                  <div className="form-modal-head">
+                    <div className="form-modal-title"><ShieldCheck size={16} />Cambiar rol</div>
+                    <button className="icon-btn" onClick={() => setEditingAdminUser(null)}><X size={16} /></button>
+                  </div>
+                  <form className="admin-form" onSubmit={submitAdminRole}>
+                    <label className="admin-field full">
+                      <span>Administrador</span>
+                      <input value={`${editingAdminUser.name || '-'} · ${editingAdminUser.email || '-'}`} disabled readOnly />
+                    </label>
+                    <SelectField label="Rol" name="role" defaultValue={editingAdminUser.role || 'read_only'}>
+                      {adminRoleOptions().map((role: any) => (
+                        <option key={role.role} value={role.role}>{role.label || adminRoleLabels[role.role] || role.role}</option>
+                      ))}
+                    </SelectField>
+                    <p className="admin-form-note">La organización debe conservar al menos un administrador principal activo.</p>
+                    <div className="form-modal-foot">
+                      <button type="button" className="btn btn-ghost" onClick={() => setEditingAdminUser(null)}>Cancelar</button>
+                      <button className="btn btn-primary" disabled={busy === idOf(editingAdminUser)}>Guardar rol</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
           </>
         )}
       </section>
