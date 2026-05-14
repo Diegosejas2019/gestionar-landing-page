@@ -2,6 +2,8 @@ import { FormEvent, useState } from 'react';
 import { ArrowLeft, Building2, LogIn } from 'lucide-react';
 import { isSuperAdminRole, login, LoginResponse, selectOrganization } from '../../services/authService';
 
+const PWA_URL = 'https://gestionar-it.vercel.app/';
+
 export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -9,8 +11,23 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [selection, setSelection] = useState<LoginResponse | null>(null);
 
-  function redirectByRole(role?: string) {
+  function isOwnerContext(response: LoginResponse) {
+    return response.data?.accessType === 'owner' || response.data?.user?.role === 'owner';
+  }
+
+  function redirectWithToken(response: LoginResponse, token: string) {
+    if (isOwnerContext(response)) {
+      window.location.assign(`${PWA_URL}#auth_token=${encodeURIComponent(token)}`);
+      return;
+    }
+    const role = response.data?.user?.role;
     window.location.assign(isSuperAdminRole(role) ? '/super-admin' : '/admin');
+  }
+
+  function contextLabel(org: NonNullable<LoginResponse['organizations']>[number]) {
+    return org.accessType === 'admin' || org.role === 'admin'
+      ? 'Ingresar como administrador'
+      : 'Ingresar como propietario';
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -29,7 +46,7 @@ export function LoginPage() {
 
       if (token) {
         localStorage.setItem('gestionar_token', token);
-        redirectByRole(response.data?.user?.role);
+        redirectWithToken(response, token);
         return;
       }
 
@@ -51,7 +68,7 @@ export function LoginPage() {
       const token = response.token || response.data?.token;
       if (token) {
         localStorage.setItem('gestionar_token', token);
-        redirectByRole(response.data?.user?.role);
+        redirectWithToken(response, token);
         return;
       }
       setMessage('No pudimos seleccionar la organizacion.');
@@ -89,8 +106,8 @@ export function LoginPage() {
                   onClick={() => handleSelectOrganization(org.membershipId || org.id || '')}
                   disabled={loading}
                 >
-                  <strong>{org.organizationName || org.name}</strong>
-                  <span>{org.role === 'admin' ? 'Administrador' : 'Propietario'}</span>
+                  <strong>{contextLabel(org)}</strong>
+                  <span>{org.organizationName || org.name}</span>
                 </button>
               ))}
               <button className="link-button" type="button" onClick={() => setSelection(null)}>Usar otra cuenta</button>

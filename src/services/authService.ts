@@ -12,9 +12,16 @@ export type LoginResponse = {
     organizationId?: string;
     organizationName?: string;
     role?: string;
+    accessType?: 'admin' | 'owner';
+    adminRole?: string | null;
+    ownerId?: string | null;
   }>;
   data?: {
     token?: string;
+    accessType?: 'admin' | 'owner' | 'super_admin';
+    organizationId?: string;
+    ownerId?: string | null;
+    adminRole?: string | null;
     user?: {
       name: string;
       email: string;

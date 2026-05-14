@@ -748,6 +748,15 @@ export function AdminPreviewPage() {
           window.location.assign('/super-admin');
           return;
         }
+        if (response?.data?.accessType === 'owner' || user?.role === 'owner') {
+          const token = localStorage.getItem('gestionar_token');
+          if (token) {
+            window.location.assign(`https://gestionar-it.vercel.app/#auth_token=${encodeURIComponent(token)}`);
+          } else {
+            window.location.assign('/login');
+          }
+          return;
+        }
         setMe(user, response?.data?.membership);
         setAuthChecked(true);
       })
