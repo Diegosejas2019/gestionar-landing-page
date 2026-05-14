@@ -175,9 +175,19 @@ export const adminApi = {
       cacheKey('visits:list', params),
       () => apiClient<any>(`/visits${qs(params)}`, { auth: true })
     ),
+    today: () => apiClient<any>('/visits/today', { auth: true }),
+    history: (params?: Params) => apiClient<any>(`/visits/history${qs(params)}`, { auth: true }),
     status: (id: string, status: string) => {
       cacheDelete('visits:list');
       return apiClient<any>(`/visits/${id}/status`, { method: 'PATCH', auth: true, body: JSON.stringify({ status }) });
+    },
+    checkIn: (id: string, comment?: string) => {
+      cacheDelete('visits:list');
+      return apiClient<any>(`/visits/${id}/check-in`, { method: 'POST', auth: true, body: JSON.stringify({ comment }) });
+    },
+    checkOut: (id: string, comment?: string) => {
+      cacheDelete('visits:list');
+      return apiClient<any>(`/visits/${id}/check-out`, { method: 'POST', auth: true, body: JSON.stringify({ comment }) });
     },
     delete: (id: string) => { cacheDelete('visits:list'); return apiClient<any>(`/visits/${id}`, { method: 'DELETE', auth: true }); }
   },

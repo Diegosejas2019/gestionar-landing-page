@@ -12,7 +12,7 @@ import { Table } from '../../components/Table';
 type TabKey = 'inicio' | 'finanzas' | 'empleados' | 'sueldos' | 'propietarios' | 'comunicados' | 'reclamos' | 'votaciones' | 'reservas' | 'visitas' | 'proveedores' | 'documentos' | 'config';
 type Notice = { type: 'ok' | 'error'; text: string } | null;
 type FeatureKey = 'visits' | 'reservations' | 'votes' | 'claims' | 'notices' | 'expenses' | 'providers';
-type AdminRoleKey = 'owner_admin' | 'read_only' | 'billing_manager' | 'communications_manager';
+type AdminRoleKey = 'owner_admin' | 'read_only' | 'billing_manager' | 'communications_manager' | 'security_guard';
 type AdminInviteMode = 'new_user' | 'existing_owner';
 type GridFilter = {
   key: string;
@@ -2868,6 +2868,11 @@ export function AdminPreviewPage() {
                             <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 2 }}>
                               {person(v) || 'Sin propietario'}
                             </div>
+                            {v.guardNote && (
+                              <div style={{ fontSize: 11, color: 'var(--ink-2)', marginTop: 4, padding: '3px 7px', background: 'rgba(var(--accent-rgb,156,242,123),0.08)', borderRadius: 6, border: '1px solid rgba(156,242,123,0.15)' }}>
+                                📋 {v.guardNote}
+                              </div>
+                            )}
                           </div>
                           <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                             {(v.status === 'pending') && (
@@ -2877,10 +2882,10 @@ export function AdminPreviewPage() {
                               </>
                             )}
                             {(v.status === 'approved') && (
-                              <button className="btn btn-ghost" style={{ fontSize: 11, padding: '2px 7px' }} onClick={() => run(idOf(v), () => adminApi.visits.status(idOf(v), 'inside'), 'Ingreso registrado.')}>Ingreso</button>
+                              <button className="btn btn-ghost" style={{ fontSize: 11, padding: '2px 7px' }} onClick={() => run(idOf(v), () => adminApi.visits.checkIn(idOf(v)), 'Ingreso registrado correctamente.')}>Ingreso</button>
                             )}
                             {v.status === 'inside' && (
-                              <button className="btn btn-ghost" style={{ fontSize: 11, padding: '2px 7px' }} onClick={() => run(idOf(v), () => adminApi.visits.status(idOf(v), 'exited'), 'Egreso registrado.')}>Egreso</button>
+                              <button className="btn btn-ghost" style={{ fontSize: 11, padding: '2px 7px' }} onClick={() => run(idOf(v), () => adminApi.visits.checkOut(idOf(v)), 'Egreso registrado correctamente.')}>Egreso</button>
                             )}
                           </div>
                         </div>
@@ -2912,7 +2917,7 @@ export function AdminPreviewPage() {
                               <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>{person(v) || '—'} · {v.type || 'visita'}</div>
                             </div>
                             {v.status === 'approved' && (
-                              <button className="icon-btn" title="Registrar ingreso" onClick={() => run(idOf(v), () => adminApi.visits.status(idOf(v), 'inside'), 'Ingreso registrado.')}>
+                              <button className="icon-btn" title="Registrar ingreso" onClick={() => run(idOf(v), () => adminApi.visits.checkIn(idOf(v)), 'Ingreso registrado correctamente.')}>
                                 <LogIn size={13} />
                               </button>
                             )}
