@@ -69,6 +69,7 @@ export const adminApi = {
 
   adminUsers: {
     list: () => cachedApiCall('admin:users', () => apiClient<any>('/admin/users', { auth: true })),
+    searchOwners: (query: string) => apiClient<any>(`/admin/owners/search${qs({ query })}`, { auth: true }),
     invite: (data: Payload) => { cacheDelete('admin:users'); return apiClient<any>('/admin/users/invite', { method: 'POST', auth: true, body: body(data) }); },
     updateRole: (id: string, role: string) => { cacheDelete('admin:users'); return apiClient<any>(`/admin/users/${id}/role`, { method: 'PATCH', auth: true, body: JSON.stringify({ role }) }); },
     disable: (id: string) => { cacheDelete('admin:users'); return apiClient<any>(`/admin/users/${id}/disable`, { method: 'PATCH', auth: true }); }

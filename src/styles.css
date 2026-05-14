@@ -1939,6 +1939,73 @@ footer {
   letter-spacing: 0;
   line-height: 1.6;
 }
+.admin-invite-mode {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.admin-invite-mode button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-faint);
+  font: 700 12px var(--font);
+  cursor: pointer;
+}
+.admin-invite-mode button.active {
+  background: rgba(156, 242, 123, .14);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px rgba(156, 242, 123, .28);
+}
+.owner-admin-results {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 8px;
+  max-height: 230px;
+  overflow: auto;
+}
+.owner-admin-option {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+}
+.owner-admin-option strong,
+.owner-admin-option span,
+.owner-admin-option small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.owner-admin-option strong {
+  color: var(--text);
+  font-size: 13px;
+}
+.owner-admin-option span,
+.owner-admin-option small {
+  color: var(--text-faint);
+  font-size: 12px;
+}
+.owner-admin-option.selected {
+  border-color: rgba(156, 242, 123, .65);
+  box-shadow: 0 0 0 3px rgba(156, 242, 123, .1);
+}
+.owner-admin-option:disabled {
+  cursor: not-allowed;
+  opacity: .56;
+}
 .admin-field input:focus,
 .admin-field select:focus,
 .admin-field textarea:focus {
@@ -2706,6 +2773,21 @@ footer {
   font-size: 11px;
   line-height: 1.35;
   margin-top: 6px;
+}
+.permission-group-list {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+}
+.permission-group-list p {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 11px;
+  line-height: 1.4;
+}
+.permission-group-list b {
+  color: var(--ink-1);
+  font-weight: 700;
 }
 .chip {
   display: inline-flex;
