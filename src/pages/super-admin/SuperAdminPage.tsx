@@ -1,5 +1,5 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Building2, Check, KeyRound, LayoutDashboard, LifeBuoy, LogOut, RefreshCw, Search, Shield, Users } from 'lucide-react';
+import { Activity, AlertTriangle, BarChart3, Building2, Check, CreditCard, FileText, KeyRound, LayoutDashboard, LifeBuoy, LogOut, Megaphone, MessageSquare, RefreshCw, Search, Shield, Upload, Users } from 'lucide-react';
 import { superAdminApi } from '../../services/adminService';
 import { isSuperAdminRole } from '../../services/authService';
 
@@ -22,6 +22,42 @@ const ticketStatusLabels: Record<string, string> = {
   resolved: 'Resuelto',
   closed: 'Cerrado'
 };
+const rangeLabels: Record<string, string> = {
+  '7d': 'Últimos 7 días',
+  '30d': 'Últimos 30 días',
+  month: 'Mes actual',
+  custom: 'Personalizado'
+};
+const moduleLabels: Record<string, string> = {
+  auth: 'Autenticación',
+  documents: 'Documentos',
+  payments: 'Pagos',
+  claims: 'Reclamos',
+  notices: 'Comunicados',
+  owners: 'Propietarios'
+};
+
+function localDate(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function daysAgo(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() - days + 1);
+  return localDate(date);
+}
+
+function rangeForPreset(preset: string) {
+  const today = new Date();
+  if (preset === '7d') return { from: daysAgo(7), to: localDate(today) };
+  if (preset === 'month') return { from: localDate(new Date(today.getFullYear(), today.getMonth(), 1)), to: localDate(today) };
+  return { from: daysAgo(30), to: localDate(today) };
+}
+
+const initialRange = rangeForPreset('30d');
 
 function pick<T>(response: any, key: string, fallback: T): T {
   return response?.data?.[key] ?? fallback;
@@ -41,6 +77,13 @@ export function SuperAdminPage() {
   const [members, setMembers] = useState<any[]>([]);
   const [features, setFeatures] = useState<Record<string, boolean>>({});
   const [supportTickets, setSupportTickets] = useState<any[]>([]);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
+  const [analyticsOverview, setAnalyticsOverview] = useState<any>({});
+  const [dailyActivity, setDailyActivity] = useState<any[]>([]);
+  const [moduleUsage, setModuleUsage] = useState<any[]>([]);
+  const [organizationUsage, setOrganizationUsage] = useState<any[]>([]);
+  const [rangePreset, setRangePreset] = useState('30d');
+  const [customRange, setCustomRange] = useState(initialRange);
   const [statusModal, setStatusModal] = useState<{ org: any; nextActive: boolean } | null>(null);
   const [statusReason, setStatusReason] = useState('');
 
@@ -51,6 +94,31 @@ export function SuperAdminPage() {
 
   const activeCount = organizations.filter((org) => org.isActive !== false).length;
   const inactiveCount = organizations.length - activeCount;
+  const analyticsRange = useMemo(
+    () => rangePreset === 'custom' ? customRange : rangeForPreset(rangePreset),
+    [rangePreset, customRange]
+  );
+
+  async function loadAnalytics(range = analyticsRange) {
+    if (!range.from || !range.to) return;
+    setAnalyticsLoading(true);
+    try {
+      const [overview, activity, modules, orgUsage] = await Promise.all([
+        superAdminApi.analytics.overview(),
+        superAdminApi.analytics.dailyActivity(range),
+        superAdminApi.analytics.modules(range),
+        superAdminApi.analytics.organizations(range)
+      ]);
+      setAnalyticsOverview(overview?.data || {});
+      setDailyActivity(pick<any[]>(activity, 'activity', []));
+      setModuleUsage(pick<any[]>(modules, 'modules', []));
+      setOrganizationUsage(pick<any[]>(orgUsage, 'organizations', []));
+    } catch (error) {
+      setNotice({ type: 'error', text: error instanceof Error ? error.message : 'No pudimos cargar las metricas de uso.' });
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }
 
   async function refresh() {
     setLoading(true);
@@ -62,15 +130,17 @@ export function SuperAdminPage() {
         return;
       }
 
-      const [orgs, support] = await Promise.all([
+      const [orgs, support, overview] = await Promise.all([
         superAdminApi.organizations.list(),
-        superAdminApi.support.list({ limit: 100 })
+        superAdminApi.support.list({ limit: 100 }),
+        superAdminApi.analytics.overview()
       ]);
 
       const list = pick<any[]>(orgs, 'organizations', []);
       setUser(loggedUser);
       setOrganizations(list);
       setSupportTickets(pick<any[]>(support, 'tickets', []));
+      setAnalyticsOverview(overview?.data || {});
       setSelectedOrgId((current) => current || idOf(list[0] || ''));
       setNotice(null);
     } catch (error) {
@@ -101,6 +171,11 @@ export function SuperAdminPage() {
     }
     refresh();
   }, []);
+
+  useEffect(() => {
+    if (!localStorage.getItem('gestionar_token')) return;
+    loadAnalytics(analyticsRange);
+  }, [analyticsRange]);
 
   useEffect(() => {
     loadOrgDetails(selectedOrgId);
@@ -204,6 +279,20 @@ export function SuperAdminPage() {
     setStatusReason('');
   }
 
+  function updateRangePreset(value: string) {
+    setRangePreset(value);
+    if (value !== 'custom') setCustomRange(rangeForPreset(value));
+  }
+
+  function organizationActivityStatus(lastActivityAt: unknown) {
+    if (!lastActivityAt) return 'Sin actividad';
+    const last = new Date(String(lastActivityAt)).getTime();
+    const now = Date.now();
+    if (now - last <= 7 * 24 * 60 * 60 * 1000) return 'Activa';
+    if (now - last <= 30 * 24 * 60 * 60 * 1000) return 'Baja actividad';
+    return 'Sin actividad';
+  }
+
   return (
     <main className={`admin-shell${busy ? ' is-busy' : ''}`}>
       <aside className="admin-sidebar">
@@ -213,6 +302,9 @@ export function SuperAdminPage() {
         <nav>
           <button className="active"><Shield size={18} /> <span>SuperAdmin</span></button>
           <button onClick={() => setSelectedOrgId(idOf(organizations[0] || ''))}><Building2 size={18} /> <span>Organizaciones</span></button>
+          <button onClick={() => document.getElementById('usage-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+            <BarChart3 size={18} /> <span>Uso</span>
+          </button>
           <button onClick={() => document.getElementById('password-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
             <KeyRound size={18} /> <span>Contrasenas</span>
           </button>
@@ -248,6 +340,72 @@ export function SuperAdminPage() {
           <Metric row loading={loading} label="Inactivas" value={inactiveCount} hint="Desactivadas" icon={LayoutDashboard} />
           <Metric row loading={loading} label="Miembros org" value={members.length} hint={selectedOrg?.name || 'Seleccion actual'} icon={Users} />
         </div>
+
+        <section className="admin-panel usage-panel" id="usage-panel">
+          <div className="panel-head">
+            <h2><BarChart3 size={18} /> Uso de la plataforma</h2>
+            <div className="usage-range">
+              <select value={rangePreset} onChange={(event) => updateRangePreset(event.target.value)}>
+                <option value="7d">{rangeLabels['7d']}</option>
+                <option value="30d">{rangeLabels['30d']}</option>
+                <option value="month">{rangeLabels.month}</option>
+                <option value="custom">{rangeLabels.custom}</option>
+              </select>
+              {rangePreset === 'custom' && (
+                <>
+                  <input type="date" value={customRange.from} onChange={(event) => setCustomRange((current) => ({ ...current, from: event.target.value }))} />
+                  <input type="date" value={customRange.to} onChange={(event) => setCustomRange((current) => ({ ...current, to: event.target.value }))} />
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="metric-grid usage-metrics">
+            <Metric row loading={analyticsLoading} label="Usuarios activos hoy" value={analyticsOverview.activeUsersToday || 0} hint="Actividad diaria" icon={Activity} />
+            <Metric row loading={analyticsLoading} label="Usuarios activos este mes" value={analyticsOverview.activeUsersThisMonth || 0} hint="Usuarios únicos" icon={Users} />
+            <Metric row loading={analyticsLoading} label="Organizaciones activas" value={analyticsOverview.activeOrganizationsThisMonth || 0} hint="Este mes" icon={Building2} />
+            <Metric row loading={analyticsLoading} label="Documentos subidos este mes" value={analyticsOverview.documentsUploadedThisMonth || 0} hint="Archivos" icon={Upload} />
+            <Metric row loading={analyticsLoading} label="Pagos registrados este mes" value={analyticsOverview.paymentsCreatedThisMonth || 0} hint="ARS" icon={CreditCard} />
+            <Metric row loading={analyticsLoading} label="Reclamos creados este mes" value={analyticsOverview.claimsCreatedThisMonth || 0} hint="Comunidad" icon={MessageSquare} />
+            <Metric row loading={analyticsLoading} label="Comunicados creados este mes" value={analyticsOverview.noticesCreatedThisMonth || 0} hint="Avisos" icon={Megaphone} />
+          </div>
+
+          <div className="usage-grid">
+            <div className="usage-card">
+              <div className="usage-card-head">
+                <span>Actividad diaria</span>
+                <small>{analyticsRange.from} / {analyticsRange.to}</small>
+              </div>
+              <DailyActivityChart rows={dailyActivity} loading={analyticsLoading} />
+            </div>
+            <div className="usage-card">
+              <div className="usage-card-head">
+                <span>Uso por módulo</span>
+                <small>{moduleUsage.length} módulos</small>
+              </div>
+              <ModuleUsageChart rows={moduleUsage} loading={analyticsLoading} />
+            </div>
+          </div>
+
+          <div className="usage-table">
+            <Grid
+              loading={analyticsLoading}
+              rows={organizationUsage}
+              searchPlaceholder="Buscar organizacion por actividad"
+              columns={[
+                ['Organización', (org: any) => org.organizationName],
+                ['Usuarios activos', (org: any) => org.activeUsers || 0],
+                ['Eventos totales', (org: any) => org.totalEvents || 0],
+                ['Última actividad', (org: any) => dateLabel(org.lastActivityAt)],
+                ['Pagos', (org: any) => org.paymentsCreated || 0],
+                ['Documentos', (org: any) => org.documentsUploaded || 0],
+                ['Reclamos', (org: any) => org.claimsCreated || 0],
+                ['Comunicados', (org: any) => org.noticesCreated || 0],
+                ['Estado', (org: any) => <span className={`usage-status ${organizationActivityStatus(org.lastActivityAt).toLowerCase().replace(/\s+/g, '-')}`}>{organizationActivityStatus(org.lastActivityAt)}</span>]
+              ]}
+            />
+          </div>
+        </section>
 
         <div className="admin-grid">
           <Panel id="password-panel" title="Cambiar contrasena" icon={KeyRound}>
@@ -411,6 +569,47 @@ export function SuperAdminPage() {
         </div>
       )}
     </main>
+  );
+}
+
+function DailyActivityChart({ rows, loading }: { rows: any[]; loading: boolean }) {
+  if (loading) {
+    return <div className="usage-chart skeleton-chart">{Array.from({ length: 12 }).map((_, index) => <span key={index} />)}</div>;
+  }
+  if (!rows.length) return <Empty text="No hay actividad en el rango seleccionado." />;
+
+  const max = Math.max(1, ...rows.map((row) => Number(row.totalEvents || 0)));
+  return (
+    <div className="usage-chart">
+      {rows.map((row) => (
+        <div className="usage-day" key={row.date} title={`${dateLabel(row.date)}: ${row.totalEvents || 0} eventos`}>
+          <span className="usage-bar" style={{ height: `${Math.max(6, (Number(row.totalEvents || 0) / max) * 100)}%` }} />
+          <small>{String(row.date).slice(5)}</small>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ModuleUsageChart({ rows, loading }: { rows: any[]; loading: boolean }) {
+  if (loading) {
+    return <div className="usage-modules skeleton-modules">{Array.from({ length: 5 }).map((_, index) => <span key={index} />)}</div>;
+  }
+  if (!rows.length) return <Empty text="No hay uso por módulo en el rango seleccionado." />;
+
+  const max = Math.max(1, ...rows.map((row) => Number(row.totalEvents || 0)));
+  return (
+    <div className="usage-modules">
+      {rows.map((row) => (
+        <div className="usage-module" key={row.module}>
+          <div>
+            <strong>{moduleLabels[row.module] || row.module}</strong>
+            <small>{row.totalEvents || 0} eventos</small>
+          </div>
+          <span><i style={{ width: `${Math.max(4, (Number(row.totalEvents || 0) / max) * 100)}%` }} /></span>
+        </div>
+      ))}
+    </div>
   );
 }
 

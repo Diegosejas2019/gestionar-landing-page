@@ -238,6 +238,13 @@ export const adminApi = {
 export const superAdminApi = {
   me: () => cachedApiCall('super-admin:me', () => apiClient<any>('/auth/me', { auth: true })),
 
+  analytics: {
+    overview: () => apiClient<any>('/super-admin/analytics/overview', { auth: true }),
+    dailyActivity: (params?: Params) => apiClient<any>(`/super-admin/analytics/daily-activity${qs(params)}`, { auth: true }),
+    organizations: (params?: Params) => apiClient<any>(`/super-admin/analytics/organizations${qs(params)}`, { auth: true }),
+    modules: (params?: Params) => apiClient<any>(`/super-admin/analytics/modules${qs(params)}`, { auth: true })
+  },
+
   users: {
     updatePasswordByEmail: (data: { email: string; newPassword: string }) =>
       apiClient<any>('/super-admin/users/password', { method: 'PATCH', auth: true, body: JSON.stringify(data) })

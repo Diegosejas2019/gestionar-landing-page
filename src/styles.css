@@ -4112,6 +4112,160 @@ footer {
   color: var(--text-bright); text-align: right;
 }
 
+/* ── SuperAdmin Usage Analytics ── */
+.usage-panel {
+  margin: 1rem 0;
+}
+.usage-range {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  flex-wrap: wrap;
+}
+.usage-range select,
+.usage-range input {
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-bright);
+  padding: 0 .75rem;
+  font: inherit;
+}
+.usage-metrics {
+  margin-bottom: 1rem;
+}
+.usage-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, .8fr);
+  gap: 1rem;
+}
+.usage-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255,255,255,.025);
+  padding: 1rem;
+  min-width: 0;
+}
+.usage-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: .85rem;
+}
+.usage-card-head span {
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--text-bright);
+}
+.usage-card-head small {
+  color: var(--muted);
+  font-size: .72rem;
+}
+.usage-chart {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(22px, 1fr);
+  align-items: end;
+  gap: .45rem;
+  min-height: 180px;
+  overflow-x: auto;
+  padding: .35rem .15rem 0;
+}
+.usage-day {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: .45rem;
+  min-width: 22px;
+  height: 180px;
+}
+.usage-bar {
+  align-self: end;
+  display: block;
+  width: 100%;
+  min-height: 6px;
+  border-radius: 6px 6px 2px 2px;
+  background: linear-gradient(180deg, var(--accent), var(--green-deep));
+  box-shadow: 0 0 18px rgba(156,242,123,.12);
+}
+.usage-day small {
+  color: var(--muted);
+  font-size: .62rem;
+  text-align: center;
+  white-space: nowrap;
+}
+.usage-modules {
+  display: grid;
+  gap: .8rem;
+}
+.usage-module {
+  display: grid;
+  gap: .4rem;
+}
+.usage-module div {
+  display: flex;
+  justify-content: space-between;
+  gap: .75rem;
+  align-items: baseline;
+}
+.usage-module strong {
+  color: var(--text-bright);
+  font-size: .85rem;
+}
+.usage-module small {
+  color: var(--muted);
+  font-size: .72rem;
+}
+.usage-module > span {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.usage-module i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+.usage-table {
+  margin-top: 1rem;
+}
+.usage-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border-radius: 999px;
+  padding: 0 .65rem;
+  font-size: .72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.usage-status.activa {
+  background: var(--success-lt);
+  color: var(--success);
+}
+.usage-status.baja-actividad {
+  background: var(--warning-lt);
+  color: var(--warning);
+}
+.usage-status.sin-actividad {
+  background: var(--danger-lt);
+  color: var(--danger);
+}
+.skeleton-chart span,
+.skeleton-modules span {
+  display: block;
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(255,255,255,.05), rgba(255,255,255,.11), rgba(255,255,255,.05));
+  min-height: 28px;
+}
+.skeleton-chart span {
+  align-self: end;
+  height: 80px;
+}
+
 @media (max-width: 768px) {
   .compliance-chips { flex-wrap: wrap; }
   .kpi-row { grid-template-columns: 1fr; }
@@ -4120,4 +4274,6 @@ footer {
   .period-row { grid-template-columns: 50px 1fr 1fr 1fr; }
   .period-table-cols span:nth-child(4),
   .period-row .period-chip:nth-child(4) { display: none; }
+  .usage-grid { grid-template-columns: 1fr; }
+  .usage-card-head { align-items: flex-start; flex-direction: column; }
 }
