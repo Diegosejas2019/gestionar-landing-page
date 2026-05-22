@@ -1,4 +1,237 @@
 import { useEffect, useRef, useState } from 'react';
+import {
+  AlertCircle,
+  Bell,
+  Check,
+  Clock,
+  CreditCard,
+  FileText,
+  LayoutDashboard,
+  Mail,
+  MessageCircle,
+  Phone,
+  Settings2,
+  Smartphone,
+} from 'lucide-react';
+
+const CONTACT_EMAIL = 'gestionar.app.info@gmail.com';
+const CONTACT_PHONE = '+54 11 5579-3722';
+const CONTACT_PHONE_HREF = 'tel:+541155793722';
+
+const problems = [
+  {
+    icon: MessageCircle,
+    title: 'Consultas dispersas en WhatsApp',
+    text: '"¿Cuánto debo?", "¿Llegó mi pago?", "¿Cuándo es la reunión?". Las mismas preguntas, en distintos chats, todos los días.',
+  },
+  {
+    icon: FileText,
+    title: 'Comprobantes repartidos',
+    text: 'Recibos en el mail, facturas en una carpeta, transferencias en una planilla. Encontrar algo lleva demasiado tiempo.',
+  },
+  {
+    icon: AlertCircle,
+    title: 'Reclamos sin seguimiento',
+    text: 'Llega un reclamo, se contesta y después se pierde. Nadie sabe en qué quedó ni quién lo está resolviendo.',
+  },
+  {
+    icon: CreditCard,
+    title: 'Cobranza poco visible',
+    text: 'No sabés en tiempo real cuánto se cobró, quién pagó ni cuánto falta. Para verlo, hay que armar otro Excel.',
+  },
+  {
+    icon: Bell,
+    title: 'Avisos que no llegan',
+    text: 'Comunicados pegados en el ascensor, mails que terminan en spam y propietarios que se enteran tarde.',
+  },
+  {
+    icon: LayoutDashboard,
+    title: 'Sin visibilidad para crecer',
+    text: 'Querés sumar consorcios, pero con lo que tenés hoy la operación ya se siente desordenada.',
+  },
+];
+
+const features = [
+  {
+    className: 'cell cell-hero',
+    tag: 'DASHBOARD',
+    title: 'Panel para administradores',
+    text: 'Una vista en vivo de cobranzas, morosidad y actividad de todos los consorcios. Filtrá, compará y decidí con datos reales.',
+    visual: (
+      <div className="cell-viz">
+        <div className="viz-card">
+          <div className="vl">Cobrado este mes</div>
+          <div className="vv">$ 18.4M</div>
+          <div className="viz-bars-row">
+            {[40, 65, 55, 80, 70, 90, 78, 95].map((height, index) => (
+              <div key={index} style={{ height: `${height}%` }} />
+            ))}
+          </div>
+        </div>
+        <div className="viz-card">
+          <div className="vl">Morosidad</div>
+          <div className="vv">6,2%</div>
+          <div className="viz-bars-row warn">
+            {[65, 58, 50, 45, 38, 32, 28, 22].map((height, index) => (
+              <div key={index} style={{ height: `${height}%` }} />
+            ))}
+          </div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    className: 'cell cell-tall',
+    tag: 'APP PROPIETARIOS',
+    title: 'Una app clara para tus propietarios',
+    text: 'Acceden a expensas, deuda, pagos, reclamos, avisos y documentos desde el celular.',
+    visual: <PhoneMockup />,
+  },
+  {
+    className: 'cell cell-half',
+    tag: 'EXPENSAS & PAGOS',
+    title: 'Liquidá expensas y registrá pagos',
+    text: 'Cargá períodos, generá expensas por unidad, registrá pagos manuales o automáticos, emití recibos.',
+    visual: (
+      <div className="ticket-list">
+        <div className="ticket-row"><span className="ticket-status done" /><span className="t">Período Abr 2026 · emitido</span><span className="meta">312/312</span></div>
+        <div className="ticket-row"><span className="ticket-status progress" /><span className="t">Cobranzas en curso</span><span className="meta">94%</span></div>
+      </div>
+    ),
+  },
+  {
+    className: 'cell cell-half',
+    tag: 'RECLAMOS',
+    title: 'Reclamos con estado y responsable',
+    text: 'Cada reclamo queda registrado, se asigna y se sigue desde un solo lugar. Nada se pierde.',
+    visual: (
+      <div className="ticket-list">
+        <div className="ticket-row"><span className="ticket-status open" /><span className="t">Pérdida de agua · 5°B</span><span className="meta">PENDIENTE</span></div>
+        <div className="ticket-row"><span className="ticket-status progress" /><span className="t">Luz de palier · PB</span><span className="meta">EN CURSO</span></div>
+        <div className="ticket-row"><span className="ticket-status done" /><span className="t">Cerradura puerta SUM</span><span className="meta">RESUELTO</span></div>
+      </div>
+    ),
+  },
+  {
+    className: 'cell cell-third',
+    tag: 'AVISOS',
+    title: 'Comunicados al instante',
+    text: 'Llegan a la app y por mail. Confirmás quién los vio.',
+    visual: (
+      <div className="notice-stack">
+        <div className="notice-row"><span>Corte de agua · martes</span><span className="nl">312/312</span></div>
+        <div className="notice-row"><span>Asamblea ordinaria</span><span className="nl">298/312</span></div>
+      </div>
+    ),
+  },
+  {
+    className: 'cell cell-third',
+    tag: 'DOCUMENTOS',
+    title: 'Toda la documentación a un clic',
+    text: 'Reglamento, liquidaciones, actas, contratos. Siempre disponible.',
+    visual: (
+      <div className="docs-row">
+        {['Liquid. Abr 26', 'Reglamento', 'Acta Mar'].map((doc) => (
+          <div className="doc-chip" key={doc}><FileText size={12} />{doc}</div>
+        ))}
+      </div>
+    ),
+  },
+  {
+    className: 'cell cell-third',
+    tag: 'EXTRAS',
+    title: 'Reservas, visitas y permisos',
+    text: 'Espacios comunes, registro de visitas y permisos por módulo si aplica a tu barrio.',
+    visual: (
+      <div className="module-pills">
+        <span className="pill on">Reservas</span>
+        <span className="pill on">Visitas</span>
+        <span className="pill on">Roles</span>
+      </div>
+    ),
+  },
+];
+
+const benefits = [
+  {
+    tag: 'PARA TU ADMINISTRACIÓN',
+    title: 'Operá más consorcios sin desorden.',
+    text: 'Centralizá la información, automatizá lo repetitivo y ganá tiempo del equipo.',
+    items: [
+      ['Menos consultas repetidas', 'Los propietarios encuentran solos su deuda, recibos y avisos.'],
+      ['Información centralizada', 'Una fuente única para cobranzas, reclamos, avisos y documentación.'],
+      ['Dashboards de actividad y morosidad', 'Sabés en tiempo real qué pasa en cada consorcio.'],
+      ['Operación más profesional', 'Imagen moderna y trazabilidad de cada acción del equipo.'],
+      ['Escalabilidad real', 'Sumás consorcios sin sumar caos ni gente extra.'],
+    ],
+  },
+  {
+    tag: 'PARA LOS PROPIETARIOS',
+    title: 'Una experiencia clara y moderna.',
+    text: 'Todo lo que un propietario necesita, a un toque desde el celular.',
+    items: [
+      ['Ver deuda, pagos y comprobantes', 'Desde la app, sin tener que escribir al administrador.'],
+      ['Recibir avisos importantes', 'Notificaciones de cortes, asambleas y novedades del consorcio.'],
+      ['Crear reclamos con seguimiento', 'Saben siempre en qué estado está su pedido.'],
+      ['Acceso a documentos del consorcio', 'Reglamento, actas, liquidaciones, siempre a mano.'],
+      ['Reservar espacios comunes', 'SUM, parrilla o cocheras, según lo que tenga el consorcio.'],
+    ],
+  },
+];
+
+const steps = [
+  {
+    n: 1,
+    title: 'Configuramos tu organización',
+    desc: 'Damos de alta tu administración, usuarios del equipo y permisos por consorcio.',
+    label: 'PASO 01 · ORGANIZACIÓN',
+    panelTitle: 'Configuración inicial',
+    rows: [['Datos de la administración', '✓'], ['Usuarios del equipo', '4 ALTAS'], ['Roles y permisos', '✓'], ['Logo y dominio propio', '✓']],
+  },
+  {
+    n: 2,
+    title: 'Cargamos unidades y propietarios',
+    desc: 'Importamos el padrón desde Excel o tu sistema actual. Sin retipear nada.',
+    label: 'PASO 02 · IMPORTACIÓN',
+    panelTitle: 'Carga de datos',
+    rows: [['Consorcios cargados', '12 / 12'], ['Unidades / lotes', '1.847'], ['Padrón de propietarios', '✓'], ['Saldos iniciales', '✓']],
+  },
+  {
+    n: 3,
+    title: 'Activamos los módulos que necesitás',
+    desc: 'Expensas, reclamos, avisos, reservas, visitas. Sumás más cuando quieras.',
+    label: 'PASO 03 · MÓDULOS',
+    panelTitle: 'Activación funcional',
+    rows: [['Expensas y pagos', '✓'], ['Reclamos', '✓'], ['Avisos y comunicados', '✓'], ['Reservas', 'OPCIONAL']],
+  },
+  {
+    n: 4,
+    title: 'Los propietarios ingresan a la app',
+    desc: 'Reciben invitación, descargan la app y acceden a sus expensas y avisos.',
+    label: 'PASO 04 · PROPIETARIOS',
+    panelTitle: 'Acceso a la app',
+    rows: [['Invitaciones enviadas', '1.847'], ['Activaciones', '1.612'], ['PWA / iOS / Android', '✓'], ['Soporte de onboarding', '✓']],
+  },
+  {
+    n: 5,
+    title: 'Operás todo desde tu panel',
+    desc: 'Tu equipo gestiona, los propietarios consultan, GestionAr conecta a ambos.',
+    label: 'PASO 05 · OPERACIÓN',
+    panelTitle: 'Día a día en GestionAr',
+    rows: [['Liquidación mensual', '✓'], ['Cobranzas en tiempo real', '✓'], ['Reclamos con seguimiento', '✓'], ['Soporte continuo', '✓']],
+  },
+];
+
+const faqs = [
+  ['¿GestionAr reemplaza a mi sistema actual?', 'GestionAr es la herramienta de gestión operativa de tu administración: expensas, pagos, reclamos, avisos, documentación, propietarios y reservas. Si hoy usás Excel, WhatsApp y mails, los reemplaza todos. Si tenés un sistema contable, convivimos: importamos datos y te ahorramos la doble carga.'],
+  ['¿Puedo usarlo para varios consorcios al mismo tiempo?', 'Sí. GestionAr está pensada para administraciones que gestionan múltiples consorcios, barrios privados, countries o clubes de campo. Cada uno tiene su panel propio, y vos ves todo consolidado desde tu organización.'],
+  ['¿Los propietarios tienen acceso a la app?', 'Sí. Cada propietario accede con su mail o DNI y ve su deuda, pagos, recibos, reclamos, avisos y documentos. Para tu equipo significa menos consultas repetidas; para el propietario, una experiencia clara y moderna.'],
+  ['¿Se puede configurar por organización?', 'Sí. Definís roles y permisos por usuario, por consorcio y por módulo. Por ejemplo: tu equipo de cobranzas ve cobranzas de todos los consorcios, y un encargado solo ve reclamos del suyo.'],
+  ['¿Puedo activar solo algunos módulos?', 'Sí. Arrancás con expensas, avisos y reclamos, y sumás reservas, visitas u otros módulos cuando lo necesites. No pagás por funcionalidades que no usás.'],
+  ['¿La app funciona como PWA?', 'Sí. GestionAr funciona como Progressive Web App: tus propietarios la instalan desde el navegador en iOS y Android sin pasar por la store, y reciben notificaciones igual que una app nativa.'],
+  ['¿Cómo se importan los datos iniciales?', 'Te pedimos un Excel con el padrón de unidades, propietarios y saldos. Nosotros lo cargamos por vos durante el onboarding. Si venís de otro sistema, evaluamos una migración asistida.'],
+  ['¿Puedo solicitar una demo personalizada?', 'Sí. Coordinamos una demo de 30 minutos con alguien de nuestro equipo, donde recorremos los módulos clave y vemos cómo aplicaría a tu administración. Sin compromiso.'],
+];
 
 export function HomePage() {
   const [scrolled, setScrolled] = useState(false);
@@ -9,16 +242,17 @@ export function HomePage() {
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 30);
     window.addEventListener('scroll', handler);
+    handler();
     return () => window.removeEventListener('scroll', handler);
   }, []);
 
   useEffect(() => {
     const io = new IntersectionObserver(
       (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            e.target.classList.add('in');
-            io.unobserve(e.target);
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in');
+            io.unobserve(entry.target);
           }
         });
       },
@@ -29,560 +263,363 @@ export function HomePage() {
   }, []);
 
   useEffect(() => {
-    const id = setInterval(() => {
+    const id = window.setInterval(() => {
       if (!processRef.current?.matches(':hover')) {
-        setActiveStep((s) => (s % 4) + 1);
+        setActiveStep((current) => (current % steps.length) + 1);
       }
     }, 5000);
-    return () => clearInterval(id);
+    return () => window.clearInterval(id);
   }, []);
 
   return (
     <>
-      {/* NAV */}
       <nav className={`nav${scrolled ? ' scrolled' : ''}`}>
-        <a href="#" className="logo">
+        <a href="#" className="logo" aria-label="GestionAr">
           <span className="logo-mark" />
           Gestion<span className="ar">Ar</span>
         </a>
         <ul className="nav-links">
+          <li><a href="#funcionalidades">Funcionalidades</a></li>
           <li><a href="#beneficios">Beneficios</a></li>
-          <li><a href="#servicios">Servicios</a></li>
-          <li><a href="#proceso">Cómo trabajamos</a></li>
+          <li><a href="#como-funciona">Cómo funciona</a></li>
           <li><a href="#faq">FAQ</a></li>
         </ul>
-        <div className="nav-actions">
-          <a href="/login" className="btn btn-ghost">Login</a>
-          <a href="#contacto" className="btn btn-primary">Pedir propuesta <span className="arrow">→</span></a>
+        <div className="nav-cta">
+          <a href="/login" className="nav-login">Ingresar</a>
+          <a href="#contacto" className="btn btn-primary">Solicitar demo <span className="arrow">→</span></a>
         </div>
       </nav>
 
-      {/* HERO */}
       <section className="hero">
         <div className="container hero-inner">
           <div className="hero-copy">
-            <div className="eyebrow"><span className="dot" /> ADMINISTRACIÓN DE CONSORCIOS · ARGENTINA</div>
+            <div className="eyebrow"><span className="dot" /> SOFTWARE PARA ADMINISTRACIONES · ARGENTINA</div>
             <h1 className="display">
-              La administración <span className="accent">transparente</span> que tu consorcio necesita.
+              La plataforma para administrar consorcios de forma <span className="accent">simple, clara y digital</span>.
             </h1>
             <p className="lead">
-              Simplificamos expensas, mantenimiento y comunicación en edificios, barrios cerrados y clubes de campo. Todo en una plataforma, disponible 24/7.
+              GestionAr es la app que tu administración necesita para ordenar expensas, cobranzas, reclamos, avisos y documentación. Una sola herramienta para vos y tus propietarios.
             </p>
             <div className="hero-cta">
-              <a href="#contacto" className="btn btn-primary btn-lg">Agendar diagnóstico gratuito <span className="arrow">→</span></a>
-              <a href="#servicios" className="btn btn-ghost btn-lg">Ver servicios</a>
+              <a href="#contacto" className="btn btn-primary btn-lg">Solicitar demo <span className="arrow">→</span></a>
+              <a href="#funcionalidades" className="btn btn-ghost btn-lg">Ver funcionalidades</a>
             </div>
-            <div className="trust">
-              <div className="avatars">
-                <span>MP</span><span>LT</span><span>RC</span><span>+</span>
-              </div>
-              <div>+34 barrios confían en nosotros este año</div>
+            <div className="hero-bullets">
+              {['Multiconsorcio', 'App para propietarios', 'Implementación guiada'].map((item) => (
+                <span key={item}><Check size={14} />{item}</span>
+              ))}
             </div>
           </div>
 
-          <div className="hero-visual">
-            <div className="dash dash-main">
-              <div className="dash-head">
-                <div>
-                  <div className="dash-title">Panel del consorcio</div>
-                  <div className="dash-sub">BARRIO LAS ACACIAS · ABR 2026</div>
+          <div className="hero-visual" aria-hidden="true">
+            <div className="panel panel-main">
+              <div className="panel-head">
+                <div className="panel-org">
+                  <div className="org-mark">G</div>
+                  <div>
+                    <div className="org-name">Estudio Méndez · Admin.</div>
+                    <div className="org-sub">12 CONSORCIOS · 1.847 UNIDADES</div>
+                  </div>
                 </div>
-                <div className="dash-tabs">
-                  <span className="active">Mes</span>
-                  <span>Trim.</span>
-                  <span>Año</span>
-                </div>
+                <div className="panel-tabs"><span className="active">Mes</span><span>Trim.</span><span>Año</span></div>
               </div>
-              <div className="dash-stats">
-                <div className="stat-card">
-                  <div className="label">Cobrado</div>
-                  <div className="val">96%</div>
-                  <div className="delta">↑ 4.2</div>
-                </div>
-                <div className="stat-card">
-                  <div className="label">Tickets</div>
-                  <div className="val">12</div>
-                  <div className="delta">↓ 21%</div>
-                </div>
-                <div className="stat-card">
-                  <div className="label">Reservas</div>
-                  <div className="val">87</div>
-                  <div className="delta">↑ 8</div>
-                </div>
+              <div className="panel-stats">
+                <div className="stat-card"><div className="label">Cobrado</div><div className="val">94%</div><div className="delta">↑ 3.1</div></div>
+                <div className="stat-card warn"><div className="label">Morosidad</div><div className="val">6%</div><div className="delta">↓ 1.2</div></div>
+                <div className="stat-card"><div className="label">Reclamos</div><div className="val">18</div><div className="delta">↓ 24%</div></div>
               </div>
-              <div className="dash-chart">
+              <div className="panel-chart">
                 <div className="chart-head">
-                  <div className="t">Ingresos vs. gastos</div>
+                  <div className="t">Cobranzas por consorcio</div>
                   <div className="chart-legend">
-                    <span><span className="sw" style={{ background: '#9cf27b' }} />Ingresos</span>
-                    <span><span className="sw" style={{ background: '#3a5a48' }} />Gastos</span>
+                    <span><span className="sw" style={{ background: '#9cf27b' }} />Cobrado</span>
+                    <span><span className="sw" style={{ background: '#3a5a48' }} />Emitido</span>
                   </div>
                 </div>
                 <svg className="chart-svg" viewBox="0 0 280 100" preserveAspectRatio="none">
                   <defs>
-                    <linearGradient id="grad-in" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="home-grad-in" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0" stopColor="#9cf27b" stopOpacity="0.45" />
                       <stop offset="1" stopColor="#9cf27b" stopOpacity="0" />
                     </linearGradient>
                   </defs>
-                  <path d="M0,70 L40,55 L80,62 L120,40 L160,48 L200,28 L240,35 L280,20 L280,100 L0,100 Z" fill="url(#grad-in)" />
+                  <path d="M0,70 L40,55 L80,62 L120,40 L160,48 L200,28 L240,35 L280,20 L280,100 L0,100 Z" fill="url(#home-grad-in)" />
                   <path d="M0,70 L40,55 L80,62 L120,40 L160,48 L200,28 L240,35 L280,20" fill="none" stroke="#9cf27b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   <path d="M0,82 L40,78 L80,80 L120,72 L160,76 L200,70 L240,68 L280,64" fill="none" stroke="#3a5a48" strokeWidth="2" strokeDasharray="3 3" strokeLinecap="round" />
                 </svg>
               </div>
             </div>
-
-            <div className="dash dash-ticket">
-              <div className="dot-g" />
-              <div>
-                <div className="t">Poda sector oeste</div>
-                <div className="s">RESUELTO · 4h</div>
-              </div>
+            <div className="panel panel-toast">
+              <div className="toast-icon"><Bell size={14} /></div>
+              <div><div className="t">Aviso enviado · 312 propietarios</div><div className="s">CONSORCIO LAS ACACIAS</div></div>
             </div>
-
-            <div className="dash dash-floater">
+            <div className="panel panel-floater">
               <div className="float-head">
-                <div className="float-icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" />
-                  </svg>
-                </div>
-                <div>
-                  <div className="float-title">Expensas pagas</div>
-                  <div className="float-sub">Últimas 24 h</div>
-                </div>
+                <div className="float-icon"><CreditCard size={18} /></div>
+                <div><div className="float-title">Pagos del día</div><div className="float-sub">CONFIRMADOS AUTOMÁTICAMENTE</div></div>
               </div>
               <div className="float-list">
-                <div className="float-item"><span className="name">Lote 142 · Pérez</span><span className="amt">$ 184.500</span></div>
-                <div className="float-item"><span className="name">Lote 087 · Morales</span><span className="amt">$ 184.500</span></div>
-                <div className="float-item"><span className="name">Lote 031 · Sosa</span><span className="amt">$ 184.500</span></div>
+                <div className="float-item"><span className="name">Unidad 4B · Pérez</span><span className="amt">$ 142.300</span></div>
+                <div className="float-item"><span className="name">Unidad 12A · Morales</span><span className="amt">$ 142.300</span></div>
+                <div className="float-item due"><span className="name">Unidad 7C · Sosa</span><span className="amt">vence hoy</span></div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* BENEFICIOS */}
-      <section id="beneficios">
+      <section className="section" id="problema">
         <div className="container">
           <div className="section-head reveal">
-            <div className="eyebrow"><span className="dot" /> POR QUÉ GESTIONAR</div>
-            <h2>Nueve de cada diez vecinos no saben dónde va su expensa. Nosotros sí, y te lo mostramos.</h2>
-            <p>Transparencia radical, tecnología que le saca el peso al administrador y trato humano con cada propietario. Una combinación rara en este rubro.</p>
+            <div className="eyebrow"><span className="dot" /> EL DÍA A DÍA SIN GESTIONAR</div>
+            <h2>Una administración ordenada no debería depender de <span className="accent">grupos de WhatsApp</span>.</h2>
+            <p>Si tu equipo sigue contestando las mismas consultas, perdiendo comprobantes en mails o sin saber cuánta deuda hay este mes, no es problema tuyo: es problema de las herramientas.</p>
           </div>
-
-          <div className="benefits-grid">
-            <div className="benefit reveal">
-              <span className="num">01</span>
-              <div className="benefit-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
-                </svg>
+          <div className="problems-grid reveal">
+            {problems.map(({ icon: Icon, title, text }) => (
+              <div className="problem" key={title}>
+                <div className="problem-icon"><Icon size={18} /></div>
+                <div><h4>{title}</h4><p>{text}</p></div>
               </div>
-              <h3>Transparencia total</h3>
-              <p>Cada gasto con comprobante digital. Los propietarios ven adónde va cada peso, en tiempo real, desde el celular.</p>
+            ))}
+          </div>
+          <div className="solution-callout reveal">
+            <div className="ico"><Settings2 size={26} /></div>
+            <div>
+              <h3>GestionAr centraliza la operación diaria</h3>
+              <p>Una sola plataforma para que tu administración trabaje ordenada y los propietarios tengan un canal claro para pagos, reclamos, avisos y documentos.</p>
             </div>
-
-            <div className="benefit reveal">
-              <span className="num">02</span>
-              <div className="benefit-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                </svg>
-              </div>
-              <h3>Respuesta en menos de 4 h</h3>
-              <p>Cada reclamo tiene un responsable y un tiempo. Podés seguir el estado del pedido como si fuera un envío.</p>
-            </div>
-
-            <div className="benefit reveal">
-              <span className="num">03</span>
-              <div className="benefit-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
-                </svg>
-              </div>
-              <h3>Liquidación mensual clara</h3>
-              <p>Un PDF que se entiende sin un contador al lado. Capítulos, comparativos y reserva técnica calculada al día.</p>
-            </div>
-
+            <a href="#contacto" className="btn btn-primary">Solicitar demo <span className="arrow">→</span></a>
           </div>
         </div>
       </section>
 
-      {/* SERVICIOS */}
-      <section className="section" id="servicios" style={{ paddingTop: 0 }}>
+      <section className="section" id="funcionalidades" style={{ paddingTop: 0 }}>
         <div className="container">
           <div className="section-head reveal">
-            <div className="eyebrow"><span className="dot" /> SERVICIOS</div>
-            <h2>Todo lo que un barrio privado necesita, en un solo lugar.</h2>
-            <p>Desde la gestión contable hasta el portón de entrada. Nos encargamos de lo operativo para que la comisión directiva pueda dedicarse a vivir.</p>
+            <div className="eyebrow"><span className="dot" /> FUNCIONALIDADES</div>
+            <h2>Todos los módulos que una administración necesita, <span className="accent">en una sola app</span>.</h2>
+            <p>Activá lo que te sirve hoy y sumá módulos a medida que crece la operación. Permisos por organización, por consorcio y por usuario.</p>
           </div>
-
-          <div className="bento reveal">
-            <div className="bento-cell cell-1">
-              <div>
-                <span className="tag">CORE</span>
-                <h3>Gestión integral del consorcio</h3>
-                <p>Expensas, cobranzas, proveedores, liquidaciones, reserva técnica y auditoría mensual. Todo operado por un equipo dedicado con un panel en vivo para la comisión.</p>
+          <div className="bento product-bento reveal">
+            {features.map((feature) => (
+              <div className={feature.className} key={feature.title}>
+                <div><span className="tag">{feature.tag}</span><h3>{feature.title}</h3><p>{feature.text}</p></div>
+                {feature.visual}
               </div>
-              <div className="viz viz-bars">
-                {[40, 55, 70, 50, 85, 65, 92, 78, 60, 88].map((h, i) => (
-                  <div key={i} style={{ height: `${h}%` }} />
-                ))}
-              </div>
-            </div>
-
-            <div className="bento-cell cell-2">
-              <div>
-                <span className="tag">TECNOLOGÍA</span>
-                <h3>App para propietarios</h3>
-                <p>Expensas, reclamos, reservas de SUM y QR de invitados en un toque.</p>
-              </div>
-              <svg viewBox="0 0 220 80" style={{ width: '100%', marginTop: 'auto' }}>
-                <rect x="4" y="6" width="60" height="68" rx="10" fill="#1a241f" stroke="rgba(255,255,255,0.08)" />
-                <rect x="12" y="16" width="44" height="6" rx="2" fill="#9cf27b" />
-                <rect x="12" y="28" width="32" height="4" rx="2" fill="#3a5a48" />
-                <rect x="12" y="38" width="44" height="26" rx="4" fill="#0e1512" />
-                <rect x="78" y="6" width="60" height="68" rx="10" fill="#1a241f" stroke="rgba(255,255,255,0.08)" />
-                <circle cx="108" cy="30" r="10" fill="#9cf27b" fillOpacity="0.2" />
-                <circle cx="108" cy="30" r="5" fill="#9cf27b" />
-                <rect x="86" y="48" width="44" height="4" rx="2" fill="#3a5a48" />
-                <rect x="86" y="56" width="32" height="4" rx="2" fill="#3a5a48" />
-                <rect x="152" y="6" width="60" height="68" rx="10" fill="#1a241f" stroke="rgba(255,255,255,0.08)" />
-                <rect x="160" y="16" width="44" height="12" rx="3" fill="#9cf27b" fillOpacity="0.15" />
-                <rect x="160" y="34" width="44" height="12" rx="3" fill="#9cf27b" fillOpacity="0.3" />
-                <rect x="160" y="52" width="44" height="12" rx="3" fill="#9cf27b" />
-              </svg>
-            </div>
-
-            <div className="bento-cell cell-3">
-              <span className="tag">OPERACIONES</span>
-              <div>
-                <h3>Seguridad y portería</h3>
-                <p>Gestión del personal, rondas digitales y control de accesos integrado.</p>
-              </div>
-            </div>
-
-            <div className="bento-cell cell-4">
-              <span className="tag">INFRAESTRUCTURA</span>
-              <div>
-                <h3>Mantenimiento edilicio</h3>
-                <p>Plan preventivo por rubro con historial y recordatorios automáticos.</p>
-              </div>
-            </div>
-
-            <div className="bento-cell cell-5">
-              <span className="tag">LEGAL &amp; RRHH</span>
-              <div>
-                <h3>Empleados del barrio</h3>
-                <p>Liquidación de sueldos, ART y contratos al día, sin sorpresas.</p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* PROCESO */}
-      <section className="section" id="proceso" style={{ paddingTop: 0 }} ref={processRef}>
+      <section className="section" id="beneficios" style={{ paddingTop: 0 }}>
         <div className="container">
-          <div className="process reveal">
-            <div className="process-grid">
-              <div>
-                <div className="eyebrow"><span className="dot" /> CÓMO TRABAJAMOS</div>
-                <h2 style={{ fontSize: 'clamp(28px, 3.5vw, 42px)', margin: '20px 0 40px' }}>Transición sin fricciones en 30 días.</h2>
+          <div className="section-head reveal">
+            <div className="eyebrow"><span className="dot" /> BENEFICIOS</div>
+            <h2>Una herramienta que <span className="accent">potencia</span> el trabajo de la administración.</h2>
+            <p>GestionAr no reemplaza al administrador: lo libera de las tareas repetitivas para que su equipo se enfoque en lo importante.</p>
+          </div>
+          <div className="audiences reveal">
+            {benefits.map((group) => (
+              <div className="audience" key={group.tag}>
+                <span className="role-tag">{group.tag}</span>
+                <h3>{group.title}</h3>
+                <p className="sub">{group.text}</p>
+                <ul className="benefit-list">
+                  {group.items.map(([title, text]) => (
+                    <li key={title}>
+                      <span className="bi"><Check size={12} /></span>
+                      <div>{title}<div className="bd">{text}</div></div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
+      <section className="section" id="como-funciona" style={{ paddingTop: 0 }} ref={processRef}>
+        <div className="container">
+          <div className="how reveal">
+            <div className="how-grid">
+              <div>
+                <div className="eyebrow"><span className="dot" /> CÓMO FUNCIONA</div>
+                <h2 className="how-title">Implementación guiada, en menos de lo que pensás.</h2>
                 <div className="steps-list">
-                  {[
-                    { n: 1, title: 'Diagnóstico del barrio', desc: 'Reunión con la comisión, auditoría del estado actual y propuesta cerrada.' },
-                    { n: 2, title: 'Traspaso y onboarding', desc: 'Migramos la información del administrador anterior y damos de alta a los propietarios.' },
-                    { n: 3, title: 'Primer mes en paralelo', desc: 'Acompañamos la primera liquidación codo a codo con la comisión directiva.' },
-                    { n: 4, title: 'Operación continua', desc: 'Revisiones trimestrales, mejoras en proveedores y reporte ejecutivo cada mes.' },
-                  ].map(({ n, title, desc }) => (
-                    <div
-                      key={n}
-                      className={`step${activeStep === n ? ' active' : ''}`}
-                      onClick={() => setActiveStep(n)}
+                  {steps.map((step) => (
+                    <button
+                      type="button"
+                      key={step.n}
+                      className={`step${activeStep === step.n ? ' active' : ''}`}
+                      onClick={() => setActiveStep(step.n)}
                     >
-                      <div className="step-num">{String(n).padStart(2, '0')}</div>
-                      <div className="step-body">
-                        <h4>{title}</h4>
-                        <p>{desc}</p>
-                      </div>
-                    </div>
+                      <div className="step-num">{String(step.n).padStart(2, '0')}</div>
+                      <div className="step-body"><h4>{step.title}</h4><p>{step.desc}</p></div>
+                    </button>
                   ))}
                 </div>
               </div>
-
-              <div className="process-visual">
-                <div className={`pv-content${activeStep === 1 ? ' active' : ''}`}>
-                  <div className="pv-label">PASO 01 · DIAGNÓSTICO</div>
-                  <div className="pv-title">Auditoría sin costo</div>
-                  <div className="pv-mock">
-                    <div className="pv-row"><span className="c1">Estado financiero</span><span className="check">✓</span></div>
-                    <div className="pv-row"><span className="c1">Morosidad histórica</span><span className="c2">23%</span></div>
-                    <div className="pv-row"><span className="c1">Proveedores activos</span><span className="c2">14</span></div>
-                    <div className="pv-row"><span className="c1">Empleados en relación</span><span className="c2">8</span></div>
-                    <div className="pv-row"><span className="c1">Plan de transición</span><span className="check">✓</span></div>
+              <div className="how-visual">
+                {steps.map((step) => (
+                  <div className={`pv${activeStep === step.n ? ' active' : ''}`} key={step.n}>
+                    <div className="pv-label">{step.label}</div>
+                    <div className="pv-title">{step.panelTitle}</div>
+                    <div className="pv-mock">
+                      {step.rows.map(([label, value]) => (
+                        <div className="pv-row" key={label}>
+                          <span className="c1">{label}</span>
+                          <span className={value === '✓' ? 'check' : value === 'OPCIONAL' ? 'pending' : 'c2'}>{value}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <div className={`pv-content${activeStep === 2 ? ' active' : ''}`}>
-                  <div className="pv-label">PASO 02 · TRASPASO</div>
-                  <div className="pv-title">Migración ordenada</div>
-                  <div className="pv-mock">
-                    <div className="pv-row"><span className="c1">Padrón de propietarios</span><span className="check">✓</span></div>
-                    <div className="pv-row"><span className="c1">Alta en app</span><span className="c2">347 / 347</span></div>
-                    <div className="pv-row"><span className="c1">Contratos vigentes</span><span className="check">✓</span></div>
-                    <div className="pv-row"><span className="c1">Expediente legal</span><span className="check">✓</span></div>
-                    <div className="pv-row"><span className="c1">Apertura de cuenta</span><span className="check">✓</span></div>
-                  </div>
-                </div>
-                <div className={`pv-content${activeStep === 3 ? ' active' : ''}`}>
-                  <div className="pv-label">PASO 03 · PRIMER MES</div>
-                  <div className="pv-title">Acompañamiento directo</div>
-                  <div className="pv-mock">
-                    <div className="pv-row"><span className="c1">Primera liquidación</span><span className="check">✓</span></div>
-                    <div className="pv-row"><span className="c1">Asamblea virtual</span><span className="c2">AGENDADA</span></div>
-                    <div className="pv-row"><span className="c1">Cobrabilidad mes 1</span><span className="c2">94%</span></div>
-                    <div className="pv-row"><span className="c1">Tickets resueltos</span><span className="c2">28 / 31</span></div>
-                  </div>
-                </div>
-                <div className={`pv-content${activeStep === 4 ? ' active' : ''}`}>
-                  <div className="pv-label">PASO 04 · CONTINUIDAD</div>
-                  <div className="pv-title">Ritmo mensual</div>
-                  <div className="pv-mock">
-                    <div className="pv-row"><span className="c1">Liquidación mensual</span><span className="check">✓</span></div>
-                    <div className="pv-row"><span className="c1">Reporte a comisión</span><span className="check">✓</span></div>
-                    <div className="pv-row"><span className="c1">Revisión de proveedores</span><span className="c2">TRIM.</span></div>
-                    <div className="pv-row"><span className="c1">Plan de obras</span><span className="check">✓</span></div>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* PLANES */}
-      <section className="section" id="planes" hidden style={{ display: 'none' }}>
-        <div className="container">
-          <div className="section-head reveal">
-            <div className="eyebrow"><span className="dot" /> PLANES</div>
-            <h2>Precios transparentes, por tamaño del barrio.</h2>
-            <p>Sin comisiones ocultas sobre expensas ni contratos de permanencia. Si no te sirve, te devolvemos el mes.</p>
-          </div>
-
-          <div className="plans-grid">
-            <div className="plan reveal">
-              <div className="plan-name">ESENCIAL</div>
-              <div className="plan-tagline">Barrios chicos hasta 80 lotes.</div>
-              <div className="plan-price"><span className="cur">$</span><span className="amt">380K</span></div>
-              <div className="plan-per">mensuales · IVA incl.</div>
-              <ul>
-                <li>Gestión contable y cobranzas</li>
-                <li>App móvil para propietarios</li>
-                <li>1 reunión mensual con comisión</li>
-                <li>Respuesta en 24 h hábiles</li>
-                <li>Soporte de lunes a viernes</li>
-              </ul>
-              <a href="#contacto" className="btn btn-ghost">Empezar</a>
-            </div>
-
-            <div className="plan featured reveal">
-              <div className="plan-name">GESTIÓN PLUS</div>
-              <div className="plan-tagline">El plan que elige el 70% de los barrios.</div>
-              <div className="plan-price"><span className="cur">$</span><span className="amt">680K</span></div>
-              <div className="plan-per">mensuales · IVA incl.</div>
-              <ul>
-                <li>Todo lo de Esencial</li>
-                <li>Administrador dedicado al barrio</li>
-                <li>Respuesta en &lt; 4 h · lunes a sábado</li>
-                <li>Gestión de personal y proveedores</li>
-                <li>Asesoría legal incluida</li>
-                <li>Panel ejecutivo en vivo</li>
-              </ul>
-              <a href="#contacto" className="btn btn-primary">Pedir propuesta</a>
-            </div>
-
-            <div className="plan reveal">
-              <div className="plan-name">PREMIUM</div>
-              <div className="plan-tagline">Barrios +300 lotes o con club house.</div>
-              <div className="plan-price"><span className="cur">$</span><span className="amt">A&nbsp;medida</span></div>
-              <div className="plan-per">según alcance</div>
-              <ul>
-                <li>Todo lo de Gestión Plus</li>
-                <li>Equipo multidisciplinario asignado</li>
-                <li>Gerente de barrio en sitio</li>
-                <li>Auditoría externa trimestral</li>
-                <li>Proyectos de obra y licitaciones</li>
-                <li>SLA contractual garantizado</li>
-              </ul>
-              <a href="#contacto" className="btn btn-ghost">Hablar con ventas</a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ */}
       <section className="section" id="faq" style={{ paddingTop: 0 }}>
         <div className="container">
           <div className="section-head reveal">
             <div className="eyebrow"><span className="dot" /> PREGUNTAS FRECUENTES</div>
-            <h2>Lo que siempre te preguntaste antes de cambiar de administrador.</h2>
+            <h2>Lo que toda administración pregunta antes de empezar.</h2>
           </div>
-
           <div className="faq-grid reveal">
-            <details className="faq">
-              <summary>¿Cómo es el proceso para cambiar de administrador?</summary>
-              <div className="ans">La comisión directiva convoca a asamblea, se aprueba el cambio y nosotros coordinamos el traspaso con el administrador saliente. Nos hacemos cargo de la migración de datos, el alta de propietarios en la app y la apertura de cuenta bancaria del consorcio. Todo el proceso lleva entre 20 y 30 días.</div>
-            </details>
-            <details className="faq">
-              <summary>¿Cobran comisión sobre las expensas o los proveedores?</summary>
-              <div className="ans">No. Cobramos únicamente el abono mensual del plan contratado. No recibimos comisiones de proveedores, bancos ni aseguradoras. Esto lo firmamos por contrato y queda a disposición de la comisión.</div>
-            </details>
-            <details className="faq">
-              <summary>¿Qué pasa si tenemos alta morosidad?</summary>
-              <div className="ans">Trabajamos con un protocolo de cobranza amigable: recordatorios automáticos, contacto telefónico y acuerdos de pago. Cuando hace falta, derivamos al estudio jurídico asociado. En promedio bajamos la morosidad de los barrios que administramos en un 40% durante los primeros seis meses.</div>
-            </details>
-            <details className="faq">
-              <summary>¿La app tiene costo adicional para los propietarios?</summary>
-              <div className="ans">No, está incluida en todos los planes para el barrio. Los propietarios la descargan gratis en iOS y Android y acceden con su DNI y código de lote.</div>
-            </details>
-            <details className="faq">
-              <summary>¿Atienden barrios fuera del AMBA?</summary>
-              <div className="ans">Sí, trabajamos con barrios en Pilar, Escobar, La Plata, Córdoba y Rosario. El modelo es híbrido: tenemos equipo en territorio y operación centralizada. En ubicaciones nuevas evaluamos factibilidad en la reunión de diagnóstico.</div>
-            </details>
-            <details className="faq">
-              <summary>¿Firmamos un contrato de permanencia?</summary>
-              <div className="ans">El contrato estándar es anual y se renueva automáticamente, pero podés salir en cualquier momento con 60 días de preaviso sin penalidades. Creemos en retenerte por resultados, no por letra chica.</div>
-            </details>
+            {faqs.map(([question, answer]) => (
+              <details className="faq" key={question}>
+                <summary>{question}</summary>
+                <div className="ans">{answer}</div>
+              </details>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* CONTACTO */}
       <section className="section" id="contacto" style={{ paddingTop: 0 }}>
         <div className="container">
           <div className="contact reveal">
             <div className="contact-grid">
               <div>
                 <div className="eyebrow"><span className="dot" /> HABLEMOS</div>
-                <h2>Contanos sobre tu barrio y te enviamos una propuesta en 24 h.</h2>
-                <p className="lead">Agendamos una reunión de diagnóstico sin costo, con o sin miembros de tu comisión directiva.</p>
-
+                <h2>Solicitá tu demo y te mostramos GestionAr funcionando en vivo.</h2>
+                <p className="lead">Contanos cuántos consorcios y unidades manejás y te armamos una propuesta a medida en menos de 48 h.</p>
                 <div className="contact-items">
+                  <a className="contact-item" href={CONTACT_PHONE_HREF}>
+                    <div className="i"><Phone size={16} /></div>
+                    <div><div className="lb">Teléfono</div><div className="v">{CONTACT_PHONE}</div></div>
+                  </a>
+                  <a className="contact-item" href={`mailto:${CONTACT_EMAIL}`}>
+                    <div className="i"><Mail size={16} /></div>
+                    <div><div className="lb">Email</div><div className="v">{CONTACT_EMAIL}</div></div>
+                  </a>
                   <div className="contact-item">
-                    <div className="i">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="lb">Teléfono</div>
-                      <div className="v">+54 11 5579-3722</div>
-                    </div>
-                  </div>
-                  <div className="contact-item">
-                    <div className="i">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="lb">Email</div>
-                      <div className="v">gestionar.app.info@gmail.com</div>
-                    </div>
+                    <div className="i"><Clock size={16} /></div>
+                    <div><div className="lb">Respuesta</div><div className="v">Menos de 48 h hábiles</div></div>
                   </div>
                 </div>
               </div>
 
-              <form
-                className={`form${submitted ? ' submitted' : ''}`}
-                onSubmit={(e) => { e.preventDefault(); setSubmitted(true); }}
-              >
-                <div className="form-content" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <form className={`form${submitted ? ' submitted' : ''}`} onSubmit={(event) => { event.preventDefault(); setSubmitted(true); }}>
+                <div className="form-content">
                   <div className="form-row">
-                    <div className="field">
-                      <label htmlFor="nombre">Nombre</label>
-                      <input type="text" id="nombre" required placeholder="Tu nombre" />
-                    </div>
+                    <div className="field"><label htmlFor="nombre">Nombre</label><input type="text" id="nombre" required placeholder="Tu nombre" /></div>
+                    <div className="field"><label htmlFor="admin">Administración</label><input type="text" id="admin" required placeholder="Nombre del estudio o administración" /></div>
                   </div>
-                  <div className="field">
-                    <label htmlFor="barrio">Barrio o proyecto</label>
-                    <input type="text" id="barrio" required placeholder="Ej. Barrio Las Acacias, Pilar" />
+                  <div className="form-row">
+                    <div className="field"><label htmlFor="email">Email</label><input type="email" id="email" required placeholder="vos@administracion.com" /></div>
+                    <div className="field"><label htmlFor="tel">Teléfono</label><input type="tel" id="tel" required placeholder="+54 9 11 ..." /></div>
                   </div>
                   <div className="form-row">
                     <div className="field">
-                      <label htmlFor="lotes">Cantidad de lotes</label>
-                      <select id="lotes" required defaultValue="">
-                        <option value="" disabled>Seleccionar…</option>
-                        <option>Hasta 80</option>
-                        <option>80 – 200</option>
-                        <option>200 – 400</option>
-                        <option>Más de 400</option>
+                      <label htmlFor="consorcios">Consorcios aprox.</label>
+                      <select id="consorcios" required defaultValue="">
+                        <option value="" disabled>Seleccionar...</option>
+                        <option>1 - 3</option>
+                        <option>4 - 10</option>
+                        <option>11 - 30</option>
+                        <option>Más de 30</option>
                       </select>
                     </div>
                     <div className="field">
-                      <label htmlFor="tel">Teléfono</label>
-                      <input type="tel" id="tel" required placeholder="+54 9 11 ..." />
+                      <label htmlFor="unidades">Unidades / lotes aprox.</label>
+                      <select id="unidades" required defaultValue="">
+                        <option value="" disabled>Seleccionar...</option>
+                        <option>Hasta 200</option>
+                        <option>200 - 600</option>
+                        <option>600 - 2.000</option>
+                        <option>Más de 2.000</option>
+                      </select>
                     </div>
                   </div>
-                  <div className="field">
-                    <label htmlFor="msg">Comentarios</label>
-                    <textarea id="msg" placeholder="Contanos brevemente la situación actual..." />
-                  </div>
-                  <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%' }}>
-                    Enviar solicitud <span className="arrow">→</span>
-                  </button>
+                  <div className="field"><label htmlFor="msg">Mensaje</label><textarea id="msg" placeholder="Contanos brevemente qué módulos te interesan o qué dolor querés resolver..." /></div>
+                  <button type="submit" className="btn btn-primary btn-lg">Solicitar demo <span className="arrow">→</span></button>
                 </div>
-                <div className="form-ok">
-                  ✓ ¡Recibimos tu mensaje! Te contactamos en menos de 48 h.
-                </div>
+                <div className="form-ok">✓ ¡Recibimos tu solicitud! Te contactamos en menos de 48 h hábiles.</div>
               </form>
             </div>
           </div>
         </div>
       </section>
 
-      {/* FOOTER */}
       <footer>
         <div className="container">
           <div className="footer-grid">
             <div className="footer-brand">
               <a href="#" className="logo"><span className="logo-mark" /> Gestion<span className="ar">Ar</span></a>
-              <p>Administración profesional de consorcios y barrios privados. Transparencia, tecnología y trato humano.</p>
+              <p>Plataforma SaaS para que administraciones de consorcios, barrios privados y countries digitalicen su operación diaria.</p>
             </div>
             <div className="footer-col">
-              <h5>Empresa</h5>
+              <h5>Producto</h5>
               <ul>
+                <li><a href="#funcionalidades">Funcionalidades</a></li>
                 <li><a href="#beneficios">Beneficios</a></li>
-                <li><a href="#servicios">Servicios</a></li>
-                <li><a href="#proceso">Cómo trabajamos</a></li>
+                <li><a href="#como-funciona">Cómo funciona</a></li>
               </ul>
             </div>
             <div className="footer-col">
               <h5>Recursos</h5>
               <ul>
                 <li><a href="#faq">Preguntas frecuentes</a></li>
-                <li><a href="#">Guía para CD</a></li>
-                <li><a href="#">Blog</a></li>
-                <li><a href="#">Prensa</a></li>
+                <li><a href="#problema">Casos de uso</a></li>
+                <li><a href="#contacto">Solicitar demo</a></li>
               </ul>
             </div>
             <div className="footer-col">
               <h5>Contacto</h5>
               <ul>
-                <li><a href="#contacto">Pedir propuesta</a></li>
-                <li><a href="mailto:hola@gestionar.com.ar">gestionar.app.info@gmail.com</a></li>
-                <li><a href="tel:+541148932210">+54 11 5579-3722</a></li>
+                <li><a href="#contacto">Solicitar demo</a></li>
+                <li><a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></li>
+                <li><a href={CONTACT_PHONE_HREF}>{CONTACT_PHONE}</a></li>
               </ul>
             </div>
           </div>
           <div className="footer-bottom">
-            <div>© 2026 GESTIONAR S.A.S.</div>
+            <div>© 2026 GESTIONAR · SOFTWARE PARA ADMINISTRACIONES</div>
             <div>HECHO EN BUENOS AIRES</div>
           </div>
         </div>
       </footer>
     </>
+  );
+}
+
+function PhoneMockup() {
+  return (
+    <div className="phone-mock" aria-hidden="true">
+      <Smartphone size={20} className="phone-icon" />
+      <div className="phone-card phone-balance">
+        <span>Saldo actual</span>
+        <strong>$ 142.300</strong>
+        <small>Vence el 10/05</small>
+      </div>
+      <div className="phone-grid">
+        <div><span>Pagos</span><strong>3</strong></div>
+        <div><span>Avisos</span><strong>8</strong></div>
+      </div>
+      <div className="phone-row"><span className="dot" /> Reclamo actualizado</div>
+    </div>
   );
 }

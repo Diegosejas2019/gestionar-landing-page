@@ -1,0 +1,2109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GestionAr — Software para administraciones de consorcios y barrios privados</title>
+<meta name="description" content="Plataforma SaaS para que administraciones de consorcios, barrios privados y countries digitalicen expensas, cobranzas, reclamos, avisos y documentación.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #0e1512;
+    --bg-2: #131b17;
+    --bg-3: #1a241f;
+    --surface: #18221d;
+    --surface-2: #1d2822;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.14);
+    --text: #eef1ed;
+    --text-dim: #a8b3ac;
+    --text-faint: #6b7870;
+    --green: #9cf27b;
+    --green-2: #7de05b;
+    --green-deep: #2f5a3a;
+    --green-soft: rgba(156, 242, 123, 0.12);
+    --amber: #f2c97b;
+    --rose: #f29494;
+    --radius: 18px;
+    --radius-lg: 28px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Inter Tight', system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    text-wrap: balance;
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  .container {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 0 28px;
+  }
+
+  /* ============ NAV ============ */
+  .nav {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 32px);
+    max-width: 1200px;
+    z-index: 100;
+    background: rgba(14, 21, 18, 0.72);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 10px 10px 10px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    transition: all 0.3s ease;
+  }
+  .nav.scrolled {
+    background: rgba(14, 21, 18, 0.92);
+    border-color: var(--border-strong);
+  }
+  .logo {
+    font-family: 'Inter Tight', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    letter-spacing: -0.03em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .logo-mark {
+    width: 26px; height: 26px;
+    border-radius: 8px;
+    background: var(--green);
+    display: grid;
+    place-items: center;
+    color: var(--bg);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .logo-mark::before { content: 'G'; }
+  .logo .ar { color: var(--green); }
+
+  .nav-links {
+    display: flex;
+    gap: 4px;
+    list-style: none;
+  }
+  .nav-links a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 8px 14px;
+    border-radius: 999px;
+    transition: all 0.2s ease;
+  }
+  .nav-links a:hover {
+    color: var(--text);
+    background: rgba(255,255,255,0.04);
+  }
+  .nav-cta { display: flex; align-items: center; gap: 8px; }
+  .nav-login {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 8px 12px;
+  }
+  .nav-login:hover { color: var(--text); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 20px;
+    border-radius: 999px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: var(--green);
+    color: #0e1512;
+  }
+  .btn-primary:hover {
+    background: var(--green-2);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 30px -10px rgba(156, 242, 123, 0.5);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border-strong);
+  }
+  .btn-ghost:hover {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.25);
+  }
+  .btn-lg { padding: 14px 26px; font-size: 15px; }
+
+  .arrow { display: inline-block; transition: transform 0.2s ease; }
+  .btn:hover .arrow { transform: translateX(3px); }
+
+  @media (max-width: 980px) {
+    .nav-links, .nav-login { display: none; }
+  }
+
+  /* ============ HERO ============ */
+  .hero {
+    padding: 160px 0 100px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 900px;
+    height: 900px;
+    background: radial-gradient(circle, rgba(156, 242, 123, 0.08) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .hero-inner {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 64px;
+    align-items: center;
+  }
+  @media (max-width: 960px) {
+    .hero-inner { grid-template-columns: 1fr; gap: 60px; }
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px 6px 8px;
+    background: var(--green-soft);
+    border: 1px solid rgba(156, 242, 123, 0.2);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--green);
+    margin-bottom: 24px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .eyebrow .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 0 3px rgba(156, 242, 123, 0.2);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  h1.display {
+    font-size: clamp(40px, 5.8vw, 68px);
+    margin-bottom: 24px;
+  }
+  h1.display .accent {
+    color: var(--green);
+    font-style: italic;
+    font-weight: 500;
+  }
+  .hero p.lead {
+    font-size: 18px;
+    color: var(--text-dim);
+    max-width: 540px;
+    margin-bottom: 36px;
+    text-wrap: pretty;
+  }
+  .hero-cta {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 40px;
+  }
+  .hero-bullets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 22px;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .hero-bullets span {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .hero-bullets svg { color: var(--green); flex-shrink: 0; }
+
+  /* Hero visual — admin dashboard */
+  .hero-visual {
+    position: relative;
+    aspect-ratio: 1 / 1.05;
+    min-height: 540px;
+  }
+  .panel {
+    position: absolute;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 30px 80px -20px rgba(0,0,0,0.55);
+  }
+  .panel-main {
+    inset: 0 36px 96px 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .panel-org {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .org-mark {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--green-deep), #1d3a25);
+    display: grid;
+    place-items: center;
+    color: var(--green);
+    font-family: 'Inter Tight', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .org-name {
+    font-family: 'Inter Tight', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 1.1;
+  }
+  .org-sub {
+    font-size: 10px;
+    color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 2px;
+  }
+  .panel-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: var(--bg);
+    border-radius: 999px;
+    font-size: 11px;
+  }
+  .panel-tabs span {
+    padding: 5px 10px;
+    border-radius: 999px;
+    color: var(--text-faint);
+  }
+  .panel-tabs span.active {
+    background: var(--green);
+    color: var(--bg);
+    font-weight: 600;
+  }
+  .panel-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .stat-card {
+    background: var(--bg);
+    border-radius: 12px;
+    padding: 12px 12px 12px;
+  }
+  .stat-card .label {
+    font-size: 9px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+  .stat-card .val {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+  }
+  .stat-card .delta {
+    font-size: 10px;
+    color: var(--green);
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 2px;
+  }
+  .stat-card.warn .delta { color: var(--amber); }
+
+  .panel-chart {
+    flex: 1;
+    background: var(--bg);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 140px;
+  }
+  .chart-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .chart-head .t { font-size: 12px; font-weight: 500; }
+  .chart-legend {
+    display: flex;
+    gap: 10px;
+    font-size: 10px;
+    color: var(--text-faint);
+  }
+  .chart-legend span { display: flex; align-items: center; gap: 5px; }
+  .chart-legend .sw { width: 8px; height: 8px; border-radius: 2px; }
+  .chart-svg { flex: 1; width: 100%; }
+
+  .panel-floater {
+    right: 0;
+    bottom: 0;
+    width: 270px;
+    padding: 16px;
+  }
+  .float-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .float-icon {
+    width: 34px; height: 34px;
+    background: var(--green-soft);
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    color: var(--green);
+  }
+  .float-title { font-size: 13px; font-weight: 600; }
+  .float-sub { font-size: 10px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; }
+  .float-list { display: flex; flex-direction: column; gap: 6px; }
+  .float-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    padding: 8px 10px;
+    background: var(--bg);
+    border-radius: 8px;
+  }
+  .float-item .name { color: var(--text); }
+  .float-item .amt { font-family: 'JetBrains Mono', monospace; color: var(--green); }
+  .float-item.due .amt { color: var(--amber); }
+
+  .panel-toast {
+    top: -16px;
+    right: -28px;
+    width: 240px;
+    padding: 13px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transform: rotate(2.5deg);
+  }
+  .panel-toast .toast-icon {
+    width: 30px; height: 30px;
+    border-radius: 9px;
+    background: var(--green-soft);
+    color: var(--green);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .panel-toast .t { font-size: 12px; font-weight: 600; line-height: 1.25; }
+  .panel-toast .s { font-size: 10px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+
+  /* ============ STRIP ============ */
+  .strip {
+    padding: 40px 0 20px;
+    border-top: 1px solid var(--border);
+  }
+  .strip .label {
+    text-align: center;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 32px;
+  }
+  .strip-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 40px;
+    align-items: center;
+  }
+  @media (max-width: 860px) {
+    .strip-grid { grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  }
+  .strip-item {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-faint);
+    text-align: center;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+    letter-spacing: -0.02em;
+  }
+  .strip-item:hover { opacity: 1; color: var(--text); }
+
+  /* ============ SECTION ============ */
+  .section {
+    padding: 120px 0;
+    position: relative;
+  }
+  .section-head {
+    text-align: center;
+    margin-bottom: 64px;
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .section-head .eyebrow { margin-bottom: 20px; }
+  .section-head h2 {
+    font-size: clamp(32px, 4.4vw, 50px);
+    margin-bottom: 18px;
+  }
+  .section-head h2 .accent { color: var(--green); font-style: italic; font-weight: 500; }
+  .section-head p {
+    color: var(--text-dim);
+    font-size: 17px;
+    text-wrap: pretty;
+  }
+
+  /* ============ PROBLEMA ============ */
+  .problems-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  @media (max-width: 860px) { .problems-grid { grid-template-columns: 1fr; } }
+  .problem {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 22px 22px 24px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .problem-icon {
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    background: rgba(242, 148, 148, 0.10);
+    color: var(--rose);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+  }
+  .problem h4 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .problem p {
+    font-size: 14px;
+    color: var(--text-dim);
+    text-wrap: pretty;
+  }
+
+  .solution-callout {
+    margin-top: 56px;
+    padding: 36px 40px;
+    background: linear-gradient(180deg, rgba(156, 242, 123, 0.06), rgba(156, 242, 123, 0.01));
+    border: 1px solid rgba(156, 242, 123, 0.18);
+    border-radius: var(--radius-lg);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 28px;
+    align-items: center;
+  }
+  @media (max-width: 720px) {
+    .solution-callout { grid-template-columns: 1fr; padding: 28px; }
+  }
+  .solution-callout .ico {
+    width: 56px; height: 56px;
+    border-radius: 14px;
+    background: var(--green-soft);
+    color: var(--green);
+    display: grid; place-items: center;
+  }
+  .solution-callout h3 {
+    font-size: 22px;
+    margin-bottom: 4px;
+  }
+  .solution-callout p {
+    font-size: 14px;
+    color: var(--text-dim);
+    max-width: 580px;
+  }
+
+  /* ============ FUNCIONALIDADES (bento) ============ */
+  .bento {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-auto-rows: 220px;
+    gap: 14px;
+  }
+  @media (max-width: 860px) {
+    .bento { grid-template-columns: 1fr; grid-auto-rows: auto; }
+  }
+  .cell {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 26px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  @media (max-width: 860px) { .cell { min-height: 240px; } }
+  .cell:hover { border-color: rgba(156, 242, 123, 0.25); }
+  .cell-hero { grid-column: span 4; grid-row: span 2; }
+  .cell-tall { grid-column: span 2; grid-row: span 2; }
+  .cell-half { grid-column: span 3; }
+  .cell-third { grid-column: span 2; }
+  @media (max-width: 860px) {
+    .cell-hero, .cell-tall, .cell-half, .cell-third { grid-column: 1; grid-row: auto; }
+  }
+  .cell .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .cell h3 {
+    font-size: 22px;
+    margin: 12px 0 8px;
+  }
+  .cell-hero h3 { font-size: 30px; }
+  .cell p {
+    font-size: 14px;
+    color: var(--text-dim);
+    max-width: 380px;
+  }
+  .cell-hero p { font-size: 15px; max-width: 460px; }
+
+  .module-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 14px;
+  }
+  .pill {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-dim);
+    padding: 5px 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+  }
+  .pill.on { color: var(--green); border-color: rgba(156,242,123,0.25); background: var(--green-soft); }
+
+  /* hero cell viz — bar chart for cobranzas */
+  .cell-viz {
+    margin-top: auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .viz-card {
+    background: var(--bg);
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .viz-card .vl { font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.08em; }
+  .viz-card .vv { font-family: 'Inter Tight', sans-serif; font-size: 22px; font-weight: 600; margin-top: 4px; }
+  .viz-bars-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 32px;
+    margin-top: 10px;
+  }
+  .viz-bars-row div {
+    flex: 1;
+    background: linear-gradient(to top, var(--green), rgba(156,242,123,0.2));
+    border-radius: 3px 3px 0 0;
+    min-height: 6px;
+  }
+
+  /* Reclamos visual */
+  .ticket-list { display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
+  .ticket-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--bg);
+    border-radius: 10px;
+    font-size: 11px;
+  }
+  .ticket-status {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .ticket-status.open { background: var(--amber); box-shadow: 0 0 0 3px rgba(242,201,123,0.18); }
+  .ticket-status.progress { background: var(--green); box-shadow: 0 0 0 3px rgba(156,242,123,0.2); }
+  .ticket-status.done { background: var(--text-faint); }
+  .ticket-row .t { flex: 1; color: var(--text); }
+  .ticket-row .meta { color: var(--text-faint); font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+
+  /* Avisos visual */
+  .notice-stack { display: flex; flex-direction: column; gap: 6px; margin-top: auto; }
+  .notice-row {
+    padding: 9px 12px;
+    background: var(--bg);
+    border-radius: 10px;
+    font-size: 11px;
+    display: flex;
+    justify-content: space-between;
+    border-left: 2px solid var(--green);
+  }
+  .notice-row .nl { font-family: 'JetBrains Mono', monospace; color: var(--text-faint); font-size: 10px; }
+
+  /* Documentos visual */
+  .docs-row { display: flex; gap: 6px; margin-top: auto; flex-wrap: wrap; }
+  .doc-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: var(--bg);
+    border-radius: 8px;
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .doc-chip svg { color: var(--green); }
+
+  /* ============ AUDIENCIAS ============ */
+  .audiences {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 860px) { .audiences { grid-template-columns: 1fr; } }
+  .audience {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 36px;
+    position: relative;
+    overflow: hidden;
+  }
+  .audience h3 {
+    font-size: 26px;
+    margin: 18px 0 8px;
+  }
+  .audience .sub {
+    color: var(--text-dim);
+    font-size: 15px;
+    margin-bottom: 28px;
+    max-width: 420px;
+  }
+  .audience .role-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .benefit-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .benefit-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 14.5px;
+    color: var(--text);
+  }
+  .benefit-list li .bi {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--green-soft);
+    color: var(--green);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .benefit-list li .bd { color: var(--text-dim); font-size: 13px; margin-top: 2px; }
+
+  /* ============ COMO FUNCIONA (steps) ============ */
+  .how {
+    background: var(--bg-2);
+    border-radius: var(--radius-lg);
+    padding: 68px 48px;
+    position: relative;
+    overflow: hidden;
+  }
+  @media (max-width: 720px) { .how { padding: 44px 22px; } }
+  .how-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 56px;
+    align-items: center;
+  }
+  @media (max-width: 860px) { .how-grid { grid-template-columns: 1fr; gap: 36px; } }
+  .steps-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .step {
+    display: flex;
+    gap: 18px;
+    padding: 18px;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+  }
+  .step.active {
+    background: var(--surface);
+    border-color: rgba(156, 242, 123, 0.2);
+  }
+  .step:hover:not(.active) {
+    background: rgba(255,255,255,0.02);
+  }
+  .step-num {
+    width: 34px; height: 34px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: var(--bg-3);
+    display: grid;
+    place-items: center;
+    font-family: 'Inter Tight', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-dim);
+    transition: all 0.2s ease;
+  }
+  .step.active .step-num {
+    background: var(--green);
+    color: var(--bg);
+  }
+  .step-body h4 {
+    font-size: 17px;
+    margin-bottom: 4px;
+  }
+  .step-body p {
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .how-visual {
+    background: var(--bg);
+    border-radius: var(--radius);
+    padding: 28px;
+    aspect-ratio: 1 / 1.05;
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .pv {
+    position: absolute;
+    inset: 28px;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .pv.active { opacity: 1; }
+  .pv-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .pv-title {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .pv-mock {
+    flex: 1;
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 13px;
+  }
+  .pv-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 12px;
+    background: var(--bg);
+    border-radius: 8px;
+  }
+  .pv-row .c1 { color: var(--text); }
+  .pv-row .c2 { color: var(--text-faint); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  .pv-row .check {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--green-soft);
+    color: var(--green);
+    display: grid;
+    place-items: center;
+    font-size: 10px;
+  }
+  .pv-row .pending {
+    color: var(--amber);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+
+  /* ============ PLANES ============ */
+  .plans-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  @media (max-width: 860px) { .plans-grid { grid-template-columns: 1fr; } }
+  .plan {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+  }
+  .plan:hover { transform: translateY(-4px); }
+  .plan.featured {
+    background: linear-gradient(180deg, rgba(156, 242, 123, 0.06), var(--surface));
+    border-color: rgba(156, 242, 123, 0.3);
+    position: relative;
+  }
+  .plan.featured::after {
+    content: 'MÁS ELEGIDO';
+    position: absolute;
+    top: 16px; right: 16px;
+    background: var(--green);
+    color: var(--bg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 999px;
+    letter-spacing: 0.05em;
+  }
+  .plan-name {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--green);
+    margin-bottom: 8px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  .plan-tagline {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 28px;
+    min-height: 40px;
+  }
+  .plan-price {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+  .plan-price .amt {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 42px;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+  }
+  .plan-price .cur {
+    font-size: 16px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+  .plan-price .unit {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-left: 4px;
+  }
+  .plan-per {
+    font-size: 12px;
+    color: var(--text-faint);
+    margin-bottom: 24px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .plan-min {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-bottom: 24px;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 8px 10px;
+    background: var(--bg);
+    border-radius: 8px;
+    border: 1px dashed var(--border-strong);
+    text-align: center;
+  }
+  .plan ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    margin-bottom: 28px;
+    flex: 1;
+  }
+  .plan li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .plan li::before {
+    content: '';
+    width: 16px; height: 16px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    background: var(--green-soft);
+    border-radius: 50%;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10' fill='none'%3E%3Cpath d='M2 5l2 2 4-4' stroke='%239cf27b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+  .plan .btn { width: 100%; }
+
+  .plans-note {
+    text-align: center;
+    margin-top: 32px;
+    font-size: 13px;
+    color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ============ FAQ ============ */
+  .faq-grid {
+    max-width: 820px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .faq {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: all 0.2s ease;
+  }
+  .faq:hover { border-color: var(--border-strong); }
+  .faq summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 22px 26px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    font-family: 'Inter Tight', sans-serif;
+    font-weight: 500;
+    font-size: 17px;
+  }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after {
+    content: '';
+    width: 14px; height: 14px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none'%3E%3Cpath d='M3 6l4 4 4-4' stroke='%239cf27b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+  }
+  .faq[open] summary::after { transform: rotate(180deg); }
+  .faq .ans {
+    padding: 0 26px 24px;
+    color: var(--text-dim);
+    font-size: 15px;
+    max-width: 660px;
+    text-wrap: pretty;
+  }
+
+  /* ============ CONTACTO / CTA ============ */
+  .contact {
+    background: linear-gradient(135deg, #18221d, #0e1512);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 64px 48px;
+    position: relative;
+    overflow: hidden;
+  }
+  @media (max-width: 720px) { .contact { padding: 44px 22px; } }
+  .contact::before {
+    content: '';
+    position: absolute;
+    top: -100px; right: -100px;
+    width: 420px; height: 420px;
+    background: radial-gradient(circle, rgba(156, 242, 123, 0.1), transparent 70%);
+    pointer-events: none;
+  }
+  .contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.05fr;
+    gap: 56px;
+    position: relative;
+  }
+  @media (max-width: 860px) { .contact-grid { grid-template-columns: 1fr; gap: 36px; } }
+  .contact h2 {
+    font-size: clamp(28px, 3.6vw, 40px);
+    margin-bottom: 14px;
+  }
+  .contact .lead {
+    color: var(--text-dim);
+    font-size: 16px;
+    margin-bottom: 32px;
+    max-width: 440px;
+  }
+  .contact-items {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .contact-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+  }
+  .contact-item .i {
+    width: 36px; height: 36px;
+    background: var(--green-soft);
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    color: var(--green);
+  }
+  .contact-item .lb { font-size: 10px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.08em; }
+  .contact-item .v { color: var(--text); font-weight: 500; }
+
+  .form {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 500px) { .form-row { grid-template-columns: 1fr; } }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label {
+    font-size: 11px;
+    color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .field input, .field select, .field textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 14px;
+    transition: all 0.15s ease;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: none;
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px var(--green-soft);
+  }
+  .field textarea { resize: vertical; min-height: 80px; }
+  .form-ok {
+    background: var(--green-soft);
+    border: 1px solid rgba(156,242,123,0.3);
+    color: var(--green);
+    padding: 14px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    text-align: center;
+    display: none;
+  }
+  .form.submitted .form-content { display: none; }
+  .form.submitted .form-ok { display: block; }
+
+  /* ============ FOOTER ============ */
+  footer {
+    padding: 72px 0 32px;
+    border-top: 1px solid var(--border);
+  }
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 40px;
+    margin-bottom: 48px;
+  }
+  @media (max-width: 720px) { .footer-grid { grid-template-columns: 1fr 1fr; } }
+  .footer-brand .logo { margin-bottom: 16px; }
+  .footer-brand p {
+    font-size: 14px;
+    color: var(--text-dim);
+    max-width: 320px;
+  }
+  .footer-col h5 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+    font-weight: 500;
+  }
+  .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .footer-col a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.15s ease;
+  }
+  .footer-col a:hover { color: var(--green); }
+  .footer-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ============ ANIMATIONS ============ */
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.in {
+    opacity: 1;
+    transform: none;
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav" id="nav">
+  <a href="#" class="logo">
+    <span class="logo-mark"></span>
+    Gestion<span class="ar">Ar</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#funcionalidades">Funcionalidades</a></li>
+    <li><a href="#beneficios">Beneficios</a></li>
+    <li><a href="#como-funciona">Cómo funciona</a></li>
+    <li><a href="#planes">Planes</a></li>
+    <li><a href="#faq">FAQ</a></li>
+  </ul>
+  <div class="nav-cta">
+    <a href="#" class="nav-login">Ingresar</a>
+    <a href="#contacto" class="btn btn-primary">Solicitar demo <span class="arrow">→</span></a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container hero-inner">
+    <div class="hero-copy">
+      <div class="eyebrow"><span class="dot"></span> SOFTWARE PARA ADMINISTRACIONES · ARGENTINA</div>
+      <h1 class="display">
+        La plataforma para administrar consorcios de forma <span class="accent">simple, clara y digital</span>.
+      </h1>
+      <p class="lead">
+        GestionAr es la app que tu administración necesita para ordenar expensas, cobranzas, reclamos, avisos y documentación. Una sola herramienta para vos y tus propietarios.
+      </p>
+      <div class="hero-cta">
+        <a href="#contacto" class="btn btn-primary btn-lg">Solicitar demo <span class="arrow">→</span></a>
+        <a href="#funcionalidades" class="btn btn-ghost btn-lg">Ver funcionalidades</a>
+      </div>
+      <div class="hero-bullets">
+        <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Multiconsorcio</span>
+        <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>App para propietarios</span>
+        <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Implementación guiada</span>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <!-- Main panel -->
+      <div class="panel panel-main">
+        <div class="panel-head">
+          <div class="panel-org">
+            <div class="org-mark">G</div>
+            <div>
+              <div class="org-name">Estudio Méndez · Admin.</div>
+              <div class="org-sub">12 CONSORCIOS · 1.847 UNIDADES</div>
+            </div>
+          </div>
+          <div class="panel-tabs">
+            <span class="active">Mes</span>
+            <span>Trim.</span>
+            <span>Año</span>
+          </div>
+        </div>
+        <div class="panel-stats">
+          <div class="stat-card">
+            <div class="label">Cobrado</div>
+            <div class="val">94%</div>
+            <div class="delta">↑ 3.1</div>
+          </div>
+          <div class="stat-card warn">
+            <div class="label">Morosidad</div>
+            <div class="val">6%</div>
+            <div class="delta">↓ 1.2</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Reclamos</div>
+            <div class="val">18</div>
+            <div class="delta">↓ 24%</div>
+          </div>
+        </div>
+        <div class="panel-chart">
+          <div class="chart-head">
+            <div class="t">Cobranzas por consorcio</div>
+            <div class="chart-legend">
+              <span><span class="sw" style="background:#9cf27b"></span>Cobrado</span>
+              <span><span class="sw" style="background:#3a5a48"></span>Emitido</span>
+            </div>
+          </div>
+          <svg class="chart-svg" viewBox="0 0 280 100" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="grad-in" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#9cf27b" stop-opacity="0.45"/>
+                <stop offset="1" stop-color="#9cf27b" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path d="M0,70 L40,55 L80,62 L120,40 L160,48 L200,28 L240,35 L280,20 L280,100 L0,100 Z" fill="url(#grad-in)"/>
+            <path d="M0,70 L40,55 L80,62 L120,40 L160,48 L200,28 L240,35 L280,20" fill="none" stroke="#9cf27b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M0,82 L40,78 L80,80 L120,72 L160,76 L200,70 L240,68 L280,64" fill="none" stroke="#3a5a48" stroke-width="2" stroke-dasharray="3 3" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Toast: aviso enviado -->
+      <div class="panel panel-toast">
+        <div class="toast-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <div>
+          <div class="t">Aviso enviado · 312 propietarios</div>
+          <div class="s">CONSORCIO LAS ACACIAS</div>
+        </div>
+      </div>
+
+      <!-- Floater: pagos recibidos -->
+      <div class="panel panel-floater">
+        <div class="float-head">
+          <div class="float-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+          </div>
+          <div>
+            <div class="float-title">Pagos del día</div>
+            <div class="float-sub">CONFIRMADOS AUTOMÁTICAMENTE</div>
+          </div>
+        </div>
+        <div class="float-list">
+          <div class="float-item"><span class="name">Unidad 4B · Pérez</span><span class="amt">$ 142.300</span></div>
+          <div class="float-item"><span class="name">Unidad 12A · Morales</span><span class="amt">$ 142.300</span></div>
+          <div class="float-item due"><span class="name">Unidad 7C · Sosa</span><span class="amt">vence hoy</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STRIP -->
+<div class="container">
+  <div class="strip">
+    <div class="label">Administraciones que ya digitalizaron su operación</div>
+    <div class="strip-grid">
+      <div class="strip-item">Estudio&nbsp;Méndez</div>
+      <div class="strip-item">Admin&nbsp;Belgrano</div>
+      <div class="strip-item">Grupo&nbsp;Lerner</div>
+      <div class="strip-item">CDA&nbsp;Consorcios</div>
+      <div class="strip-item">Estudio&nbsp;Norte</div>
+      <div class="strip-item">Pilar&nbsp;Admin</div>
+    </div>
+  </div>
+</div>
+
+<!-- PROBLEMA -->
+<section class="section" id="problema">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="eyebrow"><span class="dot"></span> EL DÍA A DÍA SIN GESTIONAR</div>
+      <h2>Una administración ordenada no debería depender de <span class="accent">grupos de WhatsApp</span>.</h2>
+      <p>Si tu equipo sigue contestando las mismas consultas de siempre, perdiendo comprobantes en mails o sin saber bien cuánta deuda hay este mes, no es problema tuyo: es problema de las herramientas.</p>
+    </div>
+
+    <div class="problems-grid reveal">
+      <div class="problem">
+        <div class="problem-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        </div>
+        <div>
+          <h4>Consultas dispersas en WhatsApp</h4>
+          <p>“¿Cuánto debo?”, “¿Llegó mi pago?”, “¿Cuándo es la reunión?”. Las mismas preguntas, en distintos chats, todos los días.</p>
+        </div>
+      </div>
+
+      <div class="problem">
+        <div class="problem-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <div>
+          <h4>Comprobantes repartidos</h4>
+          <p>Recibos en el mail, facturas en una carpeta, transferencias en una planilla. Encontrar algo es una expedición.</p>
+        </div>
+      </div>
+
+      <div class="problem">
+        <div class="problem-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div>
+          <h4>Reclamos sin seguimiento</h4>
+          <p>Llega un reclamo, se contesta y después se pierde. Nadie sabe en qué quedó ni quién lo está resolviendo.</p>
+        </div>
+      </div>
+
+      <div class="problem">
+        <div class="problem-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <div>
+          <h4>Cobranza poco visible</h4>
+          <p>No sabés en tiempo real cuánto se cobró, quién pagó ni cuánto falta. Para verlo, hay que armar un Excel.</p>
+        </div>
+      </div>
+
+      <div class="problem">
+        <div class="problem-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div>
+          <h4>Avisos que no llegan</h4>
+          <p>Comunicados pegados en el ascensor, mails que terminan en spam y propietarios que se enteran tarde de todo.</p>
+        </div>
+      </div>
+
+      <div class="problem">
+        <div class="problem-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3z"/><path d="M3 9h18M9 21V9"/></svg>
+        </div>
+        <div>
+          <h4>Sin visibilidad para crecer</h4>
+          <p>Querés sumar consorcios, pero hoy con lo que tenés ya es un caos. Escalar parece imposible sin más gente.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="solution-callout reveal">
+      <div class="ico">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      </div>
+      <div>
+        <h3>GestionAr centraliza la operación diaria</h3>
+        <p>Una sola plataforma para que tu administración trabaje ordenada y los propietarios tengan un canal claro para pagos, reclamos, avisos y documentos.</p>
+      </div>
+      <a href="#contacto" class="btn btn-primary">Solicitar demo <span class="arrow">→</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- FUNCIONALIDADES -->
+<section class="section" id="funcionalidades" style="padding-top:0;">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="eyebrow"><span class="dot"></span> FUNCIONALIDADES</div>
+      <h2>Todos los módulos que una administración necesita, <span class="accent">en una sola app</span>.</h2>
+      <p>Activá lo que te sirve hoy y sumá módulos a medida que crece la operación. Permisos por organización, por consorcio y por usuario.</p>
+    </div>
+
+    <div class="bento reveal">
+      <!-- CELL: Dashboard -->
+      <div class="cell cell-hero">
+        <div>
+          <span class="tag">DASHBOARD</span>
+          <h3>Panel para administradores</h3>
+          <p>Una vista en vivo de cobranzas, morosidad y actividad de todos los consorcios. Filtrá, compará y decidí con datos reales, no con planillas.</p>
+        </div>
+        <div class="cell-viz">
+          <div class="viz-card">
+            <div class="vl">Cobrado este mes</div>
+            <div class="vv">$ 18.4M</div>
+            <div class="viz-bars-row">
+              <div style="height:40%"></div>
+              <div style="height:65%"></div>
+              <div style="height:55%"></div>
+              <div style="height:80%"></div>
+              <div style="height:70%"></div>
+              <div style="height:90%"></div>
+              <div style="height:78%"></div>
+              <div style="height:95%"></div>
+            </div>
+          </div>
+          <div class="viz-card">
+            <div class="vl">Morosidad</div>
+            <div class="vv">6,2%</div>
+            <div class="viz-bars-row">
+              <div style="height:65%; background: linear-gradient(to top, #f2c97b, rgba(242,201,123,0.2));"></div>
+              <div style="height:58%; background: linear-gradient(to top, #f2c97b, rgba(242,201,123,0.2));"></div>
+              <div style="height:50%; background: linear-gradient(to top, #f2c97b, rgba(242,201,123,0.2));"></div>
+              <div style="height:45%; background: linear-gradient(to top, #f2c97b, rgba(242,201,123,0.2));"></div>
+              <div style="height:38%; background: linear-gradient(to top, #f2c97b, rgba(242,201,123,0.2));"></div>
+              <div style="height:32%; background: linear-gradient(to top, #f2c97b, rgba(242,201,123,0.2));"></div>
+              <div style="height:28%; background: linear-gradient(to top, #f2c97b, rgba(242,201,123,0.2));"></div>
+              <div style="height:22%; background: linear-gradient(to top, #f2c97b, rgba(242,201,123,0.2));"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CELL: App propietarios -->
+      <div class="cell cell-tall">
+        <div>
+          <span class="tag">APP PROPIETARIOS</span>
+          <h3>Una app clara para tus propietarios</h3>
+          <p>Acceden a expensas, deuda, pagos, reclamos, avisos y documentos desde el celular.</p>
+        </div>
+        <svg viewBox="0 0 180 220" style="width:100%; margin-top:auto;">
+          <rect x="20" y="10" width="140" height="200" rx="20" fill="#1a241f" stroke="rgba(255,255,255,0.08)"/>
+          <rect x="30" y="22" width="60" height="6" rx="2" fill="rgba(255,255,255,0.4)"/>
+          <rect x="30" y="32" width="40" height="4" rx="2" fill="rgba(255,255,255,0.2)"/>
+          <rect x="30" y="48" width="120" height="48" rx="10" fill="#9cf27b"/>
+          <rect x="38" y="58" width="34" height="4" rx="2" fill="#0e1512" fill-opacity="0.55"/>
+          <rect x="38" y="68" width="78" height="10" rx="3" fill="#0e1512"/>
+          <rect x="38" y="84" width="50" height="4" rx="2" fill="#0e1512" fill-opacity="0.55"/>
+          <rect x="30" y="106" width="58" height="44" rx="10" fill="#0e1512"/>
+          <rect x="38" y="114" width="26" height="3" rx="1.5" fill="#9cf27b"/>
+          <rect x="38" y="124" width="38" height="8" rx="2" fill="#eef1ed"/>
+          <rect x="38" y="138" width="30" height="3" rx="1.5" fill="rgba(255,255,255,0.4)"/>
+          <rect x="92" y="106" width="58" height="44" rx="10" fill="#0e1512"/>
+          <rect x="100" y="114" width="26" height="3" rx="1.5" fill="#9cf27b"/>
+          <rect x="100" y="124" width="38" height="8" rx="2" fill="#eef1ed"/>
+          <rect x="100" y="138" width="30" height="3" rx="1.5" fill="rgba(255,255,255,0.4)"/>
+          <rect x="30" y="160" width="120" height="36" rx="10" fill="#0e1512"/>
+          <circle cx="44" cy="178" r="6" fill="#9cf27b" fill-opacity="0.25"/>
+          <circle cx="44" cy="178" r="3" fill="#9cf27b"/>
+          <rect x="56" y="172" width="60" height="4" rx="2" fill="#eef1ed"/>
+          <rect x="56" y="182" width="40" height="3" rx="1.5" fill="rgba(255,255,255,0.3)"/>
+        </svg>
+      </div>
+
+      <!-- CELL: Expensas -->
+      <div class="cell cell-half">
+        <div>
+          <span class="tag">EXPENSAS & PAGOS</span>
+          <h3>Liquidá expensas y registrá pagos</h3>
+          <p>Cargá períodos, generá expensas por unidad, registrá pagos manuales o automáticos, emití recibos.</p>
+        </div>
+        <div class="ticket-list">
+          <div class="ticket-row"><span class="ticket-status done"></span><span class="t">Período Abr 2026 · emitido</span><span class="meta">312/312</span></div>
+          <div class="ticket-row"><span class="ticket-status progress"></span><span class="t">Cobranzas en curso</span><span class="meta">94%</span></div>
+        </div>
+      </div>
+
+      <!-- CELL: Reclamos -->
+      <div class="cell cell-half">
+        <div>
+          <span class="tag">RECLAMOS</span>
+          <h3>Reclamos con estado y responsable</h3>
+          <p>Cada reclamo queda registrado, se asigna y se sigue desde un solo lugar. Nada se pierde.</p>
+        </div>
+        <div class="ticket-list">
+          <div class="ticket-row"><span class="ticket-status open"></span><span class="t">Pérdida de agua · 5°B</span><span class="meta">PENDIENTE</span></div>
+          <div class="ticket-row"><span class="ticket-status progress"></span><span class="t">Luz de palier · PB</span><span class="meta">EN CURSO</span></div>
+          <div class="ticket-row"><span class="ticket-status done"></span><span class="t">Cerradura puerta SUM</span><span class="meta">RESUELTO</span></div>
+        </div>
+      </div>
+
+      <!-- CELL: Avisos -->
+      <div class="cell cell-third">
+        <div>
+          <span class="tag">AVISOS</span>
+          <h3>Comunicados al instante</h3>
+          <p>Llegan a la app y por mail. Confirmás quién los vio.</p>
+        </div>
+        <div class="notice-stack">
+          <div class="notice-row"><span>Corte de agua · martes</span><span class="nl">312/312</span></div>
+          <div class="notice-row"><span>Asamblea ordinaria</span><span class="nl">298/312</span></div>
+        </div>
+      </div>
+
+      <!-- CELL: Documentos -->
+      <div class="cell cell-third">
+        <div>
+          <span class="tag">DOCUMENTOS</span>
+          <h3>Toda la documentación a un clic</h3>
+          <p>Reglamento, liquidaciones, actas, contratos. Siempre disponible.</p>
+        </div>
+        <div class="docs-row">
+          <div class="doc-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Liquid.&nbsp;Abr&nbsp;26</div>
+          <div class="doc-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Reglamento</div>
+          <div class="doc-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Acta&nbsp;Mar</div>
+        </div>
+      </div>
+
+      <!-- CELL: Extras -->
+      <div class="cell cell-third">
+        <div>
+          <span class="tag">EXTRAS</span>
+          <h3>Reservas, visitas y permisos</h3>
+          <p>Espacios comunes, registro de visitas y permisos por módulo si aplica a tu barrio.</p>
+        </div>
+        <div class="module-pills">
+          <span class="pill on">Reservas</span>
+          <span class="pill on">Visitas</span>
+          <span class="pill on">Roles</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BENEFICIOS -->
+<section class="section" id="beneficios" style="padding-top:0;">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="eyebrow"><span class="dot"></span> BENEFICIOS</div>
+      <h2>Una herramienta que <span class="accent">potencia</span> el trabajo de la administración.</h2>
+      <p>GestionAr no reemplaza al administrador: lo libera de las tareas repetitivas para que su equipo se enfoque en lo importante.</p>
+    </div>
+
+    <div class="audiences reveal">
+      <div class="audience">
+        <span class="role-tag">PARA TU ADMINISTRACIÓN</span>
+        <h3>Operá más consorcios sin desorden.</h3>
+        <p class="sub">Centralizá la información, automatizá lo repetitivo y ganá tiempo del equipo.</p>
+        <ul class="benefit-list">
+          <li>
+            <span class="bi"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <div>Menos consultas repetidas<div class="bd">Los propietarios encuentran solos su deuda, recibos y avisos.</div></div>
+          </li>
+          <li>
+            <span class="bi"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <div>Información centralizada<div class="bd">Una fuente única para cobranzas, reclamos, avisos y documentación.</div></div>
+          </li>
+          <li>
+            <span class="bi"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <div>Dashboards de actividad y morosidad<div class="bd">Sabés en tiempo real qué pasa en cada consorcio.</div></div>
+          </li>
+          <li>
+            <span class="bi"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <div>Operación más profesional<div class="bd">Imagen moderna y trazabilidad de cada acción del equipo.</div></div>
+          </li>
+          <li>
+            <span class="bi"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <div>Escalabilidad real<div class="bd">Sumás consorcios sin sumar caos ni gente extra.</div></div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="audience">
+        <span class="role-tag">PARA LOS PROPIETARIOS</span>
+        <h3>Una experiencia clara y moderna.</h3>
+        <p class="sub">Todo lo que un propietario necesita, a un toque desde el celular.</p>
+        <ul class="benefit-list">
+          <li>
+            <span class="bi"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <div>Ver deuda, pagos y comprobantes<div class="bd">Desde la app, sin tener que escribir al administrador.</div></div>
+          </li>
+          <li>
+            <span class="bi"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <div>Recibir avisos importantes<div class="bd">Notificaciones de cortes, asambleas y novedades del consorcio.</div></div>
+          </li>
+          <li>
+            <span class="bi"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <div>Crear reclamos con seguimiento<div class="bd">Saben siempre en qué estado está su pedido.</div></div>
+          </li>
+          <li>
+            <span class="bi"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <div>Acceso a documentos del consorcio<div class="bd">Reglamento, actas, liquidaciones, siempre a mano.</div></div>
+          </li>
+          <li>
+            <span class="bi"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <div>Reservar espacios comunes<div class="bd">SUM, parrilla o cocheras, según lo que tenga el consorcio.</div></div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMO FUNCIONA -->
+<section class="section" id="como-funciona" style="padding-top:0;">
+  <div class="container">
+    <div class="how reveal">
+      <div class="how-grid">
+        <div>
+          <div class="eyebrow"><span class="dot"></span> CÓMO FUNCIONA</div>
+          <h2 style="font-size:clamp(28px, 3.6vw, 42px); margin:20px 0 36px;">Implementación guiada, en menos de lo que pensás.</h2>
+
+          <div class="steps-list">
+            <div class="step active" data-step="1">
+              <div class="step-num">01</div>
+              <div class="step-body">
+                <h4>Configuramos tu organización</h4>
+                <p>Damos de alta tu administración, usuarios del equipo y permisos por consorcio.</p>
+              </div>
+            </div>
+            <div class="step" data-step="2">
+              <div class="step-num">02</div>
+              <div class="step-body">
+                <h4>Cargamos unidades y propietarios</h4>
+                <p>Importamos el padrón desde Excel o tu sistema actual. Sin retipear nada.</p>
+              </div>
+            </div>
+            <div class="step" data-step="3">
+              <div class="step-num">03</div>
+              <div class="step-body">
+                <h4>Activamos los módulos que necesitás</h4>
+                <p>Expensas, reclamos, avisos, reservas, visitas. Sumás más cuando quieras.</p>
+              </div>
+            </div>
+            <div class="step" data-step="4">
+              <div class="step-num">04</div>
+              <div class="step-body">
+                <h4>Los propietarios ingresan a la app</h4>
+                <p>Reciben invitación, descargan la app y acceden a sus expensas y avisos.</p>
+              </div>
+            </div>
+            <div class="step" data-step="5">
+              <div class="step-num">05</div>
+              <div class="step-body">
+                <h4>Operás todo desde tu panel</h4>
+                <p>Tu equipo gestiona, los propietarios consultan, GestionAr conecta a ambos.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="how-visual">
+          <div class="pv active" data-pv="1">
+            <div class="pv-label">PASO 01 · ORGANIZACIÓN</div>
+            <div class="pv-title">Configuración inicial</div>
+            <div class="pv-mock">
+              <div class="pv-row"><span class="c1">Datos de la administración</span><span class="check">✓</span></div>
+              <div class="pv-row"><span class="c1">Usuarios del equipo</span><span class="c2">4 ALTAS</span></div>
+              <div class="pv-row"><span class="c1">Roles y permisos</span><span class="check">✓</span></div>
+              <div class="pv-row"><span class="c1">Logo y dominio propio</span><span class="check">✓</span></div>
+            </div>
+          </div>
+          <div class="pv" data-pv="2">
+            <div class="pv-label">PASO 02 · IMPORTACIÓN</div>
+            <div class="pv-title">Carga de datos</div>
+            <div class="pv-mock">
+              <div class="pv-row"><span class="c1">Consorcios cargados</span><span class="c2">12 / 12</span></div>
+              <div class="pv-row"><span class="c1">Unidades / lotes</span><span class="c2">1.847</span></div>
+              <div class="pv-row"><span class="c1">Padrón de propietarios</span><span class="check">✓</span></div>
+              <div class="pv-row"><span class="c1">Saldos iniciales</span><span class="check">✓</span></div>
+            </div>
+          </div>
+          <div class="pv" data-pv="3">
+            <div class="pv-label">PASO 03 · MÓDULOS</div>
+            <div class="pv-title">Activación funcional</div>
+            <div class="pv-mock">
+              <div class="pv-row"><span class="c1">Expensas y pagos</span><span class="check">✓</span></div>
+              <div class="pv-row"><span class="c1">Reclamos</span><span class="check">✓</span></div>
+              <div class="pv-row"><span class="c1">Avisos y comunicados</span><span class="check">✓</span></div>
+              <div class="pv-row"><span class="c1">Reservas</span><span class="pending">OPCIONAL</span></div>
+            </div>
+          </div>
+          <div class="pv" data-pv="4">
+            <div class="pv-label">PASO 04 · PROPIETARIOS</div>
+            <div class="pv-title">Acceso a la app</div>
+            <div class="pv-mock">
+              <div class="pv-row"><span class="c1">Invitaciones enviadas</span><span class="c2">1.847</span></div>
+              <div class="pv-row"><span class="c1">Activaciones</span><span class="c2">1.612</span></div>
+              <div class="pv-row"><span class="c1">PWA / iOS / Android</span><span class="check">✓</span></div>
+              <div class="pv-row"><span class="c1">Soporte de onboarding</span><span class="check">✓</span></div>
+            </div>
+          </div>
+          <div class="pv" data-pv="5">
+            <div class="pv-label">PASO 05 · OPERACIÓN</div>
+            <div class="pv-title">Día a día en GestionAr</div>
+            <div class="pv-mock">
+              <div class="pv-row"><span class="c1">Liquidación mensual</span><span class="check">✓</span></div>
+              <div class="pv-row"><span class="c1">Cobranzas en tiempo real</span><span class="check">✓</span></div>
+              <div class="pv-row"><span class="c1">Reclamos con seguimiento</span><span class="check">✓</span></div>
+              <div class="pv-row"><span class="c1">Soporte continuo</span><span class="check">✓</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PLANES -->
+<section class="section" id="planes" style="padding-top:0;">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="eyebrow"><span class="dot"></span> PLANES</div>
+      <h2>Planes pensados <span class="accent">por unidad</span>, no por honorarios.</h2>
+      <p>Pagás un valor mensual por propietario / unidad / lote. Sin permanencia, sin comisiones ocultas y con todos los módulos esenciales incluidos.</p>
+    </div>
+
+    <div class="plans-grid">
+      <div class="plan reveal">
+        <div class="plan-name">Inicial</div>
+        <div class="plan-tagline">Administraciones que arrancan a digitalizar uno o dos consorcios.</div>
+        <div class="plan-price"><span class="cur">$</span><span class="amt">desde 690</span><span class="unit">/unidad·mes</span></div>
+        <div class="plan-per">FACTURACIÓN MENSUAL · IVA INCL.</div>
+        <div class="plan-min">Hasta 2 consorcios · 200 unidades</div>
+        <ul>
+          <li>Panel administrativo</li>
+          <li>Expensas, pagos y recibos</li>
+          <li>App para propietarios</li>
+          <li>Avisos y comunicados</li>
+          <li>Reclamos básicos</li>
+          <li>Soporte por mail</li>
+        </ul>
+        <a href="#contacto" class="btn btn-ghost">Solicitar demo</a>
+      </div>
+
+      <div class="plan featured reveal">
+        <div class="plan-name">Profesional</div>
+        <div class="plan-tagline">El plan que elige el 70% de las administraciones.</div>
+        <div class="plan-price"><span class="cur">$</span><span class="amt">desde 540</span><span class="unit">/unidad·mes</span></div>
+        <div class="plan-per">FACTURACIÓN MENSUAL · IVA INCL.</div>
+        <div class="plan-min">Sin límite de consorcios · desde 400 unidades</div>
+        <ul>
+          <li>Todo lo de Inicial</li>
+          <li>Multiconsorcio sin límite</li>
+          <li>Dashboards de cobranzas y morosidad</li>
+          <li>Reclamos con asignación y SLA</li>
+          <li>Documentos del consorcio</li>
+          <li>Reservas y visitas</li>
+          <li>Permisos por organización y módulo</li>
+          <li>Soporte prioritario</li>
+        </ul>
+        <a href="#contacto" class="btn btn-primary">Solicitar demo</a>
+      </div>
+
+      <div class="plan reveal">
+        <div class="plan-name">Administraciones</div>
+        <div class="plan-tagline">Estudios grandes o redes con varios equipos y miles de unidades.</div>
+        <div class="plan-price"><span class="amt">A medida</span></div>
+        <div class="plan-per">SEGÚN ALCANCE</div>
+        <div class="plan-min">+2.000 unidades · onboarding asistido</div>
+        <ul>
+          <li>Todo lo de Profesional</li>
+          <li>Onboarding asistido y migración</li>
+          <li>Dominio y branding propio</li>
+          <li>Integraciones a medida</li>
+          <li>SLA contractual</li>
+          <li>Account manager dedicado</li>
+        </ul>
+        <a href="#contacto" class="btn btn-ghost">Hablar con ventas</a>
+      </div>
+    </div>
+
+    <p class="plans-note">El precio final depende de la cantidad de unidades y los módulos activados. Te armamos una propuesta a medida en menos de 48 h.</p>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section" id="faq" style="padding-top:0;">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="eyebrow"><span class="dot"></span> PREGUNTAS FRECUENTES</div>
+      <h2>Lo que toda administración pregunta antes de empezar.</h2>
+    </div>
+
+    <div class="faq-grid reveal">
+      <details class="faq">
+        <summary>¿GestionAr reemplaza a mi sistema actual?</summary>
+        <div class="ans">GestionAr es la herramienta de gestión operativa de tu administración: expensas, pagos, reclamos, avisos, documentación, propietarios y reservas. Si hoy usás Excel, WhatsApp y mails, los reemplaza todos. Si tenés un sistema contable, convivimos: importamos datos y te ahorramos la doble carga.</div>
+      </details>
+      <details class="faq">
+        <summary>¿Puedo usarlo para varios consorcios al mismo tiempo?</summary>
+        <div class="ans">Sí. GestionAr está pensada para administraciones que gestionan múltiples consorcios, barrios privados, countries o clubes de campo. Cada uno tiene su panel propio, y vos ves todo consolidado desde tu organización.</div>
+      </details>
+      <details class="faq">
+        <summary>¿Los propietarios tienen acceso a la app?</summary>
+        <div class="ans">Sí. Cada propietario accede con su mail o DNI y ve su deuda, pagos, recibos, reclamos, avisos y documentos. Para tu equipo significa menos consultas repetidas; para el propietario, una experiencia clara y moderna.</div>
+      </details>
+      <details class="faq">
+        <summary>¿Se puede configurar por organización?</summary>
+        <div class="ans">Sí. Definís roles y permisos por usuario, por consorcio y por módulo. Por ejemplo: tu equipo de cobranzas ve cobranzas de todos los consorcios, y un encargado solo ve reclamos del suyo.</div>
+      </details>
+      <details class="faq">
+        <summary>¿Puedo activar solo algunos módulos?</summary>
+        <div class="ans">Sí. Arrancás con expensas, avisos y reclamos, y sumás reservas, visitas u otros módulos cuando lo necesites. No pagás por funcionalidades que no usás.</div>
+      </details>
+      <details class="faq">
+        <summary>¿La app funciona como PWA?</summary>
+        <div class="ans">Sí. GestionAr funciona como Progressive Web App: tus propietarios la instalan desde el navegador en iOS y Android sin pasar por la store, y reciben notificaciones igual que una app nativa.</div>
+      </details>
+      <details class="faq">
+        <summary>¿Cómo se importan los datos iniciales?</summary>
+        <div class="ans">Te pedimos un Excel con el padrón de unidades, propietarios y saldos. Nosotros lo cargamos por vos durante el onboarding. Si venís de otro sistema, evaluamos una migración asistida.</div>
+      </details>
+      <details class="faq">
+        <summary>¿Puedo solicitar una demo personalizada?</summary>
+        <div class="ans">Sí. Coordinamos una demo de 30 minutos con alguien de nuestro equipo, donde recorremos los módulos clave y vemos cómo aplicaría a tu administración. Sin compromiso.</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACTO -->
+<section class="section" id="contacto" style="padding-top:0;">
+  <div class="container">
+    <div class="contact reveal">
+      <div class="contact-grid">
+        <div>
+          <div class="eyebrow"><span class="dot"></span> HABLEMOS</div>
+          <h2>Solicitá tu demo y te mostramos GestionAr funcionando en vivo.</h2>
+          <p class="lead">Contanos cuántos consorcios y unidades manejás y te armamos una propuesta a medida en menos de 48 h.</p>
+
+          <div class="contact-items">
+            <div class="contact-item">
+              <div class="i"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
+              <div>
+                <div class="lb">Ventas</div>
+                <div class="v">+54 11 4893-2210</div>
+              </div>
+            </div>
+            <div class="contact-item">
+              <div class="i"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+              <div>
+                <div class="lb">Email comercial</div>
+                <div class="v">ventas@gestionar.com.ar</div>
+              </div>
+            </div>
+            <div class="contact-item">
+              <div class="i"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+              <div>
+                <div class="lb">Respuesta</div>
+                <div class="v">Menos de 48 h hábiles</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <form class="form" id="contactForm">
+          <div class="form-content" style="display:flex; flex-direction:column; gap:12px;">
+            <div class="form-row">
+              <div class="field">
+                <label for="nombre">Nombre</label>
+                <input type="text" id="nombre" required placeholder="Tu nombre">
+              </div>
+              <div class="field">
+                <label for="admin">Administración</label>
+                <input type="text" id="admin" required placeholder="Nombre del estudio o administración">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="field">
+                <label for="email">Email</label>
+                <input type="email" id="email" required placeholder="vos@administracion.com">
+              </div>
+              <div class="field">
+                <label for="tel">Teléfono</label>
+                <input type="tel" id="tel" required placeholder="+54 9 11 ...">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="field">
+                <label for="consorcios">Consorcios aprox.</label>
+                <select id="consorcios" required>
+                  <option value="">Seleccionar…</option>
+                  <option>1 – 3</option>
+                  <option>4 – 10</option>
+                  <option>11 – 30</option>
+                  <option>Más de 30</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="unidades">Unidades / lotes aprox.</label>
+                <select id="unidades" required>
+                  <option value="">Seleccionar…</option>
+                  <option>Hasta 200</option>
+                  <option>200 – 600</option>
+                  <option>600 – 2.000</option>
+                  <option>Más de 2.000</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label for="msg">Mensaje</label>
+              <textarea id="msg" placeholder="Contanos brevemente qué módulos te interesan o qué dolor querés resolver..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg" style="width:100%;">Solicitar demo <span class="arrow">→</span></button>
+          </div>
+          <div class="form-ok">
+            ✓ ¡Recibimos tu solicitud! Te contactamos en menos de 48 h hábiles.
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="#" class="logo"><span class="logo-mark"></span> Gestion<span class="ar">Ar</span></a>
+        <p>Plataforma SaaS para que administraciones de consorcios, barrios privados y countries digitalicen su operación diaria.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Producto</h5>
+        <ul>
+          <li><a href="#funcionalidades">Funcionalidades</a></li>
+          <li><a href="#beneficios">Beneficios</a></li>
+          <li><a href="#como-funciona">Cómo funciona</a></li>
+          <li><a href="#planes">Planes</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Recursos</h5>
+        <ul>
+          <li><a href="#faq">Preguntas frecuentes</a></li>
+          <li><a href="#">Guía para administradores</a></li>
+          <li><a href="#">Casos de uso</a></li>
+          <li><a href="#">Blog</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Empresa</h5>
+        <ul>
+          <li><a href="#contacto">Solicitar demo</a></li>
+          <li><a href="mailto:ventas@gestionar.com.ar">ventas@gestionar.com.ar</a></li>
+          <li><a href="tel:+541148932210">+54 11 4893-2210</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>© 2026 GESTIONAR · SOFTWARE PARA ADMINISTRACIONES</div>
+      <div>HECHO EN BUENOS AIRES</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Nav scroll state
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 30);
+  });
+
+  // Reveal on scroll
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('in');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // Steps interactivo
+  const steps = document.querySelectorAll('.step');
+  const pvs = document.querySelectorAll('.pv');
+  steps.forEach(s => {
+    s.addEventListener('click', () => {
+      const n = s.dataset.step;
+      steps.forEach(x => x.classList.remove('active'));
+      pvs.forEach(x => x.classList.remove('active'));
+      s.classList.add('active');
+      const target = document.querySelector(`.pv[data-pv="${n}"]`);
+      if (target) target.classList.add('active');
+    });
+  });
+
+  // Auto-rotate
+  let curStep = 1;
+  const stepCount = steps.length;
+  setInterval(() => {
+    curStep = (curStep % stepCount) + 1;
+    const stepEl = document.querySelector(`.step[data-step="${curStep}"]`);
+    if (stepEl && !document.querySelector('#como-funciona:hover')) {
+      stepEl.click();
+    }
+  }, 5000);
+
+  // Form
+  document.getElementById('contactForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    e.target.classList.add('submitted');
+  });
+</script>
+
+</body>
+</html>
