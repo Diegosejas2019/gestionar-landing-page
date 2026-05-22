@@ -63,10 +63,10 @@ export function HomePage() {
           <div className="hero-copy">
             <div className="eyebrow"><span className="dot" /> ADMINISTRACIÓN DE CONSORCIOS · ARGENTINA</div>
             <h1 className="display">
-              La administración <span className="accent">transparente</span> que tu barrio privado necesita.
+              La administración <span className="accent">transparente</span> que tu consorcio necesita.
             </h1>
             <p className="lead">
-              Simplificamos expensas, mantenimiento y comunicación en countries, barrios cerrados y clubes de campo. Todo en una plataforma, con respuesta humana de lunes a sábado.
+              Simplificamos expensas, mantenimiento y comunicación en edificios, barrios cerrados y clubes de campo. Todo en una plataforma, disponible 24/7.
             </p>
             <div className="hero-cta">
               <a href="#contacto" className="btn btn-primary btn-lg">Agendar diagnóstico gratuito <span className="arrow">→</span></a>
@@ -163,7 +163,7 @@ export function HomePage() {
       </section>
 
       {/* LOGOS */}
-      <div className="container">
+      {/* <div className="container">
         <div className="logos-strip">
           <div className="label">Administramos barrios en GBA Norte, Zona Oeste y Pilar</div>
           <div className="logos-grid">
@@ -175,7 +175,7 @@ export function HomePage() {
             <div className="logo-item">Haras&nbsp;del&nbsp;Sur</div>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* BENEFICIOS */}
       <section className="section" id="beneficios">
@@ -218,39 +218,6 @@ export function HomePage() {
               </div>
               <h3>Liquidación mensual clara</h3>
               <p>Un PDF que se entiende sin un contador al lado. Capítulos, comparativos y reserva técnica calculada al día.</p>
-            </div>
-
-            <div className="benefit reveal">
-              <span className="num">04</span>
-              <div className="benefit-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-                </svg>
-              </div>
-              <h3>Un contacto humano</h3>
-              <p>No sos un ticket. Tenés un administrador asignado que conoce tu barrio, con nombre y celular directo.</p>
-            </div>
-
-            <div className="benefit reveal">
-              <span className="num">05</span>
-              <div className="benefit-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5M2 12l10 5 10-5" />
-                </svg>
-              </div>
-              <h3>Proveedores auditados</h3>
-              <p>Tres presupuestos por obra y un panel de rendimiento por proveedor. Chau compadre del administrador.</p>
-            </div>
-
-            <div className="benefit reveal">
-              <span className="num">06</span>
-              <div className="benefit-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                </svg>
-              </div>
-              <h3>Asesoría legal incluida</h3>
-              <p>Reglamentos, morosos, cocheras, mascotas. Tenés respaldo de un estudio socio, sin costo extra.</p>
             </div>
           </div>
         </div>
