@@ -563,7 +563,7 @@ export function AdminPreviewPage() {
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
-  const [finSubTab, setFinSubTab] = useState<'cobranza' | 'egresos'>('cobranza');
+  const [finSubTab, setFinSubTab] = useState<'cobranza' | 'egresos' | 'noIdentificados'>('cobranza');
   const [dashPeriod, setDashPeriod] = useState<'mes' | 'trimestre' | 'año' | 'todo'>('año');
   const [loading, setLoading] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
@@ -628,6 +628,13 @@ export function AdminPreviewPage() {
   const [visitFilter, setVisitFilter] = useState<'all'|'inside'|'exited'|'expected'>('all');
   const [reservasWeekOffset, setReservasWeekOffset] = useState(0);
   const [reservasSpaceFilter, setReservasSpaceFilter] = useState<string[]>([]);
+  const [unidentifiedPayments, setUnidentifiedPayments] = useState<any[]>([]);
+  const [unidentifiedPaymentsLoading, setUnidentifiedPaymentsLoading] = useState(false);
+  const [unidentifiedPaymentsSummary, setUnidentifiedPaymentsSummary] = useState<any>({});
+  const [unidentifiedPaymentsFilters, setUnidentifiedPaymentsFilters] = useState({ status: 'all', method: 'all', search: '', dateFrom: '', dateTo: '' });
+  const [showUnidentifiedDetailModal, setShowUnidentifiedDetailModal] = useState(false);
+  const [showUnidentifiedAssociateModal, setShowUnidentifiedAssociateModal] = useState(false);
+  const [selectedUnidentified, setSelectedUnidentified] = useState<any>(null);
 
   const { me, membership, config, features, ownerStats, dashboard, owners, units, payments, notices, claims, expenses, employees, salaries, providers, votes, visits, spaces, reservations, orgDocuments, yearExpenses, yearPayments, report } = useAdminStore();
   const setMe = useAdminStore(s => s.setMe);
@@ -1058,6 +1065,50 @@ export function AdminPreviewPage() {
       anchor.click();
       URL.revokeObjectURL(url);
     }, 'CSV generado.');
+  }
+
+  async function fetchUnidentifiedPayments() {
+    setUnidentifiedPaymentsLoading(true);
+    try {
+      const params: Record<string, string> = {};
+      if (unidentifiedPaymentsFilters.status !== 'all') params.status = unidentifiedPaymentsFilters.status;
+      if (unidentifiedPaymentsFilters.method !== 'all') params.paymentMethod = unidentifiedPaymentsFilters.method;
+      if (unidentifiedPaymentsFilters.search) params.search = unidentifiedPaymentsFilters.search;
+      if (unidentifiedPaymentsFilters.dateFrom) params.dateFrom = unidentifiedPaymentsFilters.dateFrom;
+      if (unidentifiedPaymentsFilters.dateTo) params.dateTo = unidentifiedPaymentsFilters.dateTo;
+      const [listRes, summaryRes] = await Promise.all([
+        adminApi.unidentifiedPayments.list(params),
+        adminApi.unidentifiedPayments.summary()
+      ]);
+      setUnidentifiedPayments(pick(listRes, 'payments', []));
+      setUnidentifiedPaymentsSummary(pick(summaryRes, 'summary', {}));
+    } catch (error) {
+      setNotice({ type: 'error', text: error instanceof Error ? error.message : 'No se pudieron cargar los pagos no identificados.' });
+    } finally {
+      setUnidentifiedPaymentsLoading(false);
+    }
+  }
+
+  async function openUnidentifiedDetail(payment: any) {
+    setSelectedUnidentified(payment);
+    setShowUnidentifiedDetailModal(true);
+  }
+
+  async function openUnidentifiedAssociate(payment: any) {
+    setSelectedUnidentified(payment);
+    setShowUnidentifiedAssociateModal(true);
+  }
+
+  async function handleUnidentifiedReject(payment: any) {
+    const reason = window.prompt('Motivo de rechazo (opcional)') || '';
+    await run(`unidentified-reject-${idOf(payment)}`, () => adminApi.unidentifiedPayments.reject(idOf(payment), reason), 'Pago rechazado.');
+    fetchUnidentifiedPayments();
+  }
+
+  async function handleUnidentifiedArchive(payment: any) {
+    const reason = window.prompt('Motivo de archivo (opcional)') || '';
+    await run(`unidentified-archive-${idOf(payment)}`, () => adminApi.unidentifiedPayments.archive(idOf(payment), reason), 'Pago archivado.');
+    fetchUnidentifiedPayments();
   }
 
   async function openDelinquencyDetail(ownerId: string) {
@@ -1843,6 +1894,9 @@ export function AdminPreviewPage() {
                 <button className={`fin-tab${finSubTab === 'egresos' ? ' is-active' : ''}`} onClick={() => setFinSubTab('egresos')}>
                   Egresos <span className="fin-tab-count">{expenses?.length || 0}</span>
                 </button>
+                <button className={`fin-tab${finSubTab === 'noIdentificados' ? ' is-active' : ''}`} onClick={() => { setFinSubTab('noIdentificados'); fetchUnidentifiedPayments(); }}>
+                  No Identificados <span className="fin-tab-count">{unidentifiedPaymentsSummary?.pendingCount || 0}</span>
+                </button>
               </div>
               {finSubTab === 'cobranza' && (
                 <div style={{ display: 'flex', gap: 6 }}>
@@ -1936,6 +1990,111 @@ export function AdminPreviewPage() {
                   </Panel>
                 </div>
               </div>
+            )}
+
+            {finSubTab === 'noIdentificados' && (
+              <>
+                <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 16 }}>
+                  <Metric row loading={unidentifiedPaymentsLoading} label="Pendientes" value={unidentifiedPaymentsSummary?.pendingCount || 0} hint={money(unidentifiedPaymentsSummary?.pendingTotal || 0)} icon={CreditCard} />
+                  <Metric row loading={unidentifiedPaymentsLoading} label="Asociados este mes" value={unidentifiedPaymentsSummary?.associatedThisMonthCount || 0} hint={money(unidentifiedPaymentsSummary?.associatedThisMonthTotal || 0)} icon={CheckCircle2} />
+                  <Metric row loading={unidentifiedPaymentsLoading} label="Rechazados/Archivados" value={unidentifiedPaymentsSummary?.rejectedArchivedCount || 0} hint="Sin acción requerida" icon={X} />
+                </div>
+                <div className="admin-panel">
+                  <div className="panel-head"><h2><CreditCard size={14} />Pagos No Identificados</h2></div>
+                  <div className="admin-form" style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', marginBottom: 12 }}>
+                    <label className="admin-field"><span>Estado</span>
+                      <select value={unidentifiedPaymentsFilters.status} onChange={(e) => setUnidentifiedPaymentsFilters(f => ({ ...f, status: e.target.value }))}>
+                        <option value="all">Todos</option>
+                        <option value="pending">Pendiente</option>
+                        <option value="partially_matched">Parcialmente asociado</option>
+                        <option value="associated">Asociado</option>
+                        <option value="rejected">Rechazado</option>
+                        <option value="archived">Archivado</option>
+                      </select>
+                    </label>
+                    <label className="admin-field"><span>Método</span>
+                      <select value={unidentifiedPaymentsFilters.method} onChange={(e) => setUnidentifiedPaymentsFilters(f => ({ ...f, method: e.target.value }))}>
+                        <option value="all">Todos</option>
+                        <option value="transferencia">Transferencia</option>
+                        <option value="deposito">Depósito</option>
+                        <option value="efectivo">Efectivo</option>
+                        <option value="mercadopago">MercadoPago</option>
+                        <option value="otro">Otro</option>
+                      </select>
+                    </label>
+                    <Field label="Desde" type="date" value={unidentifiedPaymentsFilters.dateFrom} onChange={(e: any) => setUnidentifiedPaymentsFilters(f => ({ ...f, dateFrom: e.target.value }))} />
+                    <Field label="Hasta" type="date" value={unidentifiedPaymentsFilters.dateTo} onChange={(e: any) => setUnidentifiedPaymentsFilters(f => ({ ...f, dateTo: e.target.value }))} />
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6 }}>
+                      <button className="btn btn-primary" style={{ flex: 1 }} onClick={fetchUnidentifiedPayments}><Search size={14} />Filtrar</button>
+                    </div>
+                  </div>
+                  <Table loading={unidentifiedPaymentsLoading} searchPlaceholder="Buscar por referencia o remitente" filters={[]} rows={unidentifiedPayments} columns={[
+                    ['Fecha', (p: any) => <span>{dateLabel(p.paymentDate)}</span>],
+                    ['Importe', (p: any) => <span className="fin-mono">{money(p.amount)}</span>],
+                    ['Método', (p: any) => <span>{p.paymentMethodLabel || p.paymentMethod || '—'}</span>],
+                    ['Referencia', (p: any) => <span>{p.reference || '—'}</span>],
+                    ['Remitente', (p: any) => <span>{p.senderName || '—'}</span>],
+                    ['Estado', (p: any) => {
+                      const tone = p.status === 'pending' ? 'warn' : p.status === 'partially_matched' ? 'info' : p.status === 'associated' ? 'pos' : p.status === 'rejected' ? 'neg' : 'muted';
+                      const labels: Record<string, string> = { pending: 'Pendiente', partially_matched: 'Parc. asociado', associated: 'Asociado', rejected: 'Rechazado', archived: 'Archivado' };
+                      return <span className={`pill ${tone}`}><span className="d" />{labels[p.status] || p.status}</span>;
+                    }],
+                    ['Acciones', (p: any) => <Actions>
+                      <button onClick={() => openUnidentifiedDetail(p)}>Ver</button>
+                      {p.status !== 'associated' && p.status !== 'archived' && <button onClick={() => openUnidentifiedAssociate(p)}>Asociar</button>}
+                      {p.status !== 'archived' && <button onClick={() => handleUnidentifiedReject(p)}>Rechazar</button>}
+                      {p.status !== 'archived' && <button onClick={() => handleUnidentifiedArchive(p)}>Archivar</button>}
+                    </Actions>]
+                  ]} />
+                </div>
+
+                {showUnidentifiedDetailModal && selectedUnidentified && (
+                  <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) { setShowUnidentifiedDetailModal(false); setSelectedUnidentified(null); } }}>
+                    <div className="form-modal form-modal--wide">
+                      <div className="form-modal-head">
+                        <div className="form-modal-title"><CreditCard size={16} />Detalle de Pago No Identificado</div>
+                        <button className="icon-btn" onClick={() => { setShowUnidentifiedDetailModal(false); setSelectedUnidentified(null); }}><X size={16} /></button>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem 1.5rem', padding: '0.75rem 0' }}>
+                        <div><span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>Fecha</span><div style={{ fontWeight: 600, color: 'var(--text-bright)' }}>{dateLabel(selectedUnidentified.paymentDate)}</div></div>
+                        <div><span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>Monto</span><div style={{ fontWeight: 600, color: 'var(--accent)' }}>{money(selectedUnidentified.amount)}</div></div>
+                        <div><span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>Método</span><div style={{ fontWeight: 600, color: 'var(--text-bright)' }}>{selectedUnidentified.paymentMethodLabel || selectedUnidentified.paymentMethod || '-'}</div></div>
+                        <div><span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>Referencia</span><div style={{ fontWeight: 600, color: 'var(--text-bright)' }}>{selectedUnidentified.reference || '-'}</div></div>
+                        <div><span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>Remitente</span><div style={{ fontWeight: 600, color: 'var(--text-bright)' }}>{selectedUnidentified.senderName || '-'}</div></div>
+                        <div><span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>Estado</span><div style={{ fontWeight: 600, color: 'var(--text-bright)' }}>{selectedUnidentified.status}</div></div>
+                      </div>
+                      {selectedUnidentified.attachment && (
+                        <div style={{ marginBottom: 12 }}>
+                          <span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>Comprobante</span>
+                          <div><button className="btn btn-ghost btn-sm" onClick={() => { const a = document.createElement('a'); a.href = selectedUnidentified.attachment; a.download = 'comprobante'; a.click(); }}><Download size={12} />Ver comprobante</button></div>
+                        </div>
+                      )}
+                      {selectedUnidentified.auditLog && selectedUnidentified.auditLog.length > 0 && (
+                        <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+                          <span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>Historial</span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
+                            {selectedUnidentified.auditLog.map((log: any, i: number) => (
+                              <div key={i} style={{ fontSize: 12, color: 'var(--text)' }}>
+                                <span style={{ color: 'var(--muted)' }}>{dateLabel(log.createdAt)}</span> — {log.action} {log.by ? `por ${log.by}` : ''}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div className="form-modal-foot">
+                        <button type="button" className="btn btn-ghost" onClick={() => { setShowUnidentifiedDetailModal(false); setSelectedUnidentified(null); }}>Cerrar</button>
+                        {selectedUnidentified.status !== 'associated' && selectedUnidentified.status !== 'archived' && (
+                          <button className="btn btn-primary" onClick={() => { setShowUnidentifiedDetailModal(false); openUnidentifiedAssociate(selectedUnidentified); }}>Asociar</button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {showUnidentifiedAssociateModal && selectedUnidentified && (
+                  <AssociateUnidentifiedModal payment={selectedUnidentified} owners={owners} units={units} onClose={() => { setShowUnidentifiedAssociateModal(false); setSelectedUnidentified(null); }} onSuccess={() => { fetchUnidentifiedPayments(); setShowUnidentifiedAssociateModal(false); setSelectedUnidentified(null); }} />
+                )}
+              </>
             )}
           </>
         )}
@@ -4758,6 +4917,122 @@ function YearMonth({ year, setYear, month, setMonth }: { year: number; setYear: 
       <input type="number" value={year} onChange={(event) => setYear(Number(event.target.value))} />
       <button onClick={() => setYear(year + 1)}>+</button>
       <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
+    </div>
+  );
+}
+
+function AssociateUnidentifiedModal({ payment, owners, units, onClose, onSuccess }: { payment: any; owners: any[]; units: any[]; onClose: () => void; onSuccess: () => void }) {
+  const [ownerSearch, setOwnerSearch] = useState('');
+  const [selectedOwner, setSelectedOwner] = useState<any>(null);
+  const [selectedUnit, setSelectedUnit] = useState<string>('');
+  const [selectedPeriod, setSelectedPeriod] = useState(payment?.period || todayMonth());
+  const [amount, setAmount] = useState(String(payment?.amount || 0));
+  const [loading, setLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (payment?._id) {
+      adminApi.unidentifiedPayments.getSuggestions(idOf(payment)).then(res => {
+        setSuggestions(pick(res, 'suggestions', []));
+      }).catch(() => {});
+    }
+  }, [payment]);
+
+  const filteredOwners = useMemo(() => {
+    if (!ownerSearch.trim()) return owners || [];
+    const q = ownerSearch.toLowerCase();
+    return (owners || []).filter((o: any) => o.name?.toLowerCase().includes(q) || o.email?.toLowerCase().includes(q));
+  }, [owners, ownerSearch]);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedOwner) { alert('Seleccioná un propietario.'); return; }
+    if (!selectedUnit) { alert('Seleccioná una unidad.'); return; }
+    setLoading(true);
+    try {
+      await adminApi.unidentifiedPayments.associate(idOf(payment), {
+        ownerId: idOf(selectedOwner),
+        unitId: selectedUnit,
+        period: selectedPeriod,
+        amount: Number(amount)
+      });
+      onSuccess();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'No se pudo asociar el pago.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="form-modal form-modal--wide">
+        <div className="form-modal-head">
+          <div className="form-modal-title"><CreditCard size={16} />Asociar Pago No Identificado</div>
+          <button className="icon-btn" onClick={onClose}><X size={16} /></button>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem 1.5rem', padding: '0.5rem 0', marginBottom: '0.5rem', borderBottom: '1px solid var(--border)' }}>
+          <div><span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>Monto recibido</span><div style={{ fontWeight: 600, color: 'var(--accent)', fontSize: 16 }}>{money(payment?.amount)}</div></div>
+          <div><span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>Fecha</span><div style={{ fontWeight: 600, color: 'var(--text-bright)' }}>{dateLabel(payment?.paymentDate)}</div></div>
+          <div><span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>Referencia</span><div style={{ fontWeight: 600, color: 'var(--text-bright)' }}>{payment?.reference || '-'}</div></div>
+          <div><span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>Remitente</span><div style={{ fontWeight: 600, color: 'var(--text-bright)' }}>{payment?.senderName || '-'}</div></div>
+        </div>
+        {suggestions.length > 0 && (
+          <div style={{ marginBottom: 12, padding: '0.5rem', background: 'var(--surface)', borderRadius: 8 }}>
+            <span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>Sugerencias</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+              {suggestions.slice(0, 3).map((s: any, i: number) => (
+                <button key={i} type="button" className="btn btn-ghost btn-sm" style={{ justifyContent: 'flex-start', textAlign: 'left' }}
+                  onClick={() => { setSelectedOwner(s.owner); setSelectedUnit(s.unitId || ''); setAmount(String(s.suggestedAmount || payment?.amount)); }}>
+                  {s.owner?.name || '—'} · {s.unitName || '—'} · {s.suggestedAmount ? money(s.suggestedAmount) : '?'}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        <form className="admin-form" onSubmit={handleSubmit}>
+          <div className="admin-field full">
+            <span>Buscar propietario</span>
+            <input type="search" value={ownerSearch} onChange={(e) => { setOwnerSearch(e.target.value); setSelectedOwner(null); }} placeholder="Nombre o email" />
+          </div>
+          {selectedOwner ? (
+            <div style={{ padding: '0.5rem', background: 'var(--accent-soft)', borderRadius: 8, marginBottom: 8 }}>
+              <span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>Seleccionado</span>
+              <div style={{ fontWeight: 600, color: 'var(--text-bright)' }}>{selectedOwner.name}</div>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSelectedOwner(null)}>Cambiar</button>
+            </div>
+          ) : (
+            <div className="admin-field full" style={{ maxHeight: 120, overflowY: 'auto' }}>
+              <span>Propietarios</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {filteredOwners.slice(0, 20).map((o: any) => (
+                  <button key={idOf(o)} type="button" className="btn btn-ghost btn-sm" style={{ justifyContent: 'flex-start', textAlign: 'left' }}
+                    onClick={() => setSelectedOwner(o)}>
+                    {o.name} · {o.email}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="admin-field full">
+            <span>Unidad</span>
+            <select value={selectedUnit} onChange={(e) => setSelectedUnit(e.target.value)} required>
+              <option value="">Seleccionar unidad</option>
+              {(selectedOwner?.units || []).map((u: any) => (
+                <option key={idOf(u)} value={idOf(u)}>{typeof u === 'string' ? u : u.name}</option>
+              ))}
+            </select>
+          </div>
+          <Field label="Período" name="period" type="month" required value={selectedPeriod} onChange={(e: any) => setSelectedPeriod(e.target.value)} />
+          <Field label="Monto a asociar" name="amount" type="number" required value={amount} onChange={(e: any) => setAmount(e.target.value)} />
+          <div className="form-modal-foot">
+            <button type="button" className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+            <button className="btn btn-primary" type="submit" disabled={loading}>
+              {loading ? 'Asociando…' : 'Asociar pago'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

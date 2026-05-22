@@ -63,6 +63,25 @@ export const adminApi = {
     reminders: () => apiClient<any>('/payments/send-reminders', { method: 'POST', auth: true })
   },
 
+  unidentifiedPayments: {
+    summary: (params?: Params) => cachedApiCall(
+      'unidentifiedPayments:summary',
+      () => apiClient<any>(`/unidentified-payments/summary${qs(params)}`, { auth: true })
+    ),
+    list: (params?: Params) => cachedApiCall(
+      cacheKey('unidentifiedPayments:list', params),
+      () => apiClient<any>(`/unidentified-payments${qs(params)}`, { auth: true })
+    ),
+    getOne: (id: string) => apiClient<any>(`/unidentified-payments/${id}`, { auth: true }),
+    create: (data: Payload) => { cacheDelete('unidentifiedPayments:list'); return apiClient<any>('/unidentified-payments', { method: 'POST', auth: true, body: body(data) }); },
+    update: (id: string, data: Payload) => apiClient<any>(`/unidentified-payments/${id}`, { method: 'PUT', auth: true, body: body(data) }),
+    delete: (id: string) => { cacheDelete('unidentifiedPayments:list'); return apiClient<any>(`/unidentified-payments/${id}`, { method: 'DELETE', auth: true }); },
+    getSuggestions: (id: string) => apiClient<any>(`/unidentified-payments/${id}/suggestions`, { auth: true }),
+    associate: (id: string, data: Payload) => { cacheDelete('unidentifiedPayments:list'); return apiClient<any>(`/unidentified-payments/${id}/associate`, { method: 'POST', auth: true, body: body(data) }); },
+    reject: (id: string, reason: string) => { cacheDelete('unidentifiedPayments:list'); return apiClient<any>(`/unidentified-payments/${id}/reject`, { method: 'POST', auth: true, body: JSON.stringify({ reason }) }); },
+    archive: (id: string, reason?: string) => { cacheDelete('unidentifiedPayments:list'); return apiClient<any>(`/unidentified-payments/${id}/archive`, { method: 'POST', auth: true, body: JSON.stringify({ reason }) }); },
+  },
+
   delinquency: {
     summary: (params?: Params) => cachedApiCall(
       cacheKey('delinquency:summary', params),
