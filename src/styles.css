@@ -1075,6 +1075,27 @@ h1.display .accent {
   text-align: center;
   display: none;
 }
+.form-error {
+  background: var(--danger-lt);
+  border: 1px solid rgba(240,138,138,0.3);
+  color: var(--danger);
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+.hp-field {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.form .btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+  transform: none;
+}
 .form.submitted .form-content { display: none; }
 .form.submitted .form-ok { display: block; }
 

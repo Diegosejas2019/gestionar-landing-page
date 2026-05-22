@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import {
   AlertCircle,
   Bell,
@@ -13,6 +13,7 @@ import {
   Settings2,
   Smartphone,
 } from 'lucide-react';
+import { apiClient } from '../../services/apiClient';
 
 const CONTACT_EMAIL = 'gestionar.app.info@gmail.com';
 const CONTACT_PHONE = '+54 11 5579-3722';
@@ -237,6 +238,8 @@ export function HomePage() {
   const [scrolled, setScrolled] = useState(false);
   const [activeStep, setActiveStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
   const processRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -270,6 +273,39 @@ export function HomePage() {
     }, 5000);
     return () => window.clearInterval(id);
   }, []);
+
+  async function handleDemoRequestSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    setFormError('');
+    setSubmitted(false);
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const payload = {
+      name: String(formData.get('name') || ''),
+      administration: String(formData.get('administration') || ''),
+      email: String(formData.get('email') || ''),
+      phone: String(formData.get('phone') || ''),
+      consortiaRange: String(formData.get('consortiaRange') || ''),
+      unitsRange: String(formData.get('unitsRange') || ''),
+      message: String(formData.get('message') || ''),
+      website: String(formData.get('website') || ''),
+    };
+
+    try {
+      await apiClient('/contact/demo-request', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      setSubmitted(true);
+      form.reset();
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'No pudimos enviar tu solicitud. Intentá nuevamente.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <>
@@ -522,20 +558,21 @@ export function HomePage() {
                 </div>
               </div>
 
-              <form className={`form${submitted ? ' submitted' : ''}`} onSubmit={(event) => { event.preventDefault(); setSubmitted(true); }}>
+              <form className={`form${submitted ? ' submitted' : ''}`} onSubmit={handleDemoRequestSubmit}>
                 <div className="form-content">
+                  <input type="text" name="website" tabIndex={-1} autoComplete="off" className="hp-field" aria-hidden="true" />
                   <div className="form-row">
-                    <div className="field"><label htmlFor="nombre">Nombre</label><input type="text" id="nombre" required placeholder="Tu nombre" /></div>
-                    <div className="field"><label htmlFor="admin">Administración</label><input type="text" id="admin" required placeholder="Nombre del estudio o administración" /></div>
+                    <div className="field"><label htmlFor="nombre">Nombre</label><input type="text" id="nombre" name="name" required placeholder="Tu nombre" /></div>
+                    <div className="field"><label htmlFor="admin">Administración</label><input type="text" id="admin" name="administration" required placeholder="Nombre del estudio o administración" /></div>
                   </div>
                   <div className="form-row">
-                    <div className="field"><label htmlFor="email">Email</label><input type="email" id="email" required placeholder="vos@administracion.com" /></div>
-                    <div className="field"><label htmlFor="tel">Teléfono</label><input type="tel" id="tel" required placeholder="+54 9 11 ..." /></div>
+                    <div className="field"><label htmlFor="email">Email</label><input type="email" id="email" name="email" required placeholder="vos@administracion.com" /></div>
+                    <div className="field"><label htmlFor="tel">Teléfono</label><input type="tel" id="tel" name="phone" required placeholder="+54 9 11 ..." /></div>
                   </div>
                   <div className="form-row">
                     <div className="field">
                       <label htmlFor="consorcios">Consorcios aprox.</label>
-                      <select id="consorcios" required defaultValue="">
+                      <select id="consorcios" name="consortiaRange" required defaultValue="">
                         <option value="" disabled>Seleccionar...</option>
                         <option>1 - 3</option>
                         <option>4 - 10</option>
@@ -545,7 +582,7 @@ export function HomePage() {
                     </div>
                     <div className="field">
                       <label htmlFor="unidades">Unidades / lotes aprox.</label>
-                      <select id="unidades" required defaultValue="">
+                      <select id="unidades" name="unitsRange" required defaultValue="">
                         <option value="" disabled>Seleccionar...</option>
                         <option>Hasta 200</option>
                         <option>200 - 600</option>
@@ -554,8 +591,11 @@ export function HomePage() {
                       </select>
                     </div>
                   </div>
-                  <div className="field"><label htmlFor="msg">Mensaje</label><textarea id="msg" placeholder="Contanos brevemente qué módulos te interesan o qué dolor querés resolver..." /></div>
-                  <button type="submit" className="btn btn-primary btn-lg">Solicitar demo <span className="arrow">→</span></button>
+                  <div className="field"><label htmlFor="msg">Mensaje</label><textarea id="msg" name="message" placeholder="Contanos brevemente qué módulos te interesan o qué dolor querés resolver..." /></div>
+                  {formError && <div className="form-error">{formError}</div>}
+                  <button type="submit" className="btn btn-primary btn-lg" disabled={submitting}>
+                    {submitting ? 'Enviando...' : 'Solicitar demo'} {!submitting && <span className="arrow">→</span>}
+                  </button>
                 </div>
                 <div className="form-ok">✓ ¡Recibimos tu solicitud! Te contactamos en menos de 48 h hábiles.</div>
               </form>
