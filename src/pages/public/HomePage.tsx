@@ -162,23 +162,8 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* LOGOS */}
-      {/* <div className="container">
-        <div className="logos-strip">
-          <div className="label">Administramos barrios en GBA Norte, Zona Oeste y Pilar</div>
-          <div className="logos-grid">
-            <div className="logo-item">Las&nbsp;Acacias</div>
-            <div className="logo-item">San&nbsp;Isidro&nbsp;Park</div>
-            <div className="logo-item">El&nbsp;Ombú</div>
-            <div className="logo-item">Arroyo&nbsp;Verde</div>
-            <div className="logo-item">Pilar&nbsp;Golf</div>
-            <div className="logo-item">Haras&nbsp;del&nbsp;Sur</div>
-          </div>
-        </div>
-      </div> */}
-
       {/* BENEFICIOS */}
-      <section className="section" id="beneficios">
+      <section id="beneficios">
         <div className="container">
           <div className="section-head reveal">
             <div className="eyebrow"><span className="dot" /> POR QUÉ GESTIONAR</div>
@@ -493,7 +478,7 @@ export function HomePage() {
                     </div>
                     <div>
                       <div className="lb">Teléfono</div>
-                      <div className="v">+54 11 4893-2210</div>
+                      <div className="v">+54 11 5579-3722</div>
                     </div>
                   </div>
                   <div className="contact-item">
@@ -504,18 +489,7 @@ export function HomePage() {
                     </div>
                     <div>
                       <div className="lb">Email</div>
-                      <div className="v">hola@gestionar.com.ar</div>
-                    </div>
-                  </div>
-                  <div className="contact-item">
-                    <div className="i">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="lb">Oficina</div>
-                      <div className="v">Av. del Libertador 5480 · CABA</div>
+                      <div className="v">gestionar.app.info@gmail.com</div>
                     </div>
                   </div>
                 </div>
@@ -530,17 +504,6 @@ export function HomePage() {
                     <div className="field">
                       <label htmlFor="nombre">Nombre</label>
                       <input type="text" id="nombre" required placeholder="Tu nombre" />
-                    </div>
-                    <div className="field">
-                      <label htmlFor="rol">Cargo</label>
-                      <select id="rol" required defaultValue="">
-                        <option value="" disabled>Seleccionar…</option>
-                        <option>Presidente de CD</option>
-                        <option>Tesorero</option>
-                        <option>Vocal</option>
-                        <option>Propietario</option>
-                        <option>Otro</option>
-                      </select>
                     </div>
                   </div>
                   <div className="field">
@@ -609,13 +572,13 @@ export function HomePage() {
               <h5>Contacto</h5>
               <ul>
                 <li><a href="#contacto">Pedir propuesta</a></li>
-                <li><a href="mailto:hola@gestionar.com.ar">hola@gestionar.com.ar</a></li>
-                <li><a href="tel:+541148932210">+54 11 4893-2210</a></li>
+                <li><a href="mailto:hola@gestionar.com.ar">gestionar.app.info@gmail.com</a></li>
+                <li><a href="tel:+541148932210">+54 11 5579-3722</a></li>
               </ul>
             </div>
           </div>
           <div className="footer-bottom">
-            <div>© 2026 GESTIONAR S.A.S. · CUIT 30-71728930-4</div>
+            <div>© 2026 GESTIONAR S.A.S.</div>
             <div>HECHO EN BUENOS AIRES</div>
           </div>
         </div>
