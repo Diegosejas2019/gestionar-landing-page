@@ -42,6 +42,39 @@ const unitNames = (row: any) => {
 const unitLabel = (row: any) => unitNames(row).join(', ') || '-';
 const dateLabel = (value: unknown) => value ? new Date(String(value)).toLocaleDateString('es-AR') : '-';
 const formObject = (event: FormEvent<HTMLFormElement>) => Object.fromEntries(new FormData(event.currentTarget).entries());
+const CATEGORY_LABELS: Record<string, string> = {
+  general: 'General',
+  mantenimiento: 'Mantenimiento',
+  corte_servicio: 'Corte de servicio',
+  expensas: 'Expensas',
+  asamblea: 'Asamblea',
+  mora: 'Mora',
+  seguridad: 'Seguridad',
+  emergencia: 'Emergencia',
+  otro: 'Otro'
+};
+const PRIORITY_LABELS: Record<string, string> = { low: 'Baja', normal: 'Normal', high: 'Alta', urgent: 'Urgente' };
+const STATUS_LABELS: Record<string, string> = { draft: 'Borrador', scheduled: 'Programado', sent: 'Enviado', cancelled: 'Cancelado' };
+const normalizeNotice = (n: any) => {
+  const priority = n?.priority || (n?.tag === 'urgent' ? 'urgent' : n?.tag === 'warning' ? 'high' : 'normal');
+  return {
+    ...n,
+    subject: n?.subject || n?.title || '',
+    category: n?.category || 'general',
+    priority,
+    status: n?.status || 'sent',
+    channels: { app: true, email: false, push: false, whatsapp: false, ...(n?.channels || {}) },
+    targetType: n?.targetType || 'all',
+    targetFilters: n?.targetFilters || {}
+  };
+};
+const toLocalInput = (value?: string) => {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
 
 const VALID_TABS: TabKey[] = ['inicio', 'finanzas', 'empleados', 'sueldos', 'propietarios', 'comunicados', 'reclamos', 'votaciones', 'reservas', 'visitas', 'proveedores', 'documentos', 'config'];
 const getInitialTab = (): TabKey => {
@@ -314,11 +347,11 @@ const Field = memo(function Field(props: { label: string; name: string; type?: s
   );
 });
 
-const SelectField = memo(function SelectField(props: { label: string; name: string; defaultValue?: unknown; children: ReactNode }) {
+const SelectField = memo(function SelectField(props: { label: string; name: string; defaultValue?: unknown; children: ReactNode; onChange?: (event: any) => void }) {
   return (
     <label className="admin-field">
       <span>{props.label}</span>
-      <select name={props.name} defaultValue={String(props.defaultValue ?? '')}>{props.children}</select>
+      <select name={props.name} defaultValue={String(props.defaultValue ?? '')} onChange={props.onChange}>{props.children}</select>
     </label>
   );
 });
@@ -545,6 +578,13 @@ export function AdminPreviewPage() {
   const [showUnitModal, setShowUnitModal] = useState(false);
   const [showNoticeModal, setShowNoticeModal] = useState(false);
   const [noticeFiles, setNoticeFiles] = useState<File[]>([]);
+  const [noticeTemplates, setNoticeTemplates] = useState<any[]>([]);
+  const [editingNotice, setEditingNotice] = useState<any>(null);
+  const [noticeTargetType, setNoticeTargetType] = useState('all');
+  const [noticeStats, setNoticeStats] = useState<Record<string, any>>({});
+  const [noticeFilters, setNoticeFilters] = useState({ status: 'all', category: 'all', priority: 'all', search: '' });
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<any>(null);
   const [showVoteModal, setShowVoteModal] = useState(false);
   const [voteOptions, setVoteOptions] = useState(['', '']);
   const [showEmployeeModal, setShowEmployeeModal] = useState(false);
@@ -657,6 +697,22 @@ export function AdminPreviewPage() {
     () => availableOwnerUnits.filter((unit: any) => ownerSelectedUnitIds.has(idOf(unit))),
     [availableOwnerUnits, ownerSelectedUnitIds]
   );
+  const normalizedNotices = useMemo(() => (notices || []).map(normalizeNotice), [notices]);
+  const filteredNotices = useMemo(() => {
+    const query = noticeFilters.search.trim().toLowerCase();
+    return normalizedNotices.filter((item: any) => {
+      if (noticeFilters.status !== 'all' && item.status !== noticeFilters.status) return false;
+      if (noticeFilters.category !== 'all' && item.category !== noticeFilters.category) return false;
+      if (noticeFilters.priority !== 'all' && item.priority !== noticeFilters.priority) return false;
+      if (query && !`${item.title} ${item.subject} ${item.body}`.toLowerCase().includes(query)) return false;
+      return true;
+    });
+  }, [normalizedNotices, noticeFilters]);
+  const noticeCounts = useMemo(() => normalizedNotices.reduce((acc: Record<string, number>, item: any) => {
+    acc[item.status] = (acc[item.status] || 0) + 1;
+    if (item.priority === 'urgent') acc.urgent = (acc.urgent || 0) + 1;
+    return acc;
+  }, { sent: 0, scheduled: 0, draft: 0, urgent: 0 }), [normalizedNotices]);
 
   const toggleOwnerUnit = useCallback((unitId: string) => {
     setOwnerSelectedUnitIds((current) => {
@@ -714,16 +770,18 @@ export function AdminPreviewPage() {
     next.report = report?.data || {};
 
     if (target === 'propietarios' || target === 'comunicados' || target === 'reclamos' || target === 'inicio') {
-      const [owners, units, allClaims, allNotices] = await Promise.all([
+      const [owners, units, allClaims, allNotices, templates] = await Promise.all([
         can('owners.read') ? adminApi.owners.list({ limit: 50 }) : Promise.resolve(null),
         can('units.read') ? adminApi.units.list({ limit: 200 }) : Promise.resolve(null),
         can('claims.read') && isEnabled('claims') ? adminApi.claims.list({ limit: 50 }) : Promise.resolve(null),
-        can('notices.read') && isEnabled('notices') ? adminApi.notices.list({ limit: 50 }) : Promise.resolve(null)
+        can('notices.read') && isEnabled('notices') ? adminApi.notices.list({ limit: 200 }) : Promise.resolve(null),
+        can('notices.read') && isEnabled('notices') ? adminApi.noticeTemplates.list() : Promise.resolve(null)
       ]);
       next.owners = pick(owners, 'owners', []);
       next.units = pick(units, 'units', []);
       next.claims = isEnabled('claims') ? pick(allClaims, 'claims', next.claims) : [];
       next.notices = isEnabled('notices') ? pick(allNotices, 'notices', next.notices) : [];
+      if (target === 'comunicados') setNoticeTemplates(pick(templates, 'templates', []));
     }
 
     if (target === 'finanzas') {
@@ -1023,31 +1081,121 @@ export function AdminPreviewPage() {
     } catch { /* silent */ }
   }
 
+  function openNoticeComposer(item?: any) {
+    const normalized = item ? normalizeNotice(item) : null;
+    setEditingNotice(normalized);
+    setNoticeTargetType(normalized?.targetType || 'all');
+    setNoticeFiles([]);
+    setShowNoticeModal(true);
+  }
+
+  function selectedFormValues(form: HTMLFormElement, name: string) {
+    return Array.from(form.querySelectorAll<HTMLSelectElement | HTMLInputElement>(`[name="${name}"] option:checked, input[name="${name}"]:checked`))
+      .map((el: any) => el.value)
+      .filter(Boolean);
+  }
+
+  function buildNoticePayload(form: HTMLFormElement, action: 'draft' | 'schedule' | 'send') {
+    const data = formObject({ currentTarget: form } as FormEvent<HTMLFormElement>);
+    const scheduledAt = String(data.scheduledAt || '');
+    if (action === 'schedule' && !scheduledAt) throw new Error('Elegí una fecha futura para programar.');
+    if (scheduledAt && new Date(scheduledAt) <= new Date()) throw new Error('La fecha de programación debe ser futura.');
+    const targetType = String(data.targetType || 'all');
+    const targetFilters = {
+      unitIds: targetType === 'specific_units' ? selectedFormValues(form, 'unitIds') : [],
+      userIds: targetType === 'specific_users' ? selectedFormValues(form, 'userIds') : [],
+      onlyWithDebt: targetType === 'debtors',
+      includeInactive: false
+    };
+    if (targetType === 'specific_units' && targetFilters.unitIds.length === 0) throw new Error('Seleccioná al menos una unidad.');
+    if (targetType === 'specific_users' && targetFilters.userIds.length === 0) throw new Error('Seleccioná al menos un propietario.');
+    if (targetType === 'all' && action === 'send' && !window.confirm('Vas a enviar este comunicado a todos los propietarios.')) return null;
+    return {
+      title: String(data.title || '').trim(),
+      subject: String(data.subject || data.title || '').trim(),
+      body: String(data.body || '').trim(),
+      category: String(data.category || 'general'),
+      priority: String(data.priority || 'normal'),
+      targetType,
+      targetFilters,
+      channels: {
+        app: true,
+        email: data.email === 'on',
+        push: data.push === 'on',
+        whatsapp: data.whatsapp === 'on'
+      },
+      scheduledAt: scheduledAt || undefined,
+      status: action === 'draft' ? 'draft' : action === 'schedule' ? 'scheduled' : 'sent',
+      action
+    };
+  }
+
   function submitNotice(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
-    const data = formObject(event);
-    const sendPush = (form.querySelector('#n-push') as HTMLInputElement)?.checked ?? true;
-    const sendEmail = (form.querySelector('#n-email') as HTMLInputElement)?.checked ?? true;
-    run('notice', async () => {
+    const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+    const action = (submitter?.value || 'send') as 'draft' | 'schedule' | 'send';
+    let data: any;
+    try {
+      data = buildNoticePayload(form, action);
+      if (!data) return;
+    } catch (error) {
+      setNotice({ type: 'error', text: error instanceof Error ? error.message : 'Revisá los datos del comunicado.' });
+      return;
+    }
+    const editingId = editingNotice ? idOf(editingNotice) : '';
+    run(editingId || 'notice', async () => {
       let payload: Record<string, unknown> | FormData;
       if (noticeFiles.length > 0) {
         const fd = new FormData();
-        fd.append('title', String(data.title));
-        fd.append('body', String(data.body));
-        fd.append('tag', String(data.tag));
-        fd.append('sendPush', String(sendPush));
-        fd.append('sendEmail', String(sendEmail));
+        Object.entries(data).forEach(([key, value]) => {
+          if (value !== undefined) fd.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
+        });
         noticeFiles.forEach(f => fd.append('attachments', f));
         payload = fd;
       } else {
-        payload = { ...data, sendPush, sendEmail };
+        payload = data;
       }
-      await adminApi.notices.create(payload);
+      if (editingId) await adminApi.notices.update(editingId, payload);
+      else await adminApi.notices.create(payload);
       setNoticeFiles([]);
       form.reset();
       setShowNoticeModal(false);
-    }, 'Comunicado publicado.');
+      setEditingNotice(null);
+    }, action === 'draft' ? 'Borrador guardado.' : action === 'schedule' ? 'Comunicado programado.' : 'Comunicado enviado.');
+  }
+
+  function submitTemplate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = formObject(event);
+    run(editingTemplate ? idOf(editingTemplate) : 'notice-template', async () => {
+      if (editingTemplate) await adminApi.noticeTemplates.update(idOf(editingTemplate), data);
+      else await adminApi.noticeTemplates.create(data);
+      setShowTemplateModal(false);
+      setEditingTemplate(null);
+    }, 'Plantilla guardada.');
+  }
+
+  function applyTemplateToForm(templateId: string) {
+    const template = noticeTemplates.find(t => idOf(t) === templateId);
+    if (!template) return;
+    const form = document.getElementById('notice-form') as HTMLFormElement | null;
+    if (!form) return;
+    (form.elements.namedItem('title') as HTMLInputElement).value = template.title || '';
+    (form.elements.namedItem('subject') as HTMLInputElement).value = template.subject || template.title || '';
+    (form.elements.namedItem('body') as HTMLTextAreaElement).value = template.body || '';
+    (form.elements.namedItem('category') as HTMLSelectElement).value = template.category || 'general';
+  }
+
+  async function showNoticeStats(item: any) {
+    const id = idOf(item);
+    setNoticeStats((current) => ({ ...current, [id]: { loading: true } }));
+    try {
+      const res = await adminApi.notices.stats(id);
+      setNoticeStats((current) => ({ ...current, [id]: res.data?.stats || {} }));
+    } catch {
+      setNoticeStats((current) => ({ ...current, [id]: { error: true } }));
+    }
   }
 
   function submitExpense(event: FormEvent<HTMLFormElement>) {
@@ -2236,30 +2384,57 @@ export function AdminPreviewPage() {
               <div>
                 <div className="admin-page-kicker"><span className="dot" />Comunidad</div>
                 <h1 className="admin-page-title">Comunicados</h1>
-                <div className="admin-page-sub">{notices?.length || 0} comunicados · {config?.consortiumName || 'Tu organización'}</div>
+                <div className="admin-page-sub">{normalizedNotices.length} comunicados · {noticeTemplates.length} plantillas · {config?.consortiumName || 'Tu organización'}</div>
               </div>
               <div className="admin-page-actions">
                 <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
-                <button className="btn btn-primary" onClick={() => setShowNoticeModal(true)}><Megaphone size={14} />Nuevo comunicado</button>
+                <button className="btn btn-ghost" onClick={() => { setEditingTemplate(null); setShowTemplateModal(true); }}><FileText size={14} />Plantilla</button>
+                <button className="btn btn-primary" onClick={() => openNoticeComposer()}><Megaphone size={14} />Nuevo comunicado</button>
               </div>
             </div>
             {moduleEnabled('notices') ? (
               <div className="com-layout">
                 <div className="com-main" style={{ gridColumn: '1 / -1' }}>
+                  <div className="metric-grid" style={{ marginBottom: 14 }}>
+                    <Metric label="Enviados" value={noticeCounts.sent || 0} icon={Megaphone} />
+                    <Metric label="Programados" value={noticeCounts.scheduled || 0} icon={CalendarDays} />
+                    <Metric label="Borradores" value={noticeCounts.draft || 0} icon={FileText} />
+                    <Metric label="Urgentes" value={noticeCounts.urgent || 0} icon={AlertTriangle} />
+                  </div>
+                  <div className="admin-card" style={{ marginBottom: 14 }}>
+                    <div className="admin-form" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+                      <label className="admin-field"><span>Estado</span><select value={noticeFilters.status} onChange={(e) => setNoticeFilters(f => ({ ...f, status: e.target.value }))}>
+                        <option value="all">Todos</option>
+                        {Object.entries(STATUS_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+                      </select></label>
+                      <label className="admin-field"><span>Categoría</span><select value={noticeFilters.category} onChange={(e) => setNoticeFilters(f => ({ ...f, category: e.target.value }))}>
+                        <option value="all">Todas</option>
+                        {Object.entries(CATEGORY_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+                      </select></label>
+                      <label className="admin-field"><span>Prioridad</span><select value={noticeFilters.priority} onChange={(e) => setNoticeFilters(f => ({ ...f, priority: e.target.value }))}>
+                        <option value="all">Todas</option>
+                        {Object.entries(PRIORITY_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+                      </select></label>
+                      <label className="admin-field"><span>Buscar</span><input value={noticeFilters.search} onChange={(e) => setNoticeFilters(f => ({ ...f, search: e.target.value }))} placeholder="Título, asunto o texto" /></label>
+                    </div>
+                  </div>
                   {loading ? (
                     <Empty text="Cargando comunicados…" />
-                  ) : !notices?.length ? (
+                  ) : !filteredNotices.length ? (
                     <Empty text="No hay comunicados publicados." />
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      {notices.map((n: any) => (
+                      {filteredNotices.map((n: any) => (
                         <div key={idOf(n)} className="notice-card">
                           <div className="notice-card-head">
-                            <Status value={n.tag === 'urgent' ? 'rejected' : n.tag === 'warning' ? 'pending' : 'approved'} />
-                            <span className="notice-card-tag">{n.tag === 'urgent' ? 'Urgente' : n.tag === 'warning' ? 'Advertencia' : 'Info'}</span>
-                            <span className="notice-card-date">{dateLabel(n.createdAt)}</span>
+                            <Status value={n.status === 'sent' ? 'approved' : n.status === 'scheduled' ? 'pending' : n.status === 'cancelled' ? 'rejected' : 'neutral'} />
+                            <span className="notice-card-tag">{STATUS_LABELS[n.status] || n.status}</span>
+                            <span className="notice-card-tag">{CATEGORY_LABELS[n.category] || n.category}</span>
+                            <span className="notice-card-tag">{PRIORITY_LABELS[n.priority] || n.priority}</span>
+                            <span className="notice-card-date">{dateLabel(n.sentAt || n.scheduledAt || n.createdAt)}</span>
                           </div>
                           <h3 className="notice-card-title">{n.title}</h3>
+                          <div className="notice-card-date">{n.subject}</div>
                           {n.body && <p className="notice-card-body">{n.body}</p>}
                           {n.attachments?.length > 0 && (
                             <div className="notice-card-attachments">
@@ -2272,7 +2447,21 @@ export function AdminPreviewPage() {
                               ))}
                             </div>
                           )}
+                          <div className="notice-card-date">
+                            Destinatarios: {n.targetType === 'debtors' ? 'Morosos' : n.targetType === 'specific_units' ? 'Unidades específicas' : n.targetType === 'specific_users' ? 'Propietarios específicos' : 'Todos'} ·
+                            Canales: App{n.channels?.email ? ' · Email' : ''}{n.channels?.push ? ' · Push' : ''}{n.channels?.whatsapp ? ' · WhatsApp futuro' : ''}
+                          </div>
+                          {noticeStats[idOf(n)] && (
+                            <div className="notice-card-date">
+                              {noticeStats[idOf(n)].loading ? 'Cargando métricas…' : noticeStats[idOf(n)].error ? 'No se pudieron cargar métricas.' : `Lectura: ${noticeStats[idOf(n)].readCount || 0}/${noticeStats[idOf(n)].totalRecipients || 0} (${noticeStats[idOf(n)].readPercentage || 0}%)`}
+                            </div>
+                          )}
                           <div className="notice-card-foot">
+                            <button className="btn btn-ghost btn-sm" onClick={() => showNoticeStats(n)}>Métricas</button>
+                            {['draft', 'scheduled'].includes(n.status) && <button className="btn btn-ghost btn-sm" onClick={() => openNoticeComposer(n)}>Editar</button>}
+                            <button className="btn btn-ghost btn-sm" onClick={() => openNoticeComposer({ ...n, _id: undefined, id: undefined, title: `${n.title} (copia)`, status: 'draft', scheduledAt: '' })}>Duplicar</button>
+                            {n.status !== 'sent' && n.status !== 'cancelled' && <button className="btn btn-primary btn-sm" onClick={() => run(idOf(n), () => adminApi.notices.sendNow(idOf(n)), 'Comunicado enviado.')}>Enviar ahora</button>}
+                            {n.status === 'scheduled' && <button className="btn btn-ghost btn-sm" onClick={() => run(idOf(n), () => adminApi.notices.cancel(idOf(n)), 'Comunicado cancelado.')}>Cancelar</button>}
                             <button className="btn btn-ghost btn-sm" onClick={() => run(idOf(n), () => adminApi.notices.delete(idOf(n)), 'Comunicado eliminado.')}>Eliminar</button>
                           </div>
                         </div>
@@ -2285,19 +2474,42 @@ export function AdminPreviewPage() {
 
             {showNoticeModal && (
               <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) { setShowNoticeModal(false); setNoticeFiles([]); } }}>
-                <div className="form-modal form-modal--wide">
-                  <div className="form-modal-head">
-                    <div className="form-modal-title"><Megaphone size={16} />Nuevo comunicado</div>
-                    <button className="icon-btn" onClick={() => { setShowNoticeModal(false); setNoticeFiles([]); }}><X size={16} /></button>
+                  <div className="form-modal form-modal--wide">
+                    <div className="form-modal-head">
+                    <div className="form-modal-title"><Megaphone size={16} />{idOf(editingNotice) ? 'Editar comunicado' : 'Nuevo comunicado'}</div>
+                    <button className="icon-btn" onClick={() => { setShowNoticeModal(false); setNoticeFiles([]); setEditingNotice(null); }}><X size={16} /></button>
                   </div>
-                  <form className="admin-form" onSubmit={submitNotice}>
-                    <Field label="Título" name="title" required placeholder="Título del comunicado" />
-                    <SelectField label="Tipo" name="tag" defaultValue="info">
-                      <option value="info">📢 Informativo</option>
-                      <option value="warning">⚠️ Advertencia</option>
-                      <option value="urgent">🔴 Urgente</option>
+                  <form className="admin-form" id="notice-form" onSubmit={submitNotice}>
+                    {noticeTemplates.length > 0 && <label className="admin-field full"><span>Plantilla</span><select defaultValue="" onChange={(e) => applyTemplateToForm(e.target.value)}>
+                      <option value="">Sin plantilla</option>
+                      {noticeTemplates.map((tpl: any) => <option key={idOf(tpl)} value={idOf(tpl)}>{tpl.title}</option>)}
+                    </select></label>}
+                    <Field label="Título" name="title" required placeholder="Título del comunicado" defaultValue={editingNotice?.title || ''} />
+                    <Field label="Asunto" name="subject" required placeholder="Asunto visible para canales" defaultValue={editingNotice?.subject || editingNotice?.title || ''} />
+                    <SelectField label="Categoría" name="category" defaultValue={editingNotice?.category || 'general'}>
+                      {Object.entries(CATEGORY_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
                     </SelectField>
-                    <label className="admin-field full"><span>Mensaje</span><textarea name="body" rows={5} required placeholder="Escribí el contenido del comunicado…" maxLength={2000} /></label>
+                    <SelectField label="Prioridad" name="priority" defaultValue={editingNotice?.priority || 'normal'}>
+                      {Object.entries(PRIORITY_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+                    </SelectField>
+                    <label className="admin-field full"><span>Mensaje</span><textarea name="body" rows={5} required placeholder="Escribí el contenido del comunicado…" maxLength={5000} defaultValue={editingNotice?.body || ''} /></label>
+                    <SelectField label="Destinatarios" name="targetType" defaultValue={editingNotice?.targetType || 'all'} onChange={(e: any) => setNoticeTargetType(e.target.value)}>
+                      <option value="all">Todos los propietarios</option>
+                      <option value="debtors">Morosos</option>
+                      <option value="specific_units">Unidades específicas</option>
+                      <option value="specific_users">Propietarios específicos</option>
+                    </SelectField>
+                    <label className="admin-field"><span>Programar</span><input type="datetime-local" name="scheduledAt" defaultValue={toLocalInput(editingNotice?.scheduledAt)} /></label>
+                    {noticeTargetType === 'specific_units' && (
+                      <label className="admin-field full"><span>Unidades</span><select name="unitIds" multiple size={5} defaultValue={(editingNotice?.targetFilters?.unitIds || []).map(String)}>
+                        {(units || []).map((unit: any) => <option key={idOf(unit)} value={idOf(unit)}>{unit.name}{unit.owner?.name ? ` · ${unit.owner.name}` : ''}</option>)}
+                      </select></label>
+                    )}
+                    {noticeTargetType === 'specific_users' && (
+                      <label className="admin-field full"><span>Propietarios</span><select name="userIds" multiple size={5} defaultValue={(editingNotice?.targetFilters?.userIds || []).map(String)}>
+                        {(owners || []).map((owner: any) => <option key={idOf(owner)} value={idOf(owner)}>{owner.name} · {owner.email}</option>)}
+                      </select></label>
+                    )}
                     <div className="admin-field full">
                       <span>Adjuntos <small style={{ color: 'var(--muted)', fontWeight: 400 }}>(opcional · máx. 3 archivos · 10 MB c/u)</small></span>
                       <input type="file" id="n-files-input" accept="image/*,.pdf" multiple style={{ display: 'none' }}
@@ -2332,30 +2544,63 @@ export function AdminPreviewPage() {
                       )}
                     </div>
                     <div className="admin-field full">
-                      <span>Enviar a propietarios</span>
+                      <span>Canales</span>
                       <div className="notice-checks-row">
                         <label className="notice-check-pill">
-                          <input type="checkbox" id="n-push" defaultChecked />
-                          <Bell size={13} />
-                          <span>Notificación push</span>
+                          <input type="checkbox" checked readOnly />
+                          <Megaphone size={13} />
+                          <span>App</span>
                         </label>
                         <label className="notice-check-pill">
-                          <input type="checkbox" id="n-email" defaultChecked />
+                          <input type="checkbox" name="email" defaultChecked={!!editingNotice?.channels?.email} />
                           <Mail size={13} />
-                          <span>Correo electrónico</span>
+                          <span>Email opcional</span>
                         </label>
                         <label className="notice-check-pill">
-                          <input type="checkbox" id="n-whatsapp" />
-                          <span>💬</span>
-                          <span>WhatsApp <small style={{ color: 'var(--muted)', fontSize: 10 }}>(manual)</small></span>
+                          <input type="checkbox" name="push" defaultChecked={!!editingNotice?.channels?.push} />
+                          <Bell size={13} />
+                          <span>Push opcional</span>
+                        </label>
+                        <label className="notice-check-pill">
+                          <input type="checkbox" name="whatsapp" defaultChecked={!!editingNotice?.channels?.whatsapp} />
+                          <MessageSquare size={13} />
+                          <span>WhatsApp <small style={{ color: 'var(--muted)', fontSize: 10 }}>(futuro)</small></span>
                         </label>
                       </div>
                     </div>
                     <div className="form-modal-foot">
-                      <button type="button" className="btn btn-ghost" onClick={() => { setShowNoticeModal(false); setNoticeFiles([]); }}>Cancelar</button>
-                      <button className="btn btn-primary" disabled={busy === 'notice'}><Megaphone size={14} />Publicar comunicado</button>
+                      <button type="button" className="btn btn-ghost" onClick={() => { setShowNoticeModal(false); setNoticeFiles([]); setEditingNotice(null); }}>Cancelar</button>
+                      <button className="btn btn-ghost" name="action" value="draft" disabled={busy === 'notice'}><FileText size={14} />Guardar borrador</button>
+                      <button className="btn btn-ghost" name="action" value="schedule" disabled={busy === 'notice'}><CalendarDays size={14} />Programar</button>
+                      <button className="btn btn-primary" name="action" value="send" disabled={busy === 'notice'}><Megaphone size={14} />Enviar ahora</button>
                     </div>
                   </form>
+                </div>
+              </div>
+            )}
+            {showTemplateModal && (
+              <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) { setShowTemplateModal(false); setEditingTemplate(null); } }}>
+                <div className="form-modal form-modal--wide">
+                  <div className="form-modal-head">
+                    <div className="form-modal-title"><FileText size={16} />{editingTemplate ? 'Editar plantilla' : 'Nueva plantilla'}</div>
+                    <button className="icon-btn" onClick={() => { setShowTemplateModal(false); setEditingTemplate(null); }}><X size={16} /></button>
+                  </div>
+                  <form className="admin-form" onSubmit={submitTemplate}>
+                    <Field label="Título" name="title" required defaultValue={editingTemplate?.title || ''} />
+                    <Field label="Asunto" name="subject" required defaultValue={editingTemplate?.subject || ''} />
+                    <SelectField label="Categoría" name="category" defaultValue={editingTemplate?.category || 'general'}>
+                      {Object.entries(CATEGORY_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+                    </SelectField>
+                    <label className="admin-field full"><span>Mensaje</span><textarea name="body" rows={5} required defaultValue={editingTemplate?.body || ''} /></label>
+                    <div className="form-modal-foot">
+                      <button type="button" className="btn btn-ghost" onClick={() => { setShowTemplateModal(false); setEditingTemplate(null); }}>Cancelar</button>
+                      {editingTemplate && <button type="button" className="btn btn-ghost" onClick={() => run(idOf(editingTemplate), () => adminApi.noticeTemplates.delete(idOf(editingTemplate)), 'Plantilla eliminada.').then(() => { setShowTemplateModal(false); setEditingTemplate(null); })}>Eliminar</button>}
+                      <button className="btn btn-primary" disabled={busy === 'notice-template'}>Guardar plantilla</button>
+                    </div>
+                  </form>
+                  {!editingTemplate && noticeTemplates.length > 0 && <div className="notice-card-attachments" style={{ marginTop: 12 }}>
+                    {noticeTemplates.map((tpl: any) => <button key={idOf(tpl)} className="notice-attach-chip" type="button" onClick={() => setEditingTemplate(tpl)}>{tpl.title}</button>)}
+                  </div>}
                 </div>
               </div>
             )}

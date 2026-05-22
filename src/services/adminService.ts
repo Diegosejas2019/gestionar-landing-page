@@ -81,9 +81,23 @@ export const adminApi = {
       () => apiClient<any>(`/notices${qs(params)}`, { auth: true })
     ),
     create: (data: Payload) => { cacheDelete('notices:list'); return apiClient<any>('/notices', { method: 'POST', auth: true, body: body(data) }); },
-    update: (id: string, data: Payload) => apiClient<any>(`/notices/${id}`, { method: 'PATCH', auth: true, body: body(data) }),
+    update: (id: string, data: Payload) => { cacheDelete('notices:list'); return apiClient<any>(`/notices/${id}`, { method: 'PATCH', auth: true, body: body(data) }); },
     delete: (id: string) => { cacheDelete('notices:list'); return apiClient<any>(`/notices/${id}`, { method: 'DELETE', auth: true }); },
+    sendNow: (id: string) => { cacheDelete('notices:list'); return apiClient<any>(`/notices/${id}/send-now`, { method: 'POST', auth: true }); },
+    cancel: (id: string) => { cacheDelete('notices:list'); return apiClient<any>(`/notices/${id}/cancel`, { method: 'POST', auth: true }); },
+    processScheduled: () => { cacheDelete('notices:list'); return apiClient<any>('/notices/process-scheduled', { method: 'POST', auth: true }); },
+    stats: (id: string) => apiClient<any>(`/notices/${id}/stats`, { auth: true }),
     attachment: (id: string, index: number) => apiBlob(`/notices/${id}/attachment/${index}`, { auth: true })
+  },
+
+  noticeTemplates: {
+    list: (params?: Params) => cachedApiCall(
+      cacheKey('notice-templates:list', params),
+      () => apiClient<any>(`/notice-templates${qs(params)}`, { auth: true })
+    ),
+    create: (data: Payload) => { cacheDeletePrefix('notice-templates:list'); return apiClient<any>('/notice-templates', { method: 'POST', auth: true, body: body(data) }); },
+    update: (id: string, data: Payload) => { cacheDeletePrefix('notice-templates:list'); return apiClient<any>(`/notice-templates/${id}`, { method: 'PATCH', auth: true, body: body(data) }); },
+    delete: (id: string) => { cacheDeletePrefix('notice-templates:list'); return apiClient<any>(`/notice-templates/${id}`, { method: 'DELETE', auth: true }); }
   },
 
   claims: {
