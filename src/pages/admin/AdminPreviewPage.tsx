@@ -9,7 +9,7 @@ import { isSuperAdminRole } from '../../services/authService';
 import { useAdminStore } from '../../stores/adminStore';
 import { Table } from '../../components/Table';
 
-type TabKey = 'inicio' | 'finanzas' | 'empleados' | 'sueldos' | 'propietarios' | 'comunicados' | 'reclamos' | 'votaciones' | 'reservas' | 'visitas' | 'proveedores' | 'documentos' | 'config';
+type TabKey = 'inicio' | 'finanzas' | 'morosidad' | 'empleados' | 'sueldos' | 'propietarios' | 'comunicados' | 'reclamos' | 'votaciones' | 'reservas' | 'visitas' | 'proveedores' | 'documentos' | 'config';
 type Notice = { type: 'ok' | 'error'; text: string } | null;
 type FeatureKey = 'visits' | 'reservations' | 'votes' | 'claims' | 'notices' | 'expenses' | 'providers';
 type AdminRoleKey = 'owner_admin' | 'read_only' | 'billing_manager' | 'communications_manager' | 'security_guard';
@@ -76,7 +76,7 @@ const toLocalInput = (value?: string) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
-const VALID_TABS: TabKey[] = ['inicio', 'finanzas', 'empleados', 'sueldos', 'propietarios', 'comunicados', 'reclamos', 'votaciones', 'reservas', 'visitas', 'proveedores', 'documentos', 'config'];
+const VALID_TABS: TabKey[] = ['inicio', 'finanzas', 'morosidad', 'empleados', 'sueldos', 'propietarios', 'comunicados', 'reclamos', 'votaciones', 'reservas', 'visitas', 'proveedores', 'documentos', 'config'];
 const getInitialTab = (): TabKey => {
   const hash = window.location.hash.replace('#', '');
   return VALID_TABS.includes(hash as TabKey) ? (hash as TabKey) : 'inicio';
@@ -89,6 +89,7 @@ function navigateToTab(key: TabKey) {
 const nav = [
   { key: 'inicio', label: 'Inicio', icon: Home },
   { key: 'finanzas', label: 'Finanzas', icon: CreditCard },
+  { key: 'morosidad', label: 'Morosidad', icon: AlertTriangle },
   { key: 'empleados', label: 'Empleados', icon: UserRoundCog },
   { key: 'sueldos', label: 'Sueldos', icon: WalletCards },
   { key: 'propietarios', label: 'Comunidad', icon: Users },
@@ -126,6 +127,7 @@ const permissionDisplay: Record<string, { module: string; label: string }> = {
   'payments.register': { module: 'Pagos', label: 'Registrar pagos' },
   'payments.approve': { module: 'Pagos', label: 'Aprobar pagos' },
   'payments.cancel': { module: 'Pagos', label: 'Anular pagos' },
+  'payments.remind': { module: 'Pagos', label: 'Enviar recordatorios' },
   'debt.read': { module: 'Deudas', label: 'Ver' },
   'debt.create': { module: 'Deudas', label: 'Crear saldo/ajuste' },
   'debt.cancel': { module: 'Deudas', label: 'Anular saldo/ajuste' },
@@ -199,6 +201,7 @@ function permissionGroups(permissions: string[]) {
 const tabPermissions: Record<TabKey, string> = {
   inicio: 'dashboard.read',
   finanzas: 'payments.read',
+  morosidad: 'debt.read',
   empleados: 'employees.read',
   sueldos: 'salaries.read',
   propietarios: 'owners.read',
@@ -338,11 +341,11 @@ const PaymentChannel = memo(function PaymentChannel({ payment }: { payment: any 
   );
 });
 
-const Field = memo(function Field(props: { label: string; name: string; type?: string; placeholder?: string; defaultValue?: unknown; required?: boolean }) {
+const Field = memo(function Field(props: { label: string; name?: string; type?: string; placeholder?: string; defaultValue?: unknown; value?: unknown; required?: boolean; onChange?: (event: any) => void }) {
   return (
     <label className="admin-field">
       <span>{props.label}</span>
-      <input name={props.name} type={props.type || 'text'} placeholder={props.placeholder} defaultValue={String(props.defaultValue ?? '')} required={props.required} />
+      <input name={props.name} type={props.type || 'text'} placeholder={props.placeholder} defaultValue={props.value === undefined ? String(props.defaultValue ?? '') : undefined} value={props.value === undefined ? undefined : String(props.value ?? '')} required={props.required} onChange={props.onChange} />
     </label>
   );
 });
@@ -472,6 +475,7 @@ function orgIdFromSession(me: any, config: any) {
 const tabCrumbs: Record<string, string[]> = {
   inicio: ['Inicio'],
   finanzas: ['Finanzas', 'Cobranza'],
+  morosidad: ['Finanzas', 'Morosidad'],
   personal: ['Administración', 'Personal'],
   propietarios: ['Comunidad', 'Propietarios'],
   comunicados: ['Comunidad', 'Comunicados'],
@@ -583,6 +587,15 @@ export function AdminPreviewPage() {
   const [noticeTargetType, setNoticeTargetType] = useState('all');
   const [noticeStats, setNoticeStats] = useState<Record<string, any>>({});
   const [noticeFilters, setNoticeFilters] = useState({ status: 'all', category: 'all', priority: 'all', search: '' });
+  const [delinquencySummary, setDelinquencySummary] = useState<any>({});
+  const [delinquencyAging, setDelinquencyAging] = useState<any[]>([]);
+  const [delinquencyOwners, setDelinquencyOwners] = useState<any[]>([]);
+  const [delinquencyPagination, setDelinquencyPagination] = useState<any>({ total: 0, page: 1, pages: 1, limit: 10 });
+  const [delinquencyFilters, setDelinquencyFilters] = useState({ search: '', period: '', status: 'all', sort: 'debt_desc', minDebt: '', minDaysOverdue: '', pendingReview: false, criticalOnly: false, page: 1, limit: 10 });
+  const [delinquencyDetail, setDelinquencyDetail] = useState<any>(null);
+  const [debtReminder, setDebtReminder] = useState<any>(null);
+  const [debtReminderMessage, setDebtReminderMessage] = useState('');
+  const [debtReminderChannel, setDebtReminderChannel] = useState('app');
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<any>(null);
   const [showVoteModal, setShowVoteModal] = useState(false);
@@ -714,6 +727,11 @@ export function AdminPreviewPage() {
     return acc;
   }, { sent: 0, scheduled: 0, draft: 0, urgent: 0 }), [normalizedNotices]);
 
+  const delinquencyParams = useCallback((overrides: Record<string, unknown> = {}) => {
+    const merged = { ...delinquencyFilters, ...overrides };
+    return Object.fromEntries(Object.entries(merged).filter(([, value]) => value !== '' && value !== false && value !== 'all' && value !== null && value !== undefined));
+  }, [delinquencyFilters]);
+
   const toggleOwnerUnit = useCallback((unitId: string) => {
     setOwnerSelectedUnitIds((current) => {
       const next = new Set(current);
@@ -800,6 +818,19 @@ export function AdminPreviewPage() {
       next.yearPayments = pick(allYearPayments, 'payments', []).filter((p: any) =>
         p.month ? p.month.startsWith(yearStr) : (p.createdAt || '').startsWith(yearStr)
       );
+    }
+
+    if (target === 'morosidad') {
+      const params = delinquencyParams();
+      const [summary, aging, owners] = await Promise.all([
+        can('debt.read') ? adminApi.delinquency.summary(params) : Promise.resolve(null),
+        can('debt.read') ? adminApi.delinquency.aging(params) : Promise.resolve(null),
+        can('debt.read') ? adminApi.delinquency.owners(params) : Promise.resolve(null),
+      ]);
+      setDelinquencySummary(summary?.data?.summary || {});
+      setDelinquencyAging(aging?.data?.buckets || []);
+      setDelinquencyOwners(pick(owners, 'owners', []));
+      setDelinquencyPagination(owners?.pagination || { total: 0, page: 1, pages: 1, limit: delinquencyFilters.limit });
     }
 
     if (target === 'empleados') {
@@ -942,7 +973,7 @@ export function AdminPreviewPage() {
       return;
     }
     refresh(tab);
-  }, [authChecked, tab, month, year, adminRole, permissions]);
+  }, [authChecked, tab, month, year, adminRole, permissions, delinquencyFilters]);
 
   useEffect(() => {
     if ((tab === 'votaciones' || tab === 'reservas') && !hasOperations) setTab('inicio');
@@ -1013,6 +1044,56 @@ export function AdminPreviewPage() {
       anchor.click();
       URL.revokeObjectURL(url);
     }, 'PDF generado.');
+  }
+
+  async function downloadDelinquencyCsv(ownerId?: string) {
+    await run(ownerId ? `debt-csv-${ownerId}` : 'delinquency-csv', async () => {
+      const blob = ownerId
+        ? await adminApi.delinquency.ownerExport(ownerId)
+        : await adminApi.delinquency.export(delinquencyParams());
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = ownerId ? 'estado_deuda.csv' : 'morosidad.csv';
+      anchor.click();
+      URL.revokeObjectURL(url);
+    }, 'CSV generado.');
+  }
+
+  async function openDelinquencyDetail(ownerId: string) {
+    setBusy(`debt-detail-${ownerId}`);
+    try {
+      const response = await adminApi.delinquency.owner(ownerId);
+      setDelinquencyDetail(response?.data?.detail || null);
+    } catch (error) {
+      setNotice({ type: 'error', text: error instanceof Error ? error.message : 'No se pudo cargar el detalle de deuda.' });
+    } finally {
+      setBusy('');
+    }
+  }
+
+  async function openDebtReminder(owner: any) {
+    const response = await adminApi.delinquency.owner(idOf(owner));
+    const detail = response?.data?.detail;
+    const summary = detail?.summary || owner;
+    const periods = (summary.unpaidPeriods || []).join(', ') || 'saldo pendiente';
+    setDebtReminder(detail);
+    setDebtReminderChannel('app');
+    setDebtReminderMessage(`Hola ${detail?.owner?.name || person(owner)},\nTe informamos que registrás una deuda pendiente de ${money(summary.totalOwed)} correspondiente a ${periods}.\nPodés consultar el detalle y regularizar tu situación desde GestionAr.\n\nMuchas gracias.`);
+  }
+
+  async function sendDebtReminder() {
+    if (!debtReminder?.owner?._id && !debtReminder?.owner?.id) return;
+    if (!debtReminderMessage.trim()) {
+      setNotice({ type: 'error', text: 'El mensaje del recordatorio es obligatorio.' });
+      return;
+    }
+    const ownerId = idOf(debtReminder.owner);
+    await run(`debt-reminder-${ownerId}`, () => adminApi.delinquency.reminder(ownerId, {
+      channel: debtReminderChannel,
+      message: debtReminderMessage
+    }), debtReminderChannel === 'app' ? 'Recordatorio enviado.' : 'Recordatorio registrado.');
+    setDebtReminder(null);
   }
 
   async function checkOwnerEmail(email: string) {
@@ -1558,12 +1639,13 @@ export function AdminPreviewPage() {
 
         <nav>
           <div className="admin-nav-group-label">Workspace</div>
-          {visibleNav.filter(item => ['inicio', 'finanzas'].includes(item.key)).map(item => {
+          {visibleNav.filter(item => ['inicio', 'finanzas', 'morosidad'].includes(item.key)).map(item => {
             const Icon = item.icon;
             return (
               <button key={item.key} className={tab === item.key ? 'active' : ''} onClick={() => navigateToTab(item.key)}>
                 <Icon size={16} /> <span>{item.label}</span>
                 {item.key === 'finanzas' && (dashboard?.pending ?? 0) > 0 && <span className="admin-nav-badge">{dashboard.pending}</span>}
+                {item.key === 'morosidad' && (delinquencySummary?.delinquentOwners ?? 0) > 0 && <span className="admin-nav-badge">{delinquencySummary.delinquentOwners}</span>}
               </button>
             );
           })}
@@ -2178,6 +2260,81 @@ export function AdminPreviewPage() {
                 </div>
               </div>
             )}
+          </>
+        )}
+
+        {tab === 'morosidad' && (
+          <>
+            <div className="admin-page-head">
+              <div>
+                <div className="admin-page-kicker"><span className="dot" />Finanzas</div>
+                <h1 className="admin-page-title">Morosidad</h1>
+                <div className="admin-page-sub">Ranking de deuda exigible, atrasos y recordatorios · {config?.consortiumName || 'Tu organización'}</div>
+              </div>
+              <div className="admin-page-actions">
+                <button className="btn btn-ghost" onClick={() => downloadDelinquencyCsv()}><Download size={14} />CSV</button>
+                <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
+              </div>
+            </div>
+
+            <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
+              <Metric row loading={loading} label="Deuda vencida" value={money(delinquencySummary.totalDebt)} hint="ARS" icon={AlertTriangle} />
+              <Metric row loading={loading} label="Morosos" value={delinquencySummary.delinquentOwners || 0} hint={`${delinquencySummary.delinquencyRate || 0}% de la comunidad`} icon={Users} />
+              <Metric row loading={loading} label="Unidades" value={delinquencySummary.delinquentUnits || 0} hint="Con deuda" icon={Building2} />
+              <Metric row loading={loading} label="Promedio" value={money(delinquencySummary.averageDebt)} hint="Por moroso" icon={TrendingUp} />
+              <Metric row loading={loading} label="Más antigua" value={delinquencySummary.oldestDebtPeriod || '-'} hint="Período" icon={CalendarDays} />
+              <Metric row loading={loading} label="Por aprobar" value={delinquencySummary.pendingPaymentsCount || 0} hint={money(delinquencySummary.pendingPaymentsAmount)} icon={Inbox} />
+            </div>
+
+            <div className="admin-panel">
+              <div className="panel-head"><h2><CalendarDays size={14} />Antigüedad de deuda</h2></div>
+              <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+                {delinquencyAging.map((bucket: any) => (
+                  <Metric key={bucket.key} row loading={loading} label={bucket.label} value={money(bucket.amount)} hint={`${bucket.owners || 0} propietario${bucket.owners === 1 ? '' : 's'}`} icon={AlertTriangle} />
+                ))}
+              </div>
+            </div>
+
+            <div className="admin-panel">
+              <div className="panel-head"><h2><Search size={14} />Filtros</h2></div>
+              <div className="admin-form" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+                <Field label="Buscar" value={delinquencyFilters.search} onChange={(e: any) => setDelinquencyFilters(f => ({ ...f, search: e.target.value, page: 1 }))} placeholder="Propietario, email o unidad" />
+                <Field label="Período" type="month" value={delinquencyFilters.period} onChange={(e: any) => setDelinquencyFilters(f => ({ ...f, period: e.target.value, page: 1 }))} />
+                <label className="admin-field"><span>Estado</span><select value={delinquencyFilters.status} onChange={(e) => setDelinquencyFilters(f => ({ ...f, status: e.target.value, page: 1 }))}>
+                  <option value="all">Todos</option><option value="al_dia">Al día</option><option value="deuda_leve">Deuda leve</option><option value="deuda_media">Deuda media</option><option value="deuda_alta">Deuda alta</option><option value="mora_critica">Mora crítica</option>
+                </select></label>
+                <label className="admin-field"><span>Orden</span><select value={delinquencyFilters.sort} onChange={(e) => setDelinquencyFilters(f => ({ ...f, sort: e.target.value, page: 1 }))}>
+                  <option value="debt_desc">Mayor deuda</option><option value="days_desc">Más atraso</option><option value="name">Nombre</option><option value="unit">Unidad</option><option value="last_payment">Último pago</option>
+                </select></label>
+                <Field label="Deuda mínima" type="number" value={delinquencyFilters.minDebt} onChange={(e: any) => setDelinquencyFilters(f => ({ ...f, minDebt: e.target.value, page: 1 }))} />
+                <Field label="Días atraso mín." type="number" value={delinquencyFilters.minDaysOverdue} onChange={(e: any) => setDelinquencyFilters(f => ({ ...f, minDaysOverdue: e.target.value, page: 1 }))} />
+                <label className="admin-check"><input type="checkbox" checked={delinquencyFilters.pendingReview} onChange={(e) => setDelinquencyFilters(f => ({ ...f, pendingReview: e.target.checked, page: 1 }))} /> Solo por aprobar</label>
+                <label className="admin-check"><input type="checkbox" checked={delinquencyFilters.criticalOnly} onChange={(e) => setDelinquencyFilters(f => ({ ...f, criticalOnly: e.target.checked, page: 1 }))} /> Solo críticos</label>
+              </div>
+            </div>
+
+            <div className="admin-panel">
+              <div className="panel-head"><h2><AlertTriangle size={14} />Ranking de morosos</h2><span>{delinquencyPagination.total || 0} resultados</span></div>
+              <Table loading={loading} searchPlaceholder="Buscar en página" rows={delinquencyOwners} columns={[
+                ['Propietario', (o: any) => <div><strong>{o.name}</strong><div style={{ color: 'var(--muted)', fontSize: 12 }}>{o.email}</div></div>],
+                ['Unidad/Lote', (o: any) => (o.units || []).join(', ') || '-'],
+                ['Deuda total', (o: any) => money(o.totalOwed)],
+                ['Períodos', (o: any) => (o.unpaidPeriods || []).join(', ') || '-'],
+                ['Más antiguo', (o: any) => o.oldestPeriod || '-'],
+                ['Atraso', (o: any) => `${o.daysOverdue || 0} días`],
+                ['Estado', (o: any) => <span className={`badge ${o.status === 'mora_critica' || o.status === 'deuda_alta' ? 'danger' : o.status === 'al_dia' ? 'success' : 'warning'}`}>{String(o.status || '').replace(/_/g, ' ')}</span>],
+                ['', (o: any) => <Actions>
+                  <button onClick={() => openDelinquencyDetail(idOf(o))}>Detalle</button>
+                  {hasPermission('payments.remind') && Number(o.totalOwed || 0) > 0 && <button onClick={() => openDebtReminder(o)}>Recordar</button>}
+                  <button onClick={() => downloadDelinquencyCsv(idOf(o))}>CSV</button>
+                </Actions>]
+              ]} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginTop: 12 }}>
+                <button className="btn btn-ghost" disabled={(delinquencyPagination.page || 1) <= 1} onClick={() => setDelinquencyFilters(f => ({ ...f, page: Math.max(1, f.page - 1) }))}>Anterior</button>
+                <span style={{ color: 'var(--muted)', fontSize: 12 }}>Página {delinquencyPagination.page || 1} de {delinquencyPagination.pages || 1}</span>
+                <button className="btn btn-ghost" disabled={(delinquencyPagination.page || 1) >= (delinquencyPagination.pages || 1)} onClick={() => setDelinquencyFilters(f => ({ ...f, page: f.page + 1 }))}>Siguiente</button>
+              </div>
+            </div>
           </>
         )}
 
@@ -3690,6 +3847,65 @@ export function AdminPreviewPage() {
               </div>
             )}
           </>
+        )}
+
+        {delinquencyDetail && (
+          <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) setDelinquencyDetail(null); }}>
+            <div className="form-modal form-modal--wide">
+              <div className="form-modal-head">
+                <div className="form-modal-title"><AlertTriangle size={16} />Detalle de deuda</div>
+                <button className="icon-btn" onClick={() => setDelinquencyDetail(null)}><X size={16} /></button>
+              </div>
+              <div className="admin-page-sub">{delinquencyDetail.owner?.name} · {(delinquencyDetail.units || []).map((u: any) => u.name).join(', ') || 'Sin unidad'}</div>
+              <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', margin: '1rem 0' }}>
+                <Metric row loading={false} label="Deuda total" value={money(delinquencyDetail.summary?.totalOwed)} hint="ARS" icon={AlertTriangle} />
+                <Metric row loading={false} label="Períodos" value={delinquencyDetail.summary?.periodsCount || 0} hint={(delinquencyDetail.summary?.unpaidPeriods || []).join(', ') || '-'} icon={CalendarDays} />
+                <Metric row loading={false} label="Atraso" value={`${delinquencyDetail.summary?.daysOverdue || 0} días`} hint={delinquencyDetail.summary?.oldestPeriod || '-'} icon={Bell} />
+              </div>
+              <Table loading={false} searchPlaceholder="Buscar concepto" rows={[...(delinquencyDetail.periodDetails || []), ...(delinquencyDetail.balanceItems || []), ...(delinquencyDetail.extraordinaryItems || []), ...(delinquencyDetail.debtItems || [])]} columns={[
+                ['Concepto', (r: any) => r.concept || '-'],
+                ['Período', (r: any) => r.period || '-'],
+                ['Vencimiento', (r: any) => r.dueDate ? dateLabel(r.dueDate) : 'sin vencimiento definido'],
+                ['Saldo', (r: any) => money(r.balance)],
+                ['Estado', (r: any) => `${r.status || '-'}${r.daysOverdue ? ` · ${r.daysOverdue} días` : ''}`]
+              ]} />
+              <div className="form-modal-foot">
+                <button className="btn btn-ghost" onClick={() => downloadDelinquencyCsv(idOf(delinquencyDetail.owner))}>Descargar CSV</button>
+                {hasPermission('payments.remind') && Number(delinquencyDetail.summary?.totalOwed || 0) > 0 && <button className="btn btn-primary" onClick={() => openDebtReminder(delinquencyDetail.owner)}>Enviar recordatorio</button>}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {debtReminder && (
+          <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) setDebtReminder(null); }}>
+            <div className="form-modal form-modal--wide">
+              <div className="form-modal-head">
+                <div className="form-modal-title"><Bell size={16} />Recordatorio de deuda</div>
+                <button className="icon-btn" onClick={() => setDebtReminder(null)}><X size={16} /></button>
+              </div>
+              <p className="admin-form-note">Se enviará solo después de confirmar. El canal app crea un comunicado interno dirigido al propietario.</p>
+              <div className="admin-form">
+                <label className="admin-field">
+                  <span>Canal</span>
+                  <select value={debtReminderChannel} onChange={(e) => setDebtReminderChannel(e.target.value)}>
+                    <option value="app">Comunicado interno</option>
+                    <option value="manual">Registro manual</option>
+                    <option value="email" disabled>Email próximamente</option>
+                    <option value="whatsapp" disabled>WhatsApp próximamente</option>
+                  </select>
+                </label>
+                <label className="admin-field full">
+                  <span>Mensaje</span>
+                  <textarea rows={8} value={debtReminderMessage} onChange={(e) => setDebtReminderMessage(e.target.value)} />
+                </label>
+              </div>
+              <div className="form-modal-foot">
+                <button className="btn btn-ghost" onClick={() => setDebtReminder(null)}>Cancelar</button>
+                <button className="btn btn-primary" onClick={sendDebtReminder} disabled={busy.startsWith('debt-reminder')}>Enviar</button>
+              </div>
+            </div>
+          </div>
         )}
       </section>
     </main>

@@ -63,6 +63,29 @@ export const adminApi = {
     reminders: () => apiClient<any>('/payments/send-reminders', { method: 'POST', auth: true })
   },
 
+  delinquency: {
+    summary: (params?: Params) => cachedApiCall(
+      cacheKey('delinquency:summary', params),
+      () => apiClient<any>(`/delinquency/summary${qs(params)}`, { auth: true })
+    ),
+    owners: (params?: Params) => cachedApiCall(
+      cacheKey('delinquency:owners', params),
+      () => apiClient<any>(`/delinquency/owners${qs(params)}`, { auth: true })
+    ),
+    owner: (id: string) => apiClient<any>(`/delinquency/owners/${id}`, { auth: true }),
+    aging: (params?: Params) => cachedApiCall(
+      cacheKey('delinquency:aging', params),
+      () => apiClient<any>(`/delinquency/aging${qs(params)}`, { auth: true })
+    ),
+    reminder: (id: string, data: Payload) => {
+      cacheDeletePrefix('delinquency:');
+      cacheDelete('notices:list');
+      return apiClient<any>(`/delinquency/owners/${id}/reminders`, { method: 'POST', auth: true, body: body(data) });
+    },
+    export: (params?: Params) => apiBlob(`/delinquency/export${qs(params)}`, { auth: true }),
+    ownerExport: (id: string, params?: Params) => apiBlob(`/delinquency/owners/${id}/export${qs(params)}`, { auth: true })
+  },
+
   permissions: {
     me: () => cachedApiCall('admin:permissions:me', () => apiClient<any>('/admin/permissions/me', { auth: true }))
   },
