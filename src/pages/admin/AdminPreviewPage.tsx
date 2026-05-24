@@ -9,9 +9,9 @@ import { isSuperAdminRole } from '../../services/authService';
 import { useAdminStore } from '../../stores/adminStore';
 import { Table } from '../../components/Table';
 
-type TabKey = 'inicio' | 'finanzas' | 'morosidad' | 'empleados' | 'sueldos' | 'propietarios' | 'comunicados' | 'reclamos' | 'votaciones' | 'reservas' | 'visitas' | 'proveedores' | 'documentos' | 'config';
+type TabKey = 'inicio' | 'finanzas' | 'morosidad' | 'planes' | 'empleados' | 'sueldos' | 'propietarios' | 'solicitudes' | 'comunicados' | 'reclamos' | 'votaciones' | 'reservas' | 'visitas' | 'proveedores' | 'documentos' | 'config';
 type Notice = { type: 'ok' | 'error'; text: string } | null;
-type FeatureKey = 'visits' | 'reservations' | 'votes' | 'claims' | 'notices' | 'expenses' | 'providers';
+type FeatureKey = 'visits' | 'reservations' | 'votes' | 'claims' | 'notices' | 'expenses' | 'providers' | 'documents';
 type AdminRoleKey = 'owner_admin' | 'read_only' | 'billing_manager' | 'communications_manager' | 'security_guard';
 type AdminInviteMode = 'new_user' | 'existing_owner';
 type GridFilter = {
@@ -76,7 +76,7 @@ const toLocalInput = (value?: string) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
-const VALID_TABS: TabKey[] = ['inicio', 'finanzas', 'morosidad', 'empleados', 'sueldos', 'propietarios', 'comunicados', 'reclamos', 'votaciones', 'reservas', 'visitas', 'proveedores', 'documentos', 'config'];
+const VALID_TABS: TabKey[] = ['inicio', 'finanzas', 'morosidad', 'planes', 'empleados', 'sueldos', 'propietarios', 'solicitudes', 'comunicados', 'reclamos', 'votaciones', 'reservas', 'visitas', 'proveedores', 'documentos', 'config'];
 const getInitialTab = (): TabKey => {
   const hash = window.location.hash.replace('#', '');
   return VALID_TABS.includes(hash as TabKey) ? (hash as TabKey) : 'inicio';
@@ -90,9 +90,11 @@ const nav = [
   { key: 'inicio', label: 'Inicio', icon: Home },
   { key: 'finanzas', label: 'Finanzas', icon: CreditCard },
   { key: 'morosidad', label: 'Morosidad', icon: AlertTriangle },
+  { key: 'planes', label: 'Planes de pago', icon: WalletCards },
   { key: 'empleados', label: 'Empleados', icon: UserRoundCog },
   { key: 'sueldos', label: 'Sueldos', icon: WalletCards },
   { key: 'propietarios', label: 'Comunidad', icon: Users },
+  { key: 'solicitudes', label: 'Solicitudes', icon: Inbox },
   { key: 'comunicados', label: 'Comunicados', icon: Megaphone },
   { key: 'reclamos', label: 'Reclamos', icon: MessageSquare },
   { key: 'votaciones', label: 'Votaciones', icon: Vote },
@@ -202,9 +204,11 @@ const tabPermissions: Record<TabKey, string> = {
   inicio: 'dashboard.read',
   finanzas: 'payments.read',
   morosidad: 'debt.read',
+  planes: 'paymentPlans.read',
   empleados: 'employees.read',
   sueldos: 'salaries.read',
   propietarios: 'owners.read',
+  solicitudes: 'owners.create',
   comunicados: 'notices.read',
   reclamos: 'claims.read',
   votaciones: 'votes.read',
@@ -222,7 +226,8 @@ const defaultFeatures: Record<FeatureKey, boolean> = {
   claims: true,
   notices: true,
   expenses: true,
-  providers: true
+  providers: true,
+  documents: true
 };
 
 const statusText: Record<string, string> = {
@@ -239,7 +244,11 @@ const statusText: Record<string, string> = {
   partially_paid: 'Parcialmente pagado',
   unpaid: 'Impago',
   closed: 'Cerrado',
-  active: 'Activo'
+  active: 'Activo',
+  requested: 'Solicitado',
+  defaulted: 'En mora',
+  archived: 'Archivado',
+  associated: 'Asociado'
 };
 
 const roleLabels: Record<string, string> = {
@@ -476,8 +485,11 @@ const tabCrumbs: Record<string, string[]> = {
   inicio: ['Inicio'],
   finanzas: ['Finanzas', 'Cobranza'],
   morosidad: ['Finanzas', 'Morosidad'],
-  personal: ['Administración', 'Personal'],
+  planes: ['Finanzas', 'Planes de pago'],
+  empleados: ['Administración', 'Personal'],
+  sueldos: ['Administración', 'Sueldos'],
   propietarios: ['Comunidad', 'Propietarios'],
+  solicitudes: ['Comunidad', 'Solicitudes'],
   comunicados: ['Comunidad', 'Comunicados'],
   reclamos: ['Comunidad', 'Reclamos'],
   votaciones: ['Operaciones', 'Votaciones'],
@@ -635,6 +647,15 @@ export function AdminPreviewPage() {
   const [showUnidentifiedDetailModal, setShowUnidentifiedDetailModal] = useState(false);
   const [showUnidentifiedAssociateModal, setShowUnidentifiedAssociateModal] = useState(false);
   const [selectedUnidentified, setSelectedUnidentified] = useState<any>(null);
+  const [paymentPlans, setPaymentPlans] = useState<any[]>([]);
+  const [paymentPlansLoading, setPaymentPlansLoading] = useState(false);
+  const [paymentPlanStatus, setPaymentPlanStatus] = useState('all');
+  const [accessRequests, setAccessRequests] = useState<any[]>([]);
+  const [accessRequestsLoading, setAccessRequestsLoading] = useState(false);
+  const [accessRequestStatus, setAccessRequestStatus] = useState('pending');
+  const [accessSettings, setAccessSettings] = useState<any>(null);
+  const [renditionPreview, setRenditionPreview] = useState<any>(null);
+  const [renditionHistory, setRenditionHistory] = useState<any[]>([]);
 
   const { me, membership, config, features, ownerStats, dashboard, owners, units, payments, notices, claims, expenses, employees, salaries, providers, votes, visits, spaces, reservations, orgDocuments, yearExpenses, yearPayments, report } = useAdminStore();
   const setMe = useAdminStore(s => s.setMe);
@@ -677,6 +698,7 @@ export function AdminPreviewPage() {
     if (item.key === 'reservas') return moduleEnabled('reservations');
     if (item.key === 'visitas') return moduleEnabled('visits');
     if (item.key === 'proveedores') return moduleEnabled('providers');
+    if (item.key === 'documentos') return moduleEnabled('documents');
     return canSeeTab(item.key);
   });
 
@@ -840,6 +862,31 @@ export function AdminPreviewPage() {
       setDelinquencyPagination(owners?.pagination || { total: 0, page: 1, pages: 1, limit: delinquencyFilters.limit });
     }
 
+    if (target === 'planes') {
+      setPaymentPlansLoading(true);
+      try {
+        const params = paymentPlanStatus === 'all' ? { limit: 200 } : { limit: 200, status: paymentPlanStatus };
+        const plans = can('paymentPlans.read') ? await adminApi.paymentPlans.listAdmin(params) : null;
+        setPaymentPlans(pick(plans, 'plans', []));
+      } finally {
+        setPaymentPlansLoading(false);
+      }
+    }
+
+    if (target === 'solicitudes') {
+      setAccessRequestsLoading(true);
+      try {
+        const [requests, settings] = await Promise.all([
+          can('owners.create') ? adminApi.accessRequests.list({ status: accessRequestStatus, limit: 100 }) : Promise.resolve(null),
+          can('settings.read') ? adminApi.accessRequests.settings().catch(() => null) : Promise.resolve(null)
+        ]);
+        setAccessRequests(pick(requests, 'requests', []));
+        setAccessSettings(settings?.data?.settings || settings?.data || null);
+      } finally {
+        setAccessRequestsLoading(false);
+      }
+    }
+
     if (target === 'empleados') {
       const employees = can('employees.read') ? await adminApi.employees.list({ isActive: '', limit: 200 }) : null;
       next.employees = pick(employees, 'employees', []);
@@ -980,12 +1027,13 @@ export function AdminPreviewPage() {
       return;
     }
     refresh(tab);
-  }, [authChecked, tab, month, year, adminRole, permissions, delinquencyFilters]);
+  }, [authChecked, tab, month, year, adminRole, permissions, delinquencyFilters, paymentPlanStatus, accessRequestStatus]);
 
   useEffect(() => {
     if ((tab === 'votaciones' || tab === 'reservas') && !hasOperations) setTab('inicio');
     if (tab === 'visitas' && !moduleEnabled('visits')) setTab('inicio');
     if (tab === 'proveedores' && !moduleEnabled('providers')) setTab('inicio');
+    if (tab === 'documentos' && !moduleEnabled('documents')) setTab('inicio');
   }, [tab, hasOperations, features]);
 
   async function run(label: string, action: () => Promise<unknown>, success = 'Cambios guardados.') {
@@ -1053,6 +1101,32 @@ export function AdminPreviewPage() {
     }, 'PDF generado.');
   }
 
+  function downloadBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function downloadPaymentReceipt(payment: any, kind: 'uploaded' | 'system') {
+    const id = idOf(payment);
+    await run(`${kind}-receipt-${id}`, async () => {
+      const blob = kind === 'uploaded'
+        ? await adminApi.payments.receipt(id)
+        : await adminApi.payments.systemReceipt(id);
+      const name = kind === 'uploaded'
+        ? `comprobante_${id}.pdf`
+        : `recibo_${payment.receiptNumber || id}.pdf`;
+      downloadBlob(blob, name);
+    }, kind === 'uploaded' ? 'Comprobante descargado.' : 'Recibo descargado.');
+  }
+
+  async function resendPaymentReceipt(payment: any) {
+    await run(`resend-receipt-${idOf(payment)}`, () => adminApi.payments.resendReceipt(idOf(payment)), 'Recibo reenviado por email.');
+  }
+
   async function downloadDelinquencyCsv(ownerId?: string) {
     await run(ownerId ? `debt-csv-${ownerId}` : 'delinquency-csv', async () => {
       const blob = ownerId
@@ -1065,6 +1139,28 @@ export function AdminPreviewPage() {
       anchor.click();
       URL.revokeObjectURL(url);
     }, 'CSV generado.');
+  }
+
+  async function loadRenditionPreview() {
+    await run(`rendition-${month}`, async () => {
+      const [preview, history] = await Promise.all([
+        adminApi.renditions.preview(month),
+        adminApi.renditions.history().catch(() => null)
+      ]);
+      setRenditionPreview(preview?.data?.rendition || preview?.data || null);
+      setRenditionHistory(pick(history, 'renditions', []));
+    }, 'Liquidación actualizada.');
+  }
+
+  async function generateRenditionPdf() {
+    await run(`rendition-pdf-${month}`, () => adminApi.renditions.generatePdf(month), 'PDF de rendición generado.');
+  }
+
+  async function exportRenditionCsv(section: string) {
+    await run(`rendition-csv-${section}`, async () => {
+      const blob = await adminApi.renditions.exportCsv(month, section);
+      downloadBlob(blob, `rendicion_${month}_${section}.csv`);
+    }, 'CSV de rendición generado.');
   }
 
   async function fetchUnidentifiedPayments() {
@@ -1111,6 +1207,55 @@ export function AdminPreviewPage() {
     fetchUnidentifiedPayments();
   }
 
+  async function approvePaymentPlan(plan: any) {
+    const installments = Number(window.prompt('Cantidad de cuotas', String(plan.installmentsCount || 3)) || 0);
+    if (!installments || installments < 1) return;
+    const startDate = window.prompt('Fecha de inicio (YYYY-MM-DD)', new Date().toISOString().slice(0, 10));
+    if (!startDate) return;
+    await run(`plan-approve-${idOf(plan)}`, () => adminApi.paymentPlans.approve(idOf(plan), {
+      installmentsCount: installments,
+      startDate,
+      interestType: 'none',
+      interestValue: 0
+    }), 'Plan aprobado.');
+  }
+
+  async function rejectPaymentPlan(plan: any) {
+    const rejectionReason = window.prompt('Motivo del rechazo') || '';
+    await run(`plan-reject-${idOf(plan)}`, () => adminApi.paymentPlans.reject(idOf(plan), { rejectionReason }), 'Plan rechazado.');
+  }
+
+  async function cancelPaymentPlan(plan: any) {
+    if (!window.confirm('¿Cancelar este plan de pago?')) return;
+    await run(`plan-cancel-${idOf(plan)}`, () => adminApi.paymentPlans.cancel(idOf(plan)), 'Plan cancelado.');
+  }
+
+  async function registerPlanInstallment(installment: any) {
+    if (!window.confirm('¿Registrar esta cuota como pagada?')) return;
+    await run(`installment-${idOf(installment)}`, () => adminApi.paymentPlans.registerInstallmentPayment(idOf(installment)), 'Cuota registrada como pagada.');
+  }
+
+  async function approveAccessRequest(request: any) {
+    const unitIds = window.prompt('IDs de unidades a asignar, separados por coma (opcional)', '') || '';
+    await run(`access-approve-${idOf(request)}`, () => adminApi.accessRequests.approve(idOf(request), {
+      unitIds: unitIds.split(',').map(item => item.trim()).filter(Boolean),
+      chargeCurrentMonth: true
+    }), 'Solicitud aprobada.');
+  }
+
+  async function rejectAccessRequest(request: any) {
+    const rejectionReason = window.prompt('Motivo del rechazo') || '';
+    await run(`access-reject-${idOf(request)}`, () => adminApi.accessRequests.reject(idOf(request), { rejectionReason }), 'Solicitud rechazada.');
+  }
+
+  async function toggleAccessRequestSettings(enabled: boolean) {
+    await run('access-settings', () => adminApi.accessRequests.updateSettings({ publicJoinEnabled: enabled }), 'Configuración de solicitudes actualizada.');
+  }
+
+  async function regenerateAccessCode() {
+    await run('access-code', () => adminApi.accessRequests.regenerateCode(), 'Código regenerado.');
+  }
+
   async function openDelinquencyDetail(ownerId: string) {
     setBusy(`debt-detail-${ownerId}`);
     try {
@@ -1145,6 +1290,24 @@ export function AdminPreviewPage() {
       message: debtReminderMessage
     }), debtReminderChannel === 'app' ? 'Recordatorio enviado.' : 'Recordatorio registrado.');
     setDebtReminder(null);
+  }
+
+  function openWhatsApp(phone?: string, message?: string) {
+    const digits = String(phone || '').replace(/\D/g, '');
+    if (!digits) {
+      setNotice({ type: 'error', text: 'Este propietario no tiene teléfono cargado.' });
+      return;
+    }
+    const normalized = digits.startsWith('54') ? digits : `54${digits}`;
+    window.open(`https://wa.me/${normalized}?text=${encodeURIComponent(message || '')}`, '_blank', 'noopener,noreferrer');
+  }
+
+  async function notifyOwner(owner: any) {
+    const title = window.prompt('Título de la notificación', 'Aviso de administración');
+    if (!title) return;
+    const message = window.prompt('Mensaje') || '';
+    if (!message.trim()) return;
+    await run(`notify-${idOf(owner)}`, () => adminApi.owners.notify(idOf(owner), title, message), 'Notificación enviada.');
   }
 
   async function checkOwnerEmail(email: string) {
@@ -1690,7 +1853,7 @@ export function AdminPreviewPage() {
 
         <nav>
           <div className="admin-nav-group-label">Workspace</div>
-          {visibleNav.filter(item => ['inicio', 'finanzas', 'morosidad'].includes(item.key)).map(item => {
+          {visibleNav.filter(item => ['inicio', 'finanzas', 'morosidad', 'planes'].includes(item.key)).map(item => {
             const Icon = item.icon;
             return (
               <button key={item.key} className={tab === item.key ? 'active' : ''} onClick={() => navigateToTab(item.key)}>
@@ -1701,8 +1864,8 @@ export function AdminPreviewPage() {
             );
           })}
 
-          {visibleNav.some(item => ['propietarios', 'comunicados', 'reclamos'].includes(item.key)) && <div className="admin-nav-group-label">Comunidad</div>}
-          {visibleNav.filter(item => ['propietarios', 'comunicados', 'reclamos'].includes(item.key)).map(item => {
+          {visibleNav.some(item => ['propietarios', 'solicitudes', 'comunicados', 'reclamos'].includes(item.key)) && <div className="admin-nav-group-label">Comunidad</div>}
+          {visibleNav.filter(item => ['propietarios', 'solicitudes', 'comunicados', 'reclamos'].includes(item.key)).map(item => {
             const Icon = item.icon;
             return (
               <button key={item.key} className={tab === item.key ? 'active' : ''} onClick={() => navigateToTab(item.key)}>
@@ -1938,16 +2101,51 @@ export function AdminPreviewPage() {
                     ['Estado', (p: any) => <Status value={p.status} />],
                     ['Canal', (p: any) => <PaymentChannel payment={p} />],
                     ['Monto', (p: any) => <span className="fin-mono fin-strong">{money(p.amount)}</span>],
-                    ['Acciones', (p: any) => p.status === 'pending' ? <Actions>
-                      <button onClick={() => run(idOf(p), () => adminApi.payments.approve(idOf(p)), 'Pago aprobado.')}>Aprobar</button>
-                      <button onClick={() => run(idOf(p), () => adminApi.payments.reject(idOf(p), window.prompt('Motivo de rechazo') || 'Rechazado'), 'Pago rechazado.')}>Rechazar</button>
-                    </Actions> : null]
+                    ['Acciones', (p: any) => <Actions>
+                      {p.status === 'pending' && <button onClick={() => run(idOf(p), () => adminApi.payments.approve(idOf(p)), 'Pago aprobado.')}>Aprobar</button>}
+                      {p.status === 'pending' && <button onClick={() => run(idOf(p), () => adminApi.payments.reject(idOf(p), window.prompt('Motivo de rechazo') || 'Rechazado'), 'Pago rechazado.')}>Rechazar</button>}
+                      {(p.receipt?.url || p.hasReceipt) && <button onClick={() => downloadPaymentReceipt(p, 'uploaded')}>Comprobante</button>}
+                      {p.status === 'approved' && <button onClick={() => downloadPaymentReceipt(p, 'system')}>Recibo</button>}
+                      {p.status === 'approved' && <button onClick={() => resendPaymentReceipt(p)}>Reenviar</button>}
+                    </Actions>]
                   ]} />
                 </div>
                 <PeriodTable
                   monthly={filteredMonthlyByPeriod(dashboard?.monthly || [], dashPeriod)}
                   loading={loading}
                 />
+                <div className="admin-panel">
+                  <div className="panel-head">
+                    <h2><FileText size={14} />Liquidación mensual</h2>
+                    <span>{month}</span>
+                  </div>
+                  <div className="admin-page-actions" style={{ justifyContent: 'flex-start', marginBottom: 12 }}>
+                    <button className="btn btn-ghost" onClick={loadRenditionPreview}>Vista previa</button>
+                    <button className="btn btn-primary" onClick={generateRenditionPdf}>Generar PDF</button>
+                    <button className="btn btn-ghost" onClick={() => exportRenditionCsv('resumen')}>CSV resumen</button>
+                    <button className="btn btn-ghost" onClick={() => exportRenditionCsv('gastos')}>CSV gastos</button>
+                    <button className="btn btn-ghost" onClick={() => exportRenditionCsv('pagos')}>CSV pagos</button>
+                    <button className="btn btn-ghost" onClick={() => exportRenditionCsv('morosidad')}>CSV morosidad</button>
+                  </div>
+                  {renditionPreview ? (
+                    <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+                      <Metric row label="Ingresos" value={money(renditionPreview.totalIncome || renditionPreview.income || 0)} hint="Período" icon={CreditCard} />
+                      <Metric row label="Gastos" value={money(renditionPreview.totalExpenses || renditionPreview.expenses || 0)} hint="Período" icon={FileText} />
+                      <Metric row label="Saldo" value={money(renditionPreview.balance || 0)} hint="Resultado" icon={Landmark} />
+                      <Metric row label="Morosidad" value={money(renditionPreview.totalDebt || 0)} hint="A cobrar" icon={AlertTriangle} />
+                    </div>
+                  ) : <Empty text="Usá Vista previa para consultar la rendición del período." />}
+                  {renditionHistory.length > 0 && (
+                    <div style={{ marginTop: 12 }}>
+                      <Table loading={false} searchPlaceholder="Buscar rendición" rows={renditionHistory.slice(0, 8)} columns={[
+                        ['Período', (r: any) => r.period || r.month || '-'],
+                        ['Estado', (r: any) => <Status value={r.status || 'closed'} />],
+                        ['Generada', (r: any) => dateLabel(r.generatedAt || r.createdAt)],
+                        ['Observaciones', (r: any) => r.observations || '-']
+                      ]} />
+                    </div>
+                  )}
+                </div>
 
               </>
             )}
@@ -2497,6 +2695,108 @@ export function AdminPreviewPage() {
           </>
         )}
 
+        {tab === 'planes' && (
+          <>
+            <div className="admin-page-head">
+              <div>
+                <div className="admin-page-kicker"><span className="dot" />Finanzas</div>
+                <h1 className="admin-page-title">Planes de pago</h1>
+                <div className="admin-page-sub">Solicitudes, cuotas y regularización de deuda · {config?.consortiumName || 'Tu organización'}</div>
+              </div>
+              <div className="admin-page-actions">
+                <label className="admin-field" style={{ minWidth: 190 }}>
+                  <span>Estado</span>
+                  <select value={paymentPlanStatus} onChange={(e) => setPaymentPlanStatus(e.target.value)}>
+                    <option value="all">Todos</option>
+                    <option value="requested">Solicitados</option>
+                    <option value="approved">Aprobados</option>
+                    <option value="active">Activos</option>
+                    <option value="completed">Completados</option>
+                    <option value="rejected">Rechazados</option>
+                    <option value="cancelled">Cancelados</option>
+                    <option value="defaulted">En mora</option>
+                  </select>
+                </label>
+                <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
+              </div>
+            </div>
+            <div className="metric-grid">
+              <Metric row loading={paymentPlansLoading || loading} label="Solicitados" value={paymentPlans.filter((p: any) => p.status === 'requested').length} hint="Esperan revisión" icon={Inbox} />
+              <Metric row loading={paymentPlansLoading || loading} label="Activos" value={paymentPlans.filter((p: any) => p.status === 'active' || p.status === 'approved').length} hint="En curso" icon={WalletCards} />
+              <Metric row loading={paymentPlansLoading || loading} label="Capital" value={money(paymentPlans.reduce((sum: number, p: any) => sum + Number(p.totalAmount || p.originalDebtAmount || 0), 0))} hint="ARS" icon={CreditCard} />
+              <Metric row loading={paymentPlansLoading || loading} label="Finalizados" value={paymentPlans.filter((p: any) => p.status === 'completed').length} hint="Completados" icon={CheckCircle2} />
+            </div>
+            <div className="admin-panel">
+              <div className="panel-head"><h2><WalletCards size={14} />Planes</h2><span>{paymentPlans.length} registros</span></div>
+              <Table loading={paymentPlansLoading || loading} searchPlaceholder="Buscar propietario o estado" rows={paymentPlans} columns={[
+                ['Propietario', (p: any) => <div><strong>{person(p)}</strong><div style={{ color: 'var(--muted)', fontSize: 12 }}>{p.owner?.email || p.user?.email || '-'}</div></div>],
+                ['Estado', (p: any) => <Status value={p.status} />],
+                ['Deuda original', (p: any) => money(p.originalDebtAmount)],
+                ['Total plan', (p: any) => money(p.totalAmount)],
+                ['Cuotas', (p: any) => `${p.installmentsCount || p.installments?.length || '-'} cuota${Number(p.installmentsCount || p.installments?.length || 0) === 1 ? '' : 's'}`],
+                ['Inicio', (p: any) => dateLabel(p.startDate)],
+                ['Acciones', (p: any) => <Actions>
+                  {p.status === 'requested' && <button onClick={() => approvePaymentPlan(p)}>Aprobar</button>}
+                  {p.status === 'requested' && <button onClick={() => rejectPaymentPlan(p)}>Rechazar</button>}
+                  {!['cancelled', 'completed', 'rejected'].includes(p.status) && <button onClick={() => cancelPaymentPlan(p)}>Cancelar</button>}
+                  {(p.installments || []).find((i: any) => i.status === 'pending') && (
+                    <button onClick={() => registerPlanInstallment((p.installments || []).find((i: any) => i.status === 'pending'))}>Pagar cuota</button>
+                  )}
+                </Actions>]
+              ]} />
+            </div>
+          </>
+        )}
+
+        {tab === 'solicitudes' && (
+          <>
+            <div className="admin-page-head">
+              <div>
+                <div className="admin-page-kicker"><span className="dot" />Comunidad</div>
+                <h1 className="admin-page-title">Solicitudes de acceso</h1>
+                <div className="admin-page-sub">Altas enviadas desde el registro autónomo de la organización</div>
+              </div>
+              <div className="admin-page-actions">
+                <label className="admin-field" style={{ minWidth: 180 }}>
+                  <span>Estado</span>
+                  <select value={accessRequestStatus} onChange={(e) => setAccessRequestStatus(e.target.value)}>
+                    <option value="pending">Pendientes</option>
+                    <option value="approved">Aprobadas</option>
+                    <option value="rejected">Rechazadas</option>
+                    <option value="all">Todas</option>
+                  </select>
+                </label>
+                <button className="btn btn-ghost" onClick={() => refresh(tab)}><RefreshCw size={14} />Actualizar</button>
+              </div>
+            </div>
+            <div className="admin-panel">
+              <div className="panel-head"><h2><Settings size={14} />Registro autónomo</h2></div>
+              <div className="admin-page-actions" style={{ justifyContent: 'flex-start' }}>
+                <span className={`pill ${accessSettings?.publicJoinEnabled ? 'pos' : 'muted'}`}><span className="d" />{accessSettings?.publicJoinEnabled ? 'Habilitado' : 'Deshabilitado'}</span>
+                {accessSettings?.publicJoinCode && <span className="chip is-active">Código: {accessSettings.publicJoinCode}</span>}
+                <button className="btn btn-ghost" onClick={() => toggleAccessRequestSettings(!accessSettings?.publicJoinEnabled)}>
+                  {accessSettings?.publicJoinEnabled ? 'Deshabilitar' : 'Habilitar'}
+                </button>
+                <button className="btn btn-ghost" onClick={regenerateAccessCode}>Regenerar código</button>
+              </div>
+            </div>
+            <div className="admin-panel">
+              <div className="panel-head"><h2><Inbox size={14} />Solicitudes</h2><span>{accessRequests.length} registros</span></div>
+              <Table loading={accessRequestsLoading || loading} searchPlaceholder="Buscar nombre, email o unidad" rows={accessRequests} columns={[
+                ['Solicitante', (r: any) => <div><strong>{r.name || r.userName || '-'}</strong><div style={{ color: 'var(--muted)', fontSize: 12 }}>{r.email || '-'}</div></div>],
+                ['Teléfono', (r: any) => r.phone || '-'],
+                ['Unidad declarada', (r: any) => r.unitName || r.unit || '-'],
+                ['Estado', (r: any) => <Status value={r.status} />],
+                ['Fecha', (r: any) => dateLabel(r.createdAt)],
+                ['Acciones', (r: any) => <Actions>
+                  {r.status === 'pending' && <button onClick={() => approveAccessRequest(r)}>Aprobar</button>}
+                  {r.status === 'pending' && <button onClick={() => rejectAccessRequest(r)}>Rechazar</button>}
+                </Actions>]
+              ]} />
+            </div>
+          </>
+        )}
+
         {tab === 'propietarios' && (
           <>
             <div className="admin-page-head">
@@ -2546,7 +2846,12 @@ export function AdminPreviewPage() {
                     {debtAmount(o) > 0 ? money(debtAmount(o)) : '—'}
                   </span>
                 )],
-                ['', (o: any) => <Actions><button onClick={() => run(idOf(o), () => adminApi.owners.delete(idOf(o)), 'Propietario eliminado.')}>Eliminar</button></Actions>]
+                ['', (o: any) => <Actions>
+                  <button onClick={() => openDelinquencyDetail(idOf(o))}>Detalle</button>
+                  <button onClick={() => notifyOwner(o)}>Avisar</button>
+                  <button onClick={() => openWhatsApp(o.phone, `Hola ${o.name || ''}, te contactamos desde la administración de ${config?.consortiumName || 'GestionAr'}.`)}>WhatsApp</button>
+                  <button onClick={() => run(idOf(o), () => adminApi.owners.delete(idOf(o)), 'Propietario eliminado.')}>Eliminar</button>
+                </Actions>]
               ]} />
             </div>
             <Panel title="Unidades" icon={Building2}>
@@ -2564,7 +2869,10 @@ export function AdminPreviewPage() {
                 ['Coef.', (u: any) => u.coefficient || '1'],
                 ['Cuota', (u: any) => money(u.finalFee || u.customFee)],
                 ['Deuda', (u: any) => debtAmount(u) > 0 ? money(debtAmount(u)) : '—'],
-                ['', (u: any) => <Actions><button onClick={() => run(idOf(u), () => adminApi.units.delete(idOf(u)), 'Unidad eliminada.')}>Eliminar</button></Actions>]
+                ['', (u: any) => <Actions>
+                  {u.owner && <button onClick={() => run(idOf(u), () => adminApi.units.releaseOwner(idOf(u)), 'Unidad liberada.')}>Liberar</button>}
+                  <button onClick={() => run(idOf(u), () => adminApi.units.delete(idOf(u)), 'Unidad eliminada.')}>Eliminar</button>
+                </Actions>]
               ]} />
             </Panel>
 

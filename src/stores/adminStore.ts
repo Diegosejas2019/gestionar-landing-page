@@ -115,7 +115,8 @@ const defaultFeatures: Record<string, boolean> = {
   claims: true,
   notices: true,
   expenses: true,
-  providers: true
+  providers: true,
+  documents: true
 };
 
 const initialState = {

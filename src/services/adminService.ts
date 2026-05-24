@@ -29,8 +29,12 @@ export const adminApi = {
       cacheKey('owners:list', params),
       () => apiClient<any>(`/owners${qs(params)}`, { auth: true })
     ),
+    getOne: (id: string) => apiClient<any>(`/owners/${id}`, { auth: true }),
+    availableItems: (id: string) => apiClient<any>(`/owners/${id}/available-items`, { auth: true }),
     create: (data: Payload) => { cacheDelete('owners:list'); return apiClient<any>('/owners', { method: 'POST', auth: true, body: body(data) }); },
     update: (id: string, data: Payload) => apiClient<any>(`/owners/${id}`, { method: 'PATCH', auth: true, body: body(data) }),
+    notify: (id: string, title: string, message: string) =>
+      apiClient<any>(`/owners/${id}/notify`, { method: 'POST', auth: true, body: JSON.stringify({ title, body: message }) }),
     delete: (id: string) => { cacheDelete('owners:list'); return apiClient<any>(`/owners/${id}`, { method: 'DELETE', auth: true }); }
   },
 
@@ -42,6 +46,8 @@ export const adminApi = {
     create: (data: Payload) => { cacheDelete('units:list'); return apiClient<any>('/units', { method: 'POST', auth: true, body: body(data) }); },
     bulkCreate: (data: { count: number; start: number; prefix: string }) => { cacheDelete('units:list'); return apiClient<any>('/units/bulk', { method: 'POST', auth: true, body: body(data) }); },
     update: (id: string, data: Payload) => apiClient<any>(`/units/${id}`, { method: 'PATCH', auth: true, body: body(data) }),
+    assignOwner: (id: string, ownerId: string) => { cacheDelete('units:list'); return apiClient<any>(`/units/${id}/assign-owner`, { method: 'PATCH', auth: true, body: JSON.stringify({ ownerId }) }); },
+    releaseOwner: (id: string) => { cacheDelete('units:list'); return apiClient<any>(`/units/${id}/release-owner`, { method: 'PATCH', auth: true, body: JSON.stringify({}) }); },
     delete: (id: string) => { cacheDelete('units:list'); return apiClient<any>(`/units/${id}`, { method: 'DELETE', auth: true }); }
   },
 
@@ -54,12 +60,21 @@ export const adminApi = {
       cacheKey('payments:list', params),
       () => apiClient<any>(`/payments${qs(params)}`, { auth: true })
     ),
+    adminOwners: (params?: Params) => cachedApiCall(
+      cacheKey('payments:admin-owners', params),
+      () => apiClient<any>(`/payments/admin/owners${qs(params)}`, { auth: true })
+    ),
+    create: (data: FormData) => { cacheDelete('payments:list'); return apiClient<any>('/payments', { method: 'POST', auth: true, body: data }); },
+    availableItems: (params?: Params) => apiClient<any>(`/payments/available-items${qs(params)}`, { auth: true }),
     approve: (id: string) => { cacheDelete('payments:list'); return apiClient<any>(`/payments/${id}/approve`, { method: 'PATCH', auth: true }); },
     reject: (id: string, rejectionNote: string) => {
       cacheDelete('payments:list');
       return apiClient<any>(`/payments/${id}/reject`, { method: 'PATCH', auth: true, body: JSON.stringify({ rejectionNote }) });
     },
     delete: (id: string) => { cacheDelete('payments:list'); return apiClient<any>(`/payments/${id}`, { method: 'DELETE', auth: true }); },
+    receipt: (id: string) => apiBlob(`/payments/${id}/receipt`, { auth: true }),
+    systemReceipt: (id: string) => apiBlob(`/payments/${id}/system-receipt?download=1`, { auth: true }),
+    resendReceipt: (id: string) => apiClient<any>(`/payments/${id}/resend-receipt`, { method: 'POST', auth: true }),
     reminders: () => apiClient<any>('/payments/send-reminders', { method: 'POST', auth: true })
   },
 
@@ -74,7 +89,7 @@ export const adminApi = {
     ),
     getOne: (id: string) => apiClient<any>(`/unidentified-payments/${id}`, { auth: true }),
     create: (data: Payload) => { cacheDelete('unidentifiedPayments:list'); return apiClient<any>('/unidentified-payments', { method: 'POST', auth: true, body: body(data) }); },
-    update: (id: string, data: Payload) => apiClient<any>(`/unidentified-payments/${id}`, { method: 'PUT', auth: true, body: body(data) }),
+    update: (id: string, data: Payload) => apiClient<any>(`/unidentified-payments/${id}`, { method: 'PATCH', auth: true, body: body(data) }),
     delete: (id: string) => { cacheDelete('unidentifiedPayments:list'); return apiClient<any>(`/unidentified-payments/${id}`, { method: 'DELETE', auth: true }); },
     getSuggestions: (id: string) => apiClient<any>(`/unidentified-payments/${id}/suggestions`, { auth: true }),
     associate: (id: string, data: Payload) => { cacheDelete('unidentifiedPayments:list'); return apiClient<any>(`/unidentified-payments/${id}/associate`, { method: 'POST', auth: true, body: body(data) }); },
@@ -151,6 +166,7 @@ export const adminApi = {
       cacheDelete('claims:list');
       return apiClient<any>(`/claims/${id}/status`, { method: 'PATCH', auth: true, body: JSON.stringify({ status, adminNote }) });
     },
+    attachment: (id: string, index: number) => apiBlob(`/claims/${id}/attachment/${index}`, { auth: true }),
     delete: (id: string) => { cacheDelete('claims:list'); return apiClient<any>(`/claims/${id}`, { method: 'DELETE', auth: true }); }
   },
 
@@ -162,6 +178,8 @@ export const adminApi = {
     create: (data: Payload) => { cacheDelete('expenses:list'); return apiClient<any>('/expenses', { method: 'POST', auth: true, body: body(data) }); },
     update: (id: string, data: Payload) => apiClient<any>(`/expenses/${id}`, { method: 'PATCH', auth: true, body: body(data) }),
     paid: (id: string) => { cacheDelete('expenses:list'); return apiClient<any>(`/expenses/${id}/paid`, { method: 'PATCH', auth: true, body: JSON.stringify({}) }); },
+    attachment: (id: string, index: number) => apiBlob(`/expenses/${id}/attachment/${index}`, { auth: true }),
+    deleteAttachment: (id: string, index: number) => apiClient<any>(`/expenses/${id}/attachment/${index}`, { method: 'DELETE', auth: true }),
     delete: (id: string) => { cacheDelete('expenses:list'); return apiClient<any>(`/expenses/${id}`, { method: 'DELETE', auth: true }); }
   },
 
@@ -213,7 +231,45 @@ export const adminApi = {
       `reports:monthly:${month}`,
       () => apiClient<any>(`/reports/monthly-summary?month=${encodeURIComponent(month)}`, { auth: true })
     ),
-    expensasPdf: (month: string) => apiBlob(`/reports/expensas-pdf?month=${encodeURIComponent(month)}`, { auth: true })
+    expensasPdf: (month: string) => apiBlob(`/reports/expensas-pdf?month=${encodeURIComponent(month)}`, { auth: true }),
+    ownerStatement: (data: Payload) => apiClient<any>('/reports/owner-statement', { method: 'POST', auth: true, body: body(data) }),
+    ownerStatementPdf: (data: Payload) => apiBlob('/reports/owner-statement/pdf', { method: 'POST', auth: true, body: body(data) }),
+    delinquency: (data: Payload) => apiClient<any>('/reports/delinquency', { method: 'POST', auth: true, body: body(data) }),
+    payments: (data: Payload) => apiClient<any>('/reports/payments', { method: 'POST', auth: true, body: body(data) }),
+    expenses: (data: Payload) => apiClient<any>('/reports/expenses', { method: 'POST', auth: true, body: body(data) }),
+    owners: (data: Payload) => apiClient<any>('/reports/owners', { method: 'POST', auth: true, body: body(data) })
+  },
+
+  renditions: {
+    preview: (period: string) => apiClient<any>(`/renditions/preview?period=${encodeURIComponent(period)}`, { auth: true }),
+    history: () => apiClient<any>('/renditions/history', { auth: true }),
+    annual: (year: number) => apiClient<any>(`/renditions/annual?year=${year}`, { auth: true }),
+    generatePdf: (period: string) => apiClient<any>(`/renditions/${encodeURIComponent(period)}/generate-pdf`, { method: 'POST', auth: true }),
+    exportCsv: (period: string, section: string) => apiBlob(`/renditions/${encodeURIComponent(period)}/export-csv?section=${encodeURIComponent(section)}`, { auth: true }),
+    saveObservations: (period: string, observations: string) =>
+      apiClient<any>(`/renditions/${encodeURIComponent(period)}/observations`, { method: 'PATCH', auth: true, body: JSON.stringify({ observations }) })
+  },
+
+  debtItems: {
+    listByOwner: (ownerId: string) => apiClient<any>(`/owners/${ownerId}/debt-items`, { auth: true }),
+    create: (ownerId: string, data: Payload) => apiClient<any>(`/owners/${ownerId}/debt-items`, { method: 'POST', auth: true, body: body(data) }),
+    markAsPaid: (id: string) => apiClient<any>(`/debt-items/${id}/paid`, { method: 'PATCH', auth: true }),
+    cancel: (id: string, cancellationReason: string) =>
+      apiClient<any>(`/debt-items/${id}/cancel`, { method: 'PATCH', auth: true, body: JSON.stringify({ cancellationReason }) })
+  },
+
+  paymentPlans: {
+    listAdmin: (params?: Params) => cachedApiCall(
+      cacheKey('payment-plans:admin', params),
+      () => apiClient<any>(`/payment-plans/admin${qs(params)}`, { auth: true })
+    ),
+    getAdmin: (id: string) => apiClient<any>(`/payment-plans/admin/${id}`, { auth: true }),
+    create: (data: Payload) => { cacheDeletePrefix('payment-plans:admin'); return apiClient<any>('/payment-plans/admin', { method: 'POST', auth: true, body: body(data) }); },
+    approve: (id: string, data: Payload) => { cacheDeletePrefix('payment-plans:admin'); return apiClient<any>(`/payment-plans/admin/${id}/approve`, { method: 'POST', auth: true, body: body(data) }); },
+    reject: (id: string, data: Payload) => { cacheDeletePrefix('payment-plans:admin'); return apiClient<any>(`/payment-plans/admin/${id}/reject`, { method: 'POST', auth: true, body: body(data) }); },
+    cancel: (id: string) => { cacheDeletePrefix('payment-plans:admin'); return apiClient<any>(`/payment-plans/admin/${id}/cancel`, { method: 'PATCH', auth: true }); },
+    delete: (id: string) => { cacheDeletePrefix('payment-plans:admin'); return apiClient<any>(`/payment-plans/admin/${id}`, { method: 'DELETE', auth: true }); },
+    registerInstallmentPayment: (id: string) => { cacheDeletePrefix('payment-plans:admin'); return apiClient<any>(`/payment-plans/admin/installments/${id}/register-payment`, { method: 'POST', auth: true }); }
   },
 
   votes: {
@@ -267,6 +323,19 @@ export const adminApi = {
     delete: (id: string) => { cacheDelete('reservations:list'); return apiClient<any>(`/reservations/${id}`, { method: 'DELETE', auth: true }); }
   },
 
+  accessRequests: {
+    list: (params?: Params) => cachedApiCall(
+      cacheKey('access-requests:list', params),
+      () => apiClient<any>(`/access-requests${qs(params)}`, { auth: true })
+    ),
+    getOne: (id: string) => apiClient<any>(`/access-requests/${id}`, { auth: true }),
+    approve: (id: string, data: Payload) => { cacheDeletePrefix('access-requests:list'); return apiClient<any>(`/access-requests/${id}/approve`, { method: 'POST', auth: true, body: body(data) }); },
+    reject: (id: string, data: Payload) => { cacheDeletePrefix('access-requests:list'); return apiClient<any>(`/access-requests/${id}/reject`, { method: 'POST', auth: true, body: body(data) }); },
+    settings: () => apiClient<any>('/access-requests/settings', { auth: true }),
+    updateSettings: (data: Payload) => apiClient<any>('/access-requests/settings', { method: 'PATCH', auth: true, body: body(data) }),
+    regenerateCode: () => apiClient<any>('/access-requests/regenerate-code', { method: 'POST', auth: true })
+  },
+
   config: {
     get: () => cachedApiCall('config', () => apiClient<any>('/config', { auth: true })),
     update: (data: Payload) => { cacheDelete('config'); return apiClient<any>('/config', { method: 'PATCH', auth: true, body: body(data) }); }
@@ -287,7 +356,11 @@ export const adminApi = {
     features: (id: string) => cachedApiCall(
       `organizations:features:${id}`,
       () => apiClient<any>(`/organizations/${id}/features`, { auth: true })
-    )
+    ),
+    updateFeatures: (id: string, data: Payload) => {
+      cacheDelete(`organizations:features:${id}`);
+      return apiClient<any>(`/organizations/${id}/features`, { method: 'PUT', auth: true, body: body(data) });
+    }
   }
 };
 
