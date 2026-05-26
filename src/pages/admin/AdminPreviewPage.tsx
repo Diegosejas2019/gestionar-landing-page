@@ -18,63 +18,41 @@ import {
   tabPermissions,
   type TabKey
 } from './adminAccess';
+import {
+  CATEGORY_LABELS,
+  EXPENSE_LABELS_MAP,
+  PRIORITY_LABELS,
+  STATUS_LABELS,
+  adminInitials,
+  buildSparklinePoints,
+  dateLabel,
+  debtAmount,
+  documentCategoryLabels,
+  documentVisibilityLabels,
+  expensesByCategory,
+  filteredMonthlyByPeriod,
+  fmtK,
+  formObject,
+  hasDebt,
+  idOf,
+  money,
+  normalizeNotice,
+  orgLogoText,
+  paymentMethodLabels,
+  person,
+  pick,
+  roleLabels,
+  salaryPaidAmount,
+  salaryRemainingAmount,
+  shortMonth,
+  statusText,
+  todayMonth,
+  toLocalInput,
+  unitLabel
+} from './adminFormat';
 
 type Notice = { type: 'ok' | 'error'; text: string } | null;
 type AdminInviteMode = 'new_user' | 'existing_owner';
-
-const todayMonth = () => new Date().toISOString().slice(0, 7);
-const money = (value: unknown) => `$ ${Number(value || 0).toLocaleString('es-AR')}`;
-const shortMonth = (value: string) => {
-  const [, month] = value.split('-');
-  return ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][Number(month) - 1] || value;
-};
-const idOf = (row: any) => String(row?._id || row?.id || '');
-const person = (row: any) => row?.owner?.name || row?.user?.name || row?.name || 'Sin nombre';
-const debtAmount = (row: any) => Number(row?.balanceOwed ?? row?.totalOwed ?? Math.max(0, -Number(row?.balance || 0)));
-const hasDebt = (row: any) => debtAmount(row) > 0 || !!row?.isDebtor;
-const unitNames = (row: any) => {
-  const units = row?.owner?.units || row?.units;
-  if (Array.isArray(units) && units.length) {
-    return units.map((unit: any) => typeof unit === 'string' ? unit : unit?.name).filter(Boolean);
-  }
-  return [row?.owner?.unit, row?.unit].filter(Boolean);
-};
-const unitLabel = (row: any) => unitNames(row).join(', ') || '-';
-const dateLabel = (value: unknown) => value ? new Date(String(value)).toLocaleDateString('es-AR') : '-';
-const formObject = (event: FormEvent<HTMLFormElement>) => Object.fromEntries(new FormData(event.currentTarget).entries());
-const CATEGORY_LABELS: Record<string, string> = {
-  general: 'General',
-  mantenimiento: 'Mantenimiento',
-  corte_servicio: 'Corte de servicio',
-  expensas: 'Expensas',
-  asamblea: 'Asamblea',
-  mora: 'Mora',
-  seguridad: 'Seguridad',
-  emergencia: 'Emergencia',
-  otro: 'Otro'
-};
-const PRIORITY_LABELS: Record<string, string> = { low: 'Baja', normal: 'Normal', high: 'Alta', urgent: 'Urgente' };
-const STATUS_LABELS: Record<string, string> = { draft: 'Borrador', scheduled: 'Programado', sent: 'Enviado', cancelled: 'Cancelado' };
-const normalizeNotice = (n: any) => {
-  const priority = n?.priority || (n?.tag === 'urgent' ? 'urgent' : n?.tag === 'warning' ? 'high' : 'normal');
-  return {
-    ...n,
-    subject: n?.subject || n?.title || '',
-    category: n?.category || 'general',
-    priority,
-    status: n?.status || 'sent',
-    channels: { app: true, email: false, push: false, whatsapp: false, ...(n?.channels || {}) },
-    targetType: n?.targetType || 'all',
-    targetFilters: n?.targetFilters || {}
-  };
-};
-const toLocalInput = (value?: string) => {
-  if (!value) return '';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '';
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-};
 
 const VALID_TABS: TabKey[] = ['inicio', 'finanzas', 'morosidad', 'planes', 'empleados', 'sueldos', 'propietarios', 'solicitudes', 'comunicados', 'reclamos', 'votaciones', 'reservas', 'visitas', 'proveedores', 'documentos', 'config'];
 const getInitialTab = (): TabKey => {
@@ -118,67 +96,6 @@ const adminRoleDescriptions: Record<string, string> = {
   billing_manager: 'Puede ver propietarios, deudas, pagos y recibos, y registrar pagos.',
   communications_manager: 'Puede gestionar reclamos, avisos y comunicaciones.'
 };
-
-const statusText: Record<string, string> = {
-  pending: 'Pendiente',
-  approved: 'Aprobado',
-  rejected: 'Rechazado',
-  open: 'Abierto',
-  in_progress: 'En progreso',
-  resolved: 'Resuelto',
-  cancelled: 'Cancelado',
-  inside: 'Dentro',
-  exited: 'Salio',
-  paid: 'Pagado',
-  partially_paid: 'Parcialmente pagado',
-  unpaid: 'Impago',
-  closed: 'Cerrado',
-  active: 'Activo',
-  requested: 'Solicitado',
-  defaulted: 'En mora',
-  archived: 'Archivado',
-  associated: 'Asociado'
-};
-
-const roleLabels: Record<string, string> = {
-  security: 'Seguridad',
-  cleaning: 'Limpieza',
-  admin: 'Administracion',
-  maintenance: 'Mantenimiento',
-  other: 'Otro'
-};
-
-const paymentMethodLabels: Record<string, string> = {
-  cash: 'Efectivo',
-  transfer: 'Transferencia',
-  manual: 'Manual',
-  mercadopago: 'MercadoPago'
-};
-
-const salaryPaidAmount = (s: any) =>
-  s?.paidAmount != null ? Number(s.paidAmount) : (s?.status === 'paid' ? Number(s?.totalAmount || 0) : 0);
-const salaryRemainingAmount = (s: any) =>
-  s?.remainingAmount != null ? Number(s.remainingAmount) : Math.max(Number(s?.totalAmount || 0) - salaryPaidAmount(s), 0);
-
-const documentCategoryLabels: Record<string, string> = {
-  regulation: 'Reglamento',
-  map: 'Mapa',
-  rules: 'Normas de convivencia',
-  assembly: 'Asamblea',
-  insurance: 'Seguro',
-  payment: 'Pagos',
-  contract: 'Contrato',
-  other: 'Otro'
-};
-
-const documentVisibilityLabels: Record<string, string> = {
-  admin: 'Solo administradores',
-  owners: 'Visible para propietarios'
-};
-
-function pick<T>(response: any, key: string, fallback: T): T {
-  return response?.data?.[key] ?? fallback;
-}
 
 const Metric = memo(function Metric({ loading, label, value, hint, icon: Icon, delta, row }: {
   loading?: boolean; label: string; value: string | number; hint?: string; icon: any; delta?: { text: string; trend: string }; row?: boolean
@@ -381,71 +298,6 @@ const tabCrumbs: Record<string, string[]> = {
   documentos: ['Administración', 'Documentos'],
   config: ['Administración', 'Configuración'],
 };
-
-function adminInitials(name: string) {
-  return (name || 'Ad').split(' ').slice(0, 2).map((n) => n[0]?.toUpperCase() ?? '').join('');
-}
-function orgLogoText(name: string) {
-  return (name || '').split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || 'Or';
-}
-
-const EXPENSE_COLORS: Record<string, string> = {
-  cleaning: '#7bb8f2', security: '#f5c24a', maintenance: '#9cf27b',
-  utilities: '#4af0c8', administration: '#b87bf2', other: '#f07567'
-};
-const EXPENSE_LABELS_MAP: Record<string, string> = {
-  cleaning: 'Limpieza', security: 'Seguridad', maintenance: 'Mantenimiento',
-  utilities: 'Servicios', administration: 'Administración', other: 'Otros'
-};
-
-function fmtK(n: number): string {
-  const abs = Math.abs(n || 0);
-  if (abs >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `${(n / 1_000).toFixed(0)}k`;
-  return (n || 0).toLocaleString('es-AR');
-}
-
-function buildSparklinePoints(values: number[]): string {
-  if (!values.length) return '0,16 50,16';
-  const max = Math.max(...values, 1);
-  const step = values.length > 1 ? 50 / (values.length - 1) : 0;
-  return values.map((v, i) => `${Math.round(i * step)},${Math.round(16 - (v / max) * 14)}`).join(' ');
-}
-
-function filteredMonthlyByPeriod(monthly: any[], period: string): any[] {
-  if (!monthly.length) return monthly;
-  const now = new Date();
-  const curMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  if (period === 'mes') {
-    const m = monthly.find((x) => x._id === curMonth);
-    return m ? [m] : (monthly.length ? [monthly[monthly.length - 1]] : []);
-  }
-  if (period === 'trimestre') {
-    const cutoff = new Date(now.getFullYear(), now.getMonth() - 2, 1);
-    const cutStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}`;
-    return monthly.filter((x) => x._id >= cutStr);
-  }
-  return monthly;
-}
-
-function expensesByCategory(expenses: any[]): Array<{ cat: string; label: string; amount: number; color: string; pct: number }> {
-  const byCategory: Record<string, number> = {};
-  let total = 0;
-  expenses.forEach((e) => {
-    byCategory[e.category] = (byCategory[e.category] || 0) + Number(e.amount || 0);
-    total += Number(e.amount || 0);
-  });
-  return Object.entries(byCategory)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 6)
-    .map(([cat, amount]) => ({
-      cat,
-      label: EXPENSE_LABELS_MAP[cat] || cat,
-      amount,
-      color: EXPENSE_COLORS[cat] || '#888',
-      pct: total > 0 ? Math.round((amount / total) * 100) : 0
-    }));
-}
 
 export function AdminPreviewPage() {
   const [tab, setTab] = useState<TabKey>(getInitialTab);

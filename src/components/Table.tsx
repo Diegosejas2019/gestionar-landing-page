@@ -59,9 +59,9 @@ function GridFooter({ total, pageSize, page, onPageSizeChange, onPrev, onNext }:
         </select>
       </label>
       <div className="pager">
-        <button disabled={page <= 1} onClick={onPrev}>‹</button>
-        <span>Pág. {page}</span>
-        <button disabled={page >= totalPages} onClick={onNext}>›</button>
+        <button disabled={page <= 1} onClick={onPrev}>Anterior</button>
+        <span>Página {page}</span>
+        <button disabled={page >= totalPages} onClick={onNext}>Siguiente</button>
       </div>
     </div>
   );

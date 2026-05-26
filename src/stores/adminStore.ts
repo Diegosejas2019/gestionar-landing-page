@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { FeatureFlags, Membership, OrganizationConfig, SessionUser } from '../types/api';
+import type { ApiList, ApiRecord, FeatureFlags, Membership, OrganizationConfig, SessionUser } from '../types/api';
 
 interface OwnerStats {
   totalOwners?: number;
@@ -27,6 +27,8 @@ interface Expense {
   [key: string]: unknown;
 }
 
+type AdminRows = ApiList<ApiRecord>;
+
 interface AdminStore {
   // Auth
   me: SessionUser | null;
@@ -37,47 +39,47 @@ interface AdminStore {
   // Dashboard
   ownerStats: OwnerStats;
   dashboard: DashboardData;
-  report: Record<string, unknown>;
+  report: ApiRecord;
   // Data slices
-  owners: Array<Record<string, unknown>>;
-  units: Array<Record<string, unknown>>;
-  payments: Array<Record<string, unknown>>;
-  notices: Array<Record<string, unknown>>;
-  claims: Array<Record<string, unknown>>;
+  owners: AdminRows;
+  units: AdminRows;
+  payments: AdminRows;
+  notices: AdminRows;
+  claims: AdminRows;
   expenses: Expense[];
-  employees: Array<Record<string, unknown>>;
-  salaries: Array<Record<string, unknown>>;
-  providers: Array<Record<string, unknown>>;
-  votes: Array<Record<string, unknown>>;
-  visits: Array<Record<string, unknown>>;
-  spaces: Array<Record<string, unknown>>;
-  reservations: Array<Record<string, unknown>>;
-  orgDocuments: Array<Record<string, unknown>>;
+  employees: AdminRows;
+  salaries: AdminRows;
+  providers: AdminRows;
+  votes: AdminRows;
+  visits: AdminRows;
+  spaces: AdminRows;
+  reservations: AdminRows;
+  orgDocuments: AdminRows;
   yearExpenses: Expense[];
-  yearPayments: Array<Record<string, unknown>>;
+  yearPayments: AdminRows;
   // Actions
   setMe: (me: SessionUser | null, membership: Membership | null) => void;
   setConfig: (config: OrganizationConfig) => void;
   setFeatures: (features: FeatureFlags) => void;
   setOwnerStats: (stats: OwnerStats) => void;
   setDashboard: (dashboard: DashboardData) => void;
-  setReport: (report: Record<string, unknown>) => void;
-  setOwners: (owners: Array<Record<string, unknown>>) => void;
-  setUnits: (units: Array<Record<string, unknown>>) => void;
-  setPayments: (payments: Array<Record<string, unknown>>) => void;
-  setNotices: (notices: Array<Record<string, unknown>>) => void;
-  setClaims: (claims: Array<Record<string, unknown>>) => void;
+  setReport: (report: ApiRecord) => void;
+  setOwners: (owners: AdminRows) => void;
+  setUnits: (units: AdminRows) => void;
+  setPayments: (payments: AdminRows) => void;
+  setNotices: (notices: AdminRows) => void;
+  setClaims: (claims: AdminRows) => void;
   setExpenses: (expenses: Expense[]) => void;
-  setEmployees: (employees: Array<Record<string, unknown>>) => void;
-  setSalaries: (salaries: Array<Record<string, unknown>>) => void;
-  setProviders: (providers: Array<Record<string, unknown>>) => void;
-  setVotes: (votes: Array<Record<string, unknown>>) => void;
-  setVisits: (visits: Array<Record<string, unknown>>) => void;
-  setSpaces: (spaces: Array<Record<string, unknown>>) => void;
-  setReservations: (reservations: Array<Record<string, unknown>>) => void;
-  setOrgDocuments: (docs: Array<Record<string, unknown>>) => void;
+  setEmployees: (employees: AdminRows) => void;
+  setSalaries: (salaries: AdminRows) => void;
+  setProviders: (providers: AdminRows) => void;
+  setVotes: (votes: AdminRows) => void;
+  setVisits: (visits: AdminRows) => void;
+  setSpaces: (spaces: AdminRows) => void;
+  setReservations: (reservations: AdminRows) => void;
+  setOrgDocuments: (docs: AdminRows) => void;
   setYearExpenses: (expenses: Expense[]) => void;
-  setYearPayments: (payments: Array<Record<string, unknown>>) => void;
+  setYearPayments: (payments: AdminRows) => void;
   reset: () => void;
 }
 

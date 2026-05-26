@@ -4,8 +4,23 @@ import { superAdminApi } from '../../services/adminService';
 import { isSuperAdminRole } from '../../services/authService';
 import { Table } from '../../components/Table';
 import { clearAuthToken, getAuthToken, goAdmin, goHome, goLogin } from '../../services/navigationService';
+import type { ApiRecord, FeatureFlags, SessionUser } from '../../types/api';
 
 type Notice = { type: 'ok' | 'error'; text: string } | null;
+type DateRange = { from: string; to: string };
+type SuperAdminRow = ApiRecord & {
+  isActive?: boolean;
+  totalEvents?: number;
+  date?: string;
+  module?: string;
+  lastActivityAt?: string;
+};
+type SupportTicket = SuperAdminRow & {
+  subject?: string;
+  message?: string;
+  priority?: string;
+};
+type StatusModal = { org: SuperAdminRow; nextActive: boolean };
 
 const idOf = (row: any) => String(row?._id || row?.id || '');
 const dateLabel = (value: unknown) => value ? new Date(String(value)).toLocaleDateString('es-AR') : '-';
@@ -52,7 +67,7 @@ function daysAgo(days: number) {
   return localDate(date);
 }
 
-function rangeForPreset(preset: string) {
+function rangeForPreset(preset: string): DateRange {
   const today = new Date();
   if (preset === '7d') return { from: daysAgo(7), to: localDate(today) };
   if (preset === 'month') return { from: localDate(new Date(today.getFullYear(), today.getMonth(), 1)), to: localDate(today) };
@@ -73,20 +88,20 @@ export function SuperAdminPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState('');
   const [notice, setNotice] = useState<Notice>(null);
-  const [user, setUser] = useState<any>(null);
-  const [organizations, setOrganizations] = useState<any[]>([]);
+  const [user, setUser] = useState<SessionUser | null>(null);
+  const [organizations, setOrganizations] = useState<SuperAdminRow[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState('');
-  const [members, setMembers] = useState<any[]>([]);
-  const [features, setFeatures] = useState<Record<string, boolean>>({});
-  const [supportTickets, setSupportTickets] = useState<any[]>([]);
+  const [members, setMembers] = useState<SuperAdminRow[]>([]);
+  const [features, setFeatures] = useState<FeatureFlags>({});
+  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
-  const [analyticsOverview, setAnalyticsOverview] = useState<any>({});
-  const [dailyActivity, setDailyActivity] = useState<any[]>([]);
-  const [moduleUsage, setModuleUsage] = useState<any[]>([]);
-  const [organizationUsage, setOrganizationUsage] = useState<any[]>([]);
+  const [analyticsOverview, setAnalyticsOverview] = useState<ApiRecord>({});
+  const [dailyActivity, setDailyActivity] = useState<SuperAdminRow[]>([]);
+  const [moduleUsage, setModuleUsage] = useState<SuperAdminRow[]>([]);
+  const [organizationUsage, setOrganizationUsage] = useState<SuperAdminRow[]>([]);
   const [rangePreset, setRangePreset] = useState('30d');
   const [customRange, setCustomRange] = useState(initialRange);
-  const [statusModal, setStatusModal] = useState<{ org: any; nextActive: boolean } | null>(null);
+  const [statusModal, setStatusModal] = useState<StatusModal | null>(null);
   const [statusReason, setStatusReason] = useState('');
 
   const selectedOrg = useMemo(

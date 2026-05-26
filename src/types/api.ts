@@ -1,8 +1,20 @@
-export type ApiEnvelope<T = unknown> = {
+export type ApiEnvelope<T = any> = {
   success?: boolean;
   message?: string;
   data?: T;
 };
+
+export type ApiRecord = Record<string, any> & {
+  _id?: string;
+  id?: string;
+  name?: string;
+  email?: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type ApiList<T = ApiRecord> = T[];
 
 export type AccessType = 'admin' | 'owner' | 'super_admin';
 
