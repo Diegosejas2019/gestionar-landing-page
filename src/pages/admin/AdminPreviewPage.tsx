@@ -296,11 +296,13 @@ const Metric = memo(function Metric({ loading, label, value, hint, icon: Icon, d
 }) {
   if (row) {
     return (
-      <div className={`metric-card ${loading ? 'skeleton' : ''}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: '10px 14px' }}>
-        <div className="metric-icon" style={{ marginBottom: 0 }}><Icon size={16} /></div>
-        <span className="metric-label" style={{ margin: 0, flexShrink: 0 }}>{label}</span>
-        {loading ? <div className="skeleton-val" style={{ flex: 1 }} /> : <span className="metric-value" style={{ fontSize: '1.15rem', lineHeight: 1 }}>{value}</span>}
-        {hint && !loading && <span className="metric-hint" style={{ margin: 0, flexShrink: 0 }}>{hint}</span>}
+      <div className={`metric-card metric-card-row ${loading ? 'skeleton' : ''}`}>
+        <div className="metric-icon"><Icon size={16} /></div>
+        <div className="metric-row-copy">
+          <span className="metric-label">{label}</span>
+          {hint && !loading && <span className="metric-hint">{hint}</span>}
+        </div>
+        {loading ? <div className="skeleton-val" /> : <span className="metric-value">{value}</span>}
       </div>
     );
   }
@@ -2048,7 +2050,7 @@ export function AdminPreviewPage() {
               </div>
             </div>
 
-            <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+            <div className="metric-grid finance-metric-grid">
               {(() => {
                 const bal = totalIncome - (dashboard?.totalExpenses || 0);
                 return <Metric row loading={loading} label={`Balance ${year}`} value={money(bal)} hint="Ingresos − egresos anuales" icon={Landmark}
