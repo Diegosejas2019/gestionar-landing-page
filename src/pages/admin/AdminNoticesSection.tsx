@@ -87,7 +87,7 @@ export function AdminNoticesSection({ ctx }: AdminNoticesSectionProps) {
                             </div>
                           )}
                           <div className="notice-card-date">
-                            Destinatarios: {n.targetType === 'debtors' ? 'Morosos' : n.targetType === 'specific_units' ? 'Unidades específicas' : n.targetType === 'specific_users' ? 'Propietarios específicos' : 'Todos'} ·
+                            Destinatarios: {n.targetType === 'non_debtors' ? 'Propietarios al día' : n.targetType === 'debtors' ? 'Morosos' : n.targetType === 'specific_units' ? 'Unidades específicas' : n.targetType === 'specific_users' ? 'Propietarios específicos' : 'Todos'} ·
                             Canales: App{n.channels?.email ? ' · Email' : ''}{n.channels?.push ? ' · Push' : ''}{n.channels?.whatsapp ? ' · WhatsApp futuro' : ''}
                           </div>
                           {noticeStats[idOf(n)] && (
@@ -135,6 +135,7 @@ export function AdminNoticesSection({ ctx }: AdminNoticesSectionProps) {
                     <SelectField label="Destinatarios" name="targetType" defaultValue={editingNotice?.targetType || 'all'} onChange={(e: any) => setNoticeTargetType(e.target.value)}>
                       <option value="all">Todos los propietarios</option>
                       <option value="debtors">Morosos</option>
+                      <option value="non_debtors">Propietarios al día</option>
                       <option value="specific_units">Unidades específicas</option>
                       <option value="specific_users">Propietarios específicos</option>
                     </SelectField>
