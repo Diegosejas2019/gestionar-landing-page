@@ -33,6 +33,10 @@ export function goOwnerApp(token: string) {
   window.location.assign(`${PWA_URL}#auth_token=${encodeURIComponent(token)}`);
 }
 
+export function goOwnerDashboard() {
+  window.location.assign('/owner');
+}
+
 export function goDashboardForRole(role?: string) {
   window.location.assign(role === 'super_admin' || role === 'superadmin' ? '/super-admin' : '/admin');
 }

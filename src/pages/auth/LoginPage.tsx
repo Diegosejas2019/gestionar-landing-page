@@ -1,7 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { ArrowLeft, Building2, LogIn } from 'lucide-react';
 import { login, LoginResponse, selectOrganization } from '../../services/authService';
-import { goDashboardForRole, goOwnerApp, setAuthToken } from '../../services/navigationService';
+import { goDashboardForRole, goOwnerDashboard, setAuthToken } from '../../services/navigationService';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
@@ -14,9 +14,9 @@ export function LoginPage() {
     return response.data?.accessType === 'owner' || response.data?.user?.role === 'owner';
   }
 
-  function redirectWithToken(response: LoginResponse, token: string) {
+  function redirectWithToken(response: LoginResponse) {
     if (isOwnerContext(response)) {
-      goOwnerApp(token);
+      goOwnerDashboard();
       return;
     }
     const role = response.data?.user?.role;
@@ -45,7 +45,7 @@ export function LoginPage() {
 
       if (token) {
         setAuthToken(token);
-        redirectWithToken(response, token);
+        redirectWithToken(response);
         return;
       }
 
@@ -67,7 +67,7 @@ export function LoginPage() {
       const token = response.token || response.data?.token;
       if (token) {
         setAuthToken(token);
-        redirectWithToken(response, token);
+        redirectWithToken(response);
         return;
       }
       setMessage('No pudimos seleccionar la organización.');
