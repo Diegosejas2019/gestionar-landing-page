@@ -1,8 +1,9 @@
-export type TabKey = 'inicio' | 'finanzas' | 'morosidad' | 'planes' | 'empleados' | 'sueldos' | 'propietarios' | 'solicitudes' | 'comunicados' | 'reclamos' | 'votaciones' | 'reservas' | 'visitas' | 'proveedores' | 'documentos' | 'config';
+export type TabKey = 'agenda' | 'inicio' | 'finanzas' | 'morosidad' | 'planes' | 'empleados' | 'sueldos' | 'propietarios' | 'solicitudes' | 'comunicados' | 'reclamos' | 'votaciones' | 'reservas' | 'visitas' | 'proveedores' | 'documentos' | 'config';
 export type FeatureKey = 'visits' | 'reservations' | 'votes' | 'claims' | 'notices' | 'expenses' | 'providers' | 'documents';
 export type AdminRoleKey = 'owner_admin' | 'read_only' | 'billing_manager' | 'communications_manager' | 'security_guard';
 
 export const tabPermissions: Record<TabKey, string> = {
+  agenda: 'dashboard.read',
   inicio: 'dashboard.read',
   finanzas: 'payments.read',
   morosidad: 'debt.read',

@@ -353,6 +353,13 @@ export const adminApi = {
     download: (id: string) => apiBlob(`/organization-documents/${id}/download`, { auth: true })
   },
 
+  agenda: {
+    get: () => cachedApiCall('agenda:summary', () => apiClient<ApiEnvelope>('/agenda', { auth: true })),
+    createTask: (data: Payload) => { cacheDelete('agenda:summary'); return apiClient<ApiEnvelope>('/agenda/tasks', { method: 'POST', auth: true, body: body(data) }); },
+    completeTask: (id: string) => { cacheDelete('agenda:summary'); return apiClient<ApiEnvelope>(`/agenda/tasks/${id}/complete`, { method: 'PATCH', auth: true }); },
+    deleteTask: (id: string) => { cacheDelete('agenda:summary'); return apiClient<ApiEnvelope>(`/agenda/tasks/${id}`, { method: 'DELETE', auth: true }); }
+  },
+
   organizations: {
     features: (id: string) => cachedApiCall(
       `organizations:features:${id}`,

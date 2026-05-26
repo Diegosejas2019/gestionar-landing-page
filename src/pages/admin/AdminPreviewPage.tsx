@@ -1,6 +1,6 @@
 ﻿import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  AlertTriangle, Bell, Building2, CalendarCheck, CalendarDays, CheckCircle2, ChevronDown,
+  AlertTriangle, Bell, Building2, CalendarCheck, CalendarClock, CalendarDays, CheckCircle2, ChevronDown,
   CreditCard, Download, FileText, Home, Inbox, Landmark, LogIn, LogOut, Mail, Megaphone, MessageSquare,
   Paperclip, Plus, RefreshCw, Search, Settings, ShieldCheck, TrendingUp, UserRoundCog, Users, Vote, WalletCards, X
 } from 'lucide-react';
@@ -53,6 +53,7 @@ import { AdminOwnersUnitsSection } from './AdminOwnersUnitsSection';
 import { AdminDelinquencyPlansSection } from './AdminDelinquencyPlansSection';
 import { AdminEmployeesSalariesSection } from './AdminEmployeesSalariesSection';
 import { AdminVotesSection } from './AdminVotesSection';
+import { AdminAgendaSection } from './AdminAgendaSection';
 import { Actions, BusyBanner, Empty, Field, Metric, Panel, PaymentChannel, SelectField, Status } from './adminComponents';
 import {
   AttentionHero,
@@ -71,7 +72,7 @@ import {
 type Notice = { type: 'ok' | 'error'; text: string } | null;
 type AdminInviteMode = 'new_user' | 'existing_owner';
 
-const VALID_TABS: TabKey[] = ['inicio', 'finanzas', 'morosidad', 'planes', 'empleados', 'sueldos', 'propietarios', 'solicitudes', 'comunicados', 'reclamos', 'votaciones', 'reservas', 'visitas', 'proveedores', 'documentos', 'config'];
+const VALID_TABS: TabKey[] = ['agenda', 'inicio', 'finanzas', 'morosidad', 'planes', 'empleados', 'sueldos', 'propietarios', 'solicitudes', 'comunicados', 'reclamos', 'votaciones', 'reservas', 'visitas', 'proveedores', 'documentos', 'config'];
 const getInitialTab = (): TabKey => {
   const hash = window.location.hash.replace('#', '');
   return VALID_TABS.includes(hash as TabKey) ? (hash as TabKey) : 'inicio';
@@ -82,6 +83,7 @@ function navigateToTab(key: TabKey) {
 }
 
 const nav = [
+  { key: 'agenda', label: 'Agenda', icon: CalendarClock },
   { key: 'inicio', label: 'Inicio', icon: Home },
   { key: 'finanzas', label: 'Finanzas', icon: CreditCard },
   { key: 'morosidad', label: 'Morosidad', icon: AlertTriangle },
@@ -1629,6 +1631,7 @@ export function AdminPreviewPage() {
 
         {busy && <BusyBanner />}
         {notice && <div className={`admin-notice ${notice.type}`}>{notice.text}</div>}
+        {tab === 'agenda' && <AdminAgendaSection />}
         {tab === 'inicio' && (
           <>
             <div className="admin-page-head">
