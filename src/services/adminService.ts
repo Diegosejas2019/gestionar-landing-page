@@ -175,7 +175,8 @@ export const adminApi = {
       cacheKey('expenses:list', params),
       () => apiClient<ApiEnvelope>(`/expenses${qs(params)}`, { auth: true })
     ),
-    create: (data: Payload) => { invalidateList('expenses:list'); return apiClient<ApiEnvelope>('/expenses', { method: 'POST', auth: true, body: body(data) }); },
+    create: (data: Payload | FormData) => { invalidateList('expenses:list'); const b = data instanceof FormData ? data : body(data); return apiClient<ApiEnvelope>('/expenses', { method: 'POST', auth: true, body: b }); },
+    previewInvoice: (data: FormData) => apiClient<ApiEnvelope>('/expenses/preview-invoice', { method: 'POST', auth: true, body: data }),
     update: (id: string, data: Payload) => { invalidateList('expenses:list'); return apiClient<ApiEnvelope>(`/expenses/${id}`, { method: 'PATCH', auth: true, body: body(data) }); },
     paid: (id: string) => { invalidateList('expenses:list'); return apiClient<ApiEnvelope>(`/expenses/${id}/paid`, { method: 'PATCH', auth: true, body: JSON.stringify({}) }); },
     attachment: (id: string, index: number) => apiBlob(`/expenses/${id}/attachment/${index}`, { auth: true }),

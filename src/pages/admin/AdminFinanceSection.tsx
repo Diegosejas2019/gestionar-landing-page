@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { AlertTriangle, Bell, CheckCircle2, ChevronDown, CreditCard, Download, FileText, Landmark, Search, ShieldCheck, TrendingUp, X } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
 import { Table } from '../../components/Table';
@@ -21,6 +22,46 @@ export function AdminFinanceSection({ ctx }: AdminFinanceSectionProps) {
     setShowUnidentifiedDetailModal, setSelectedUnidentified, showUnidentifiedAssociateModal,
     setShowUnidentifiedAssociateModal, owners, yearExpenses, AssociateUnidentifiedModal
   } = ctx;
+
+  const [expReceiptFile, setExpReceiptFile] = useState<File | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+
+  function handleExpenseSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const fd = new FormData(event.currentTarget);
+    const file = fd.get('attachments');
+    const hasFile = file instanceof File && file.size > 0;
+    run('expense', async () => {
+      if (hasFile) {
+        await adminApi.expenses.create(fd);
+      } else {
+        const data = Object.fromEntries(fd.entries()) as Record<string, string>;
+        await adminApi.expenses.create({ ...data, amount: Number(data.amount) });
+      }
+    }, 'Gasto registrado.');
+    event.currentTarget.reset();
+    setExpReceiptFile(null);
+  }
+
+  async function handleAnalyzeReceipt() {
+    if (!expReceiptFile) return;
+    setAnalyzing(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', expReceiptFile);
+      const res = await adminApi.expenses.previewInvoice(fd);
+      const { invoiceNumber, invoiceCuit } = res.data;
+      if (invoiceNumber) {
+        const el = document.querySelector<HTMLInputElement>('input[name="invoiceNumber"]');
+        if (el && !el.value) el.value = invoiceNumber;
+      }
+      if (invoiceCuit) {
+        const el = document.querySelector<HTMLInputElement>('input[name="invoiceCuit"]');
+        if (el && !el.value) el.value = invoiceCuit;
+      }
+    } catch { /* ignorar */ }
+    finally { setAnalyzing(false); }
+  }
 
   return (
           <>
@@ -181,7 +222,7 @@ export function AdminFinanceSection({ ctx }: AdminFinanceSectionProps) {
                 </div>
                 <div className="com-side">
                   <Panel title="Registrar gasto" icon={FileText}>
-                    <form className="admin-form" onSubmit={submitExpense}>
+                    <form className="admin-form" onSubmit={handleExpenseSubmit}>
                       <Field label="Descripcion" name="description" required />
                       <Field label="Monto" name="amount" type="number" required />
                       <Field label="Fecha" name="date" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required />
@@ -190,6 +231,20 @@ export function AdminFinanceSection({ ctx }: AdminFinanceSectionProps) {
                       </SelectField>
                       <Field label="N° Factura" name="invoiceNumber" placeholder="A0001-00001234" />
                       <Field label="CUIT emisor" name="invoiceCuit" placeholder="20-12345678-0" />
+                      <label className="admin-field">
+                        <span>Comprobante</span>
+                        <input type="file" name="attachments" accept=".pdf,image/*" onChange={(e) => setExpReceiptFile(e.target.files?.[0] || null)} />
+                      </label>
+                      {expReceiptFile && (
+                        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                          {expReceiptFile.name.endsWith('.pdf') ? '📄' : '🖼️'} {expReceiptFile.name} ({Math.round(expReceiptFile.size / 1024)} KB)
+                        </div>
+                      )}
+                      {expReceiptFile && (
+                        <button type="button" className="btn btn-ghost" style={{ fontSize: 12, padding: '4px 10px' }} onClick={handleAnalyzeReceipt} disabled={analyzing}>
+                          {analyzing ? 'Analizando…' : '🔍 Análisis preliminar'}
+                        </button>
+                      )}
                       <button className="btn btn-primary" disabled={busy === 'expense'}>Guardar gasto</button>
                     </form>
                   </Panel>
