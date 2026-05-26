@@ -3201,6 +3201,13 @@ footer {
 .skeleton-toolbar span:not(:first-child) {
   width: 136px;
 }
+.skeleton-list {
+  display: grid;
+  gap: 8px;
+}
+.skeleton-list > .skeleton-box {
+  border-radius: 10px;
+}
 .skeleton-row {
   display: grid;
   grid-template-columns: repeat(6, minmax(80px, 1fr));

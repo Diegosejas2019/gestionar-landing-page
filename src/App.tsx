@@ -11,6 +11,10 @@ const SuperAdminPage = lazy(() => import(
   /* webpackPrefetch: true */
   './pages/super-admin/SuperAdminPage'
 ).then(m => ({ default: m.SuperAdminPage })));
+const OwnerPage = lazy(() => import(
+  /* webpackPrefetch: true */
+  './pages/owner/OwnerPage'
+).then(m => ({ default: m.OwnerPage })));
 
 function LoadingFallback() {
   return (
@@ -44,6 +48,14 @@ export function App() {
     return (
       <Suspense fallback={<LoadingFallback />}>
         <SuperAdminPage />
+      </Suspense>
+    );
+  }
+
+  if (path.startsWith('/owner')) {
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <OwnerPage />
       </Suspense>
     );
   }
