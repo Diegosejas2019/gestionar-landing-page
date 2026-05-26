@@ -77,6 +77,14 @@ function DelinquencySection({ ctx }: { ctx: any }) {
                 ['Más antiguo', (o: any) => o.oldestPeriod || '-'],
                 ['Atraso', (o: any) => `${o.daysOverdue || 0} días`],
                 ['Estado', (o: any) => <span className={`badge ${o.status === 'mora_critica' || o.status === 'deuda_alta' ? 'danger' : o.status === 'al_dia' ? 'success' : 'warning'}`}>{String(o.status || '').replace(/_/g, ' ')}</span>],
+                ['Riesgo', (o: any) => {
+                  const level = o.riskLevel;
+                  if (!level || level === 'sin_deuda') return null;
+                  const cls = level === 'critico' || level === 'alto' ? 'danger' : level === 'medio' ? 'warning' : 'success';
+                  const labels: Record<string, string> = { bajo: 'Bajo', medio: 'Medio', alto: 'Alto', critico: 'Crítico' };
+                  const reasons = (o.riskReasons || []).join('\n');
+                  return <span className={`badge ${cls}`} title={reasons}>{labels[level] || level}</span>;
+                }],
                 ['', (o: any) => <Actions>
                   <button onClick={() => openDelinquencyDetail(idOf(o))}>Detalle</button>
                   {hasPermission('payments.remind') && Number(o.totalOwed || 0) > 0 && <button onClick={() => openDebtReminder(o)}>Recordar</button>}
