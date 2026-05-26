@@ -1,7 +1,8 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
-import { Activity, AlertTriangle, BarChart3, Building2, Check, CreditCard, FileText, KeyRound, LayoutDashboard, LifeBuoy, LogOut, Megaphone, MessageSquare, RefreshCw, Search, Shield, Upload, Users } from 'lucide-react';
+import { Activity, AlertTriangle, BarChart3, Building2, Check, CreditCard, FileText, KeyRound, LayoutDashboard, LifeBuoy, LogOut, Megaphone, MessageSquare, RefreshCw, Shield, Upload, Users } from 'lucide-react';
 import { superAdminApi } from '../../services/adminService';
 import { isSuperAdminRole } from '../../services/authService';
+import { Table } from '../../components/Table';
 
 type Notice = { type: 'ok' | 'error'; text: string } | null;
 
@@ -114,7 +115,7 @@ export function SuperAdminPage() {
       setModuleUsage(pick<any[]>(modules, 'modules', []));
       setOrganizationUsage(pick<any[]>(orgUsage, 'organizations', []));
     } catch (error) {
-      setNotice({ type: 'error', text: error instanceof Error ? error.message : 'No pudimos cargar las metricas de uso.' });
+      setNotice({ type: 'error', text: error instanceof Error ? error.message : 'No pudimos cargar las métricas de uso.' });
     } finally {
       setAnalyticsLoading(false);
     }
@@ -130,17 +131,15 @@ export function SuperAdminPage() {
         return;
       }
 
-      const [orgs, support, overview] = await Promise.all([
+      const [orgs, support] = await Promise.all([
         superAdminApi.organizations.list(),
-        superAdminApi.support.list({ limit: 100 }),
-        superAdminApi.analytics.overview()
+        superAdminApi.support.list({ limit: 100 })
       ]);
 
       const list = pick<any[]>(orgs, 'organizations', []);
       setUser(loggedUser);
       setOrganizations(list);
       setSupportTickets(pick<any[]>(support, 'tickets', []));
-      setAnalyticsOverview(overview?.data || {});
       setSelectedOrgId((current) => current || idOf(list[0] || ''));
       setNotice(null);
     } catch (error) {
@@ -160,7 +159,7 @@ export function SuperAdminPage() {
       setMembers(pick<any[]>(membersRes, 'members', []));
       setFeatures(pick<Record<string, boolean>>(featuresRes, 'features', {}));
     } catch (error) {
-      setNotice({ type: 'error', text: error instanceof Error ? error.message : 'No pudimos cargar la organizacion.' });
+      setNotice({ type: 'error', text: error instanceof Error ? error.message : 'No pudimos cargar la organización.' });
     }
   }
 
@@ -189,7 +188,7 @@ export function SuperAdminPage() {
       await refresh();
       if (selectedOrgId) await loadOrgDetails(selectedOrgId);
     } catch (error) {
-      setNotice({ type: 'error', text: error instanceof Error ? error.message : 'No pudimos completar la accion.' });
+      setNotice({ type: 'error', text: error instanceof Error ? error.message : 'No pudimos completar la acción.' });
     } finally {
       setBusy('');
     }
@@ -203,7 +202,7 @@ export function SuperAdminPage() {
   function submitOrganization(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = formObject(event);
-    run('create-org', () => superAdminApi.organizations.create(data), 'Organizacion creada.');
+    run('create-org', () => superAdminApi.organizations.create(data), 'Organización creada.');
     event.currentTarget.reset();
   }
 
@@ -211,7 +210,7 @@ export function SuperAdminPage() {
     event.preventDefault();
     if (!selectedOrgId) return;
     const data = formObject(event);
-    run('update-org', () => superAdminApi.organizations.update(selectedOrgId, data), 'Organizacion actualizada.');
+    run('update-org', () => superAdminApi.organizations.update(selectedOrgId, data), 'Organización actualizada.');
   }
 
   function updateFeature(key: string, value: boolean) {
@@ -237,22 +236,22 @@ export function SuperAdminPage() {
     }
 
     if (newPassword.length < 6) {
-      setNotice({ type: 'error', text: 'La contrasena debe tener al menos 6 caracteres.' });
+      setNotice({ type: 'error', text: 'La contraseña debe tener al menos 6 caracteres.' });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setNotice({ type: 'error', text: 'Las contrasenas no coinciden.' });
+      setNotice({ type: 'error', text: 'Las contraseñas no coinciden.' });
       return;
     }
 
     setBusy('change-user-password');
     try {
       await superAdminApi.users.updatePasswordByEmail({ email, newPassword });
-      setNotice({ type: 'ok', text: `Contrasena actualizada para ${email}.` });
+      setNotice({ type: 'ok', text: `Contraseña actualizada para ${email}.` });
       form.reset();
     } catch (error) {
-      setNotice({ type: 'error', text: error instanceof Error ? error.message : 'No pudimos cambiar la contrasena.' });
+      setNotice({ type: 'error', text: error instanceof Error ? error.message : 'No pudimos cambiar la contraseña.' });
     } finally {
       setBusy('');
     }
@@ -273,7 +272,7 @@ export function SuperAdminPage() {
         isActive: nextActive,
         reason: statusReason.trim() || undefined,
       }),
-      nextActive ? 'Organizacion reactivada correctamente.' : 'Organizacion desactivada correctamente.'
+      nextActive ? 'Organización reactivada correctamente.' : 'Organización desactivada correctamente.'
     );
     setStatusModal(null);
     setStatusReason('');
@@ -306,7 +305,7 @@ export function SuperAdminPage() {
             <BarChart3 size={18} /> <span>Uso</span>
           </button>
           <button onClick={() => document.getElementById('password-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
-            <KeyRound size={18} /> <span>Contrasenas</span>
+            <KeyRound size={18} /> <span>Contraseñas</span>
           </button>
           <button><LifeBuoy size={18} /> <span>Soporte</span></button>
         </nav>
@@ -330,7 +329,7 @@ export function SuperAdminPage() {
         <section className="admin-hero">
           <div>
             <span className="admin-kicker">Hola, {user?.name?.split(' ')[0] || 'SuperAdmin'}</span>
-            <h2>Gestion global de organizaciones, features y acceso interno del SaaS.</h2>
+            <h2>Gestión global de organizaciones, features y acceso interno del SaaS.</h2>
           </div>
         </section>
 
@@ -391,7 +390,7 @@ export function SuperAdminPage() {
             <Grid
               loading={analyticsLoading}
               rows={organizationUsage}
-              searchPlaceholder="Buscar organizacion por actividad"
+              searchPlaceholder="Buscar organización por actividad"
               columns={[
                 ['Organización', (org: any) => org.organizationName],
                 ['Usuarios activos', (org: any) => org.activeUsers || 0],
@@ -408,17 +407,17 @@ export function SuperAdminPage() {
         </section>
 
         <div className="admin-grid">
-          <Panel id="password-panel" title="Cambiar contrasena" icon={KeyRound}>
+          <Panel id="password-panel" title="Cambiar contraseña" icon={KeyRound}>
             <form className="admin-form" onSubmit={submitPasswordChange}>
               <Field label="Email del usuario" name="email" type="email" required />
-              <Field label="Nueva contrasena" name="newPassword" type="password" required />
-              <Field label="Confirmar contrasena" name="confirmPassword" type="password" required />
-              <p className="admin-form-note">La sesion activa del usuario se cerrara cuando vuelva a usar la app.</p>
-              <button className="btn btn-primary" disabled={busy === 'change-user-password'}>Actualizar contrasena</button>
+              <Field label="Nueva contraseña" name="newPassword" type="password" required />
+              <Field label="Confirmar contraseña" name="confirmPassword" type="password" required />
+              <p className="admin-form-note">La sesión activa del usuario se cerrará cuando vuelva a usar la app.</p>
+              <button className="btn btn-primary" disabled={busy === 'change-user-password'}>Actualizar contraseña</button>
             </form>
           </Panel>
 
-          <Panel title="Nueva organizacion" icon={Building2}>
+          <Panel title="Nueva organización" icon={Building2}>
             <form className="admin-form" onSubmit={submitOrganization}>
               <Field label="Nombre" name="name" required />
               <Field label="Slug" name="slug" />
@@ -432,7 +431,7 @@ export function SuperAdminPage() {
               <Field label="Email admin" name="adminEmail" type="email" />
               <Field label="Telefono" name="adminPhone" />
               <Field label="Direccion" name="address" />
-              <button className="btn btn-primary" disabled={busy === 'create-org'}>Crear organizacion</button>
+              <button className="btn btn-primary" disabled={busy === 'create-org'}>Crear organización</button>
             </form>
           </Panel>
 
@@ -440,7 +439,7 @@ export function SuperAdminPage() {
             <Grid
               loading={loading}
               rows={organizations}
-              searchPlaceholder="Buscar organizacion, slug o tipo"
+              searchPlaceholder="Buscar organización, slug o tipo"
               onSelect={(org) => setSelectedOrgId(idOf(org))}
               selectedId={selectedOrgId}
               columns={[
@@ -460,7 +459,7 @@ export function SuperAdminPage() {
             />
           </Panel>
 
-          <Panel title="Detalle de organizacion" icon={LayoutDashboard}>
+          <Panel title="Detalle de organización" icon={LayoutDashboard}>
             {selectedOrg ? (
               <form className="admin-form" onSubmit={updateSelectedOrg} key={selectedOrgId}>
                 <Field label="Nombre" name="name" defaultValue={selectedOrg.name} />
@@ -474,21 +473,21 @@ export function SuperAdminPage() {
                 </SelectField>
                 {selectedOrg.isActive === false && (
                   <div className="org-status-note">
-                    <strong>Organizacion inactiva</strong>
+                    <strong>Organización inactiva</strong>
                     <span>Desactivada: {dateLabel(selectedOrg.deactivatedAt)}</span>
                     {selectedOrg.deactivationReason && <span>Motivo: {selectedOrg.deactivationReason}</span>}
                   </div>
                 )}
                 <button className="btn btn-primary" disabled={busy === 'update-org'}>Guardar cambios</button>
                 {selectedOrg.isActive === false
-                  ? <button className="btn btn-primary" type="button" disabled={busy === 'reactivate-org'} onClick={() => openStatusModal(selectedOrg, true)}>Reactivar organizacion</button>
-                  : <button className="btn btn-ghost danger-outline" type="button" disabled={busy === 'deactivate-org'} onClick={() => openStatusModal(selectedOrg, false)}>Desactivar organizacion</button>}
+                  ? <button className="btn btn-primary" type="button" disabled={busy === 'reactivate-org'} onClick={() => openStatusModal(selectedOrg, true)}>Reactivar organización</button>
+                  : <button className="btn btn-ghost danger-outline" type="button" disabled={busy === 'deactivate-org'} onClick={() => openStatusModal(selectedOrg, false)}>Desactivar organización</button>}
               </form>
-            ) : <Empty text="Selecciona una organizacion." />}
+            ) : <Empty text="Selecciona una organización." />}
           </Panel>
 
           <Panel title="Features" icon={Shield}>
-            {!selectedOrg ? <Empty text="Selecciona una organizacion." /> : (
+            {!selectedOrg ? <Empty text="Selecciona una organización." /> : (
               <div className="feature-list">
                 {Object.entries(features).map(([key, enabled]) => (
                   <label key={key} className="feature-toggle">
@@ -500,7 +499,7 @@ export function SuperAdminPage() {
             )}
           </Panel>
 
-          <Panel title="Miembros de la organizacion" icon={Users}>
+          <Panel title="Miembros de la organización" icon={Users}>
             <Grid
               loading={loading}
               rows={members}
@@ -510,7 +509,7 @@ export function SuperAdminPage() {
                 ['Email', (member: any) => member.email],
                 ['Rol', (member: any) => member.role],
                 ['Estado', (member: any) => member.isActive === false ? 'Inactivo' : 'Activo'],
-                ['Ultimo ingreso', (member: any) => dateLabel(member.lastLogin)]
+                ['Último ingreso', (member: any) => dateLabel(member.lastLogin)]
               ]}
             />
           </Panel>
@@ -519,10 +518,10 @@ export function SuperAdminPage() {
             <Grid
               loading={loading}
               rows={supportTickets}
-              searchPlaceholder="Buscar ticket, organizacion, usuario o prioridad"
+              searchPlaceholder="Buscar ticket, organización, usuario o prioridad"
               columns={[
                 ['Titulo', (ticket: any) => ticket.title],
-                ['Organizacion', (ticket: any) => ticket.organizationId?.name || '-'],
+                ['Organización', (ticket: any) => ticket.organizationId?.name || '-'],
                 ['Usuario', (ticket: any) => ticket.userId?.name || ticket.userId?.email || '-'],
                 ['Tipo', (ticket: any) => ticket.typeLabel || ticket.type],
                 ['Prioridad', (ticket: any) => ticket.priorityLabel || ticket.priority],
@@ -545,11 +544,11 @@ export function SuperAdminPage() {
             <div className={`confirm-icon ${statusModal.nextActive ? 'ok' : 'danger'}`}>
               {statusModal.nextActive ? <Check size={22} /> : <AlertTriangle size={22} />}
             </div>
-            <h2>{statusModal.nextActive ? 'Reactivar organizacion' : 'Desactivar organizacion'}</h2>
+            <h2>{statusModal.nextActive ? 'Reactivar organización' : 'Desactivar organización'}</h2>
             <p>
               {statusModal.nextActive
-                ? 'Esta accion restaurara el acceso de administradores y propietarios a esta organizacion si no fueron bloqueados manualmente.'
-                : 'Esta accion bloqueara el acceso de administradores y propietarios a esta organizacion, pero no eliminara sus datos.'}
+                ? 'Esta acción restaurará el acceso de administradores y propietarios a esta organización si no fueron bloqueados manualmente.'
+                : 'Esta acción bloqueará el acceso de administradores y propietarios a esta organización, pero no eliminará sus datos.'}
             </p>
             <label className="admin-field full">
               <span>Motivo opcional</span>
@@ -562,7 +561,7 @@ export function SuperAdminPage() {
                 onClick={confirmStatusChange}
                 disabled={busy === 'deactivate-org' || busy === 'reactivate-org'}
               >
-                {statusModal.nextActive ? 'Reactivar organizacion' : 'Desactivar organizacion'}
+                {statusModal.nextActive ? 'Reactivar organización' : 'Desactivar organización'}
               </button>
             </div>
           </section>
@@ -681,7 +680,7 @@ function BusyBanner() {
   return (
     <div className="admin-busy" role="status" aria-live="polite">
       <span className="action-spinner" />
-      Ejecutando accion...
+      Ejecutando acción...
     </div>
   );
 }
@@ -701,56 +700,14 @@ function Grid({
   selectedId?: string;
   onSelect?: (row: any) => void;
 }) {
-  const [query, setQuery] = useState('');
-  const [pageSize, setPageSize] = useState(10);
-  const [page, setPage] = useState(1);
-  const filtered = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    return rows.filter((row) => !normalized || JSON.stringify(row).toLowerCase().includes(normalized));
-  }, [rows, query]);
-  const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const safePage = Math.min(page, pages);
-  const visible = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
-
-  useEffect(() => setPage(1), [query, pageSize, rows]);
-
-  if (loading) {
-    return (
-      <div className="table-skeleton">
-        {Array.from({ length: 6 }).map((_, row) => <div className="skeleton-row" key={row}><span /><span /><span /><span /></div>)}
-      </div>
-    );
-  }
-
   return (
-    <>
-      <div className="grid-toolbar">
-        <Search size={17} />
-        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={searchPlaceholder} />
-      </div>
-      {!visible.length ? <Empty text="No hay registros con esos filtros." /> : (
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead><tr>{columns.map(([label]) => <th key={label}>{label}</th>)}</tr></thead>
-            <tbody>
-              {visible.map((row, index) => (
-                <tr key={idOf(row) || index} className={selectedId === idOf(row) ? 'selected-row' : ''} onClick={() => onSelect?.(row)}>
-                  {columns.map(([label, render]) => <td key={label}>{render(row)}</td>)}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      <div className="grid-footer">
-        <span>{filtered.length} registro{filtered.length !== 1 ? 's' : ''}</span>
-        <label>Ver <select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))}>{[5, 10, 20, 50].map(size => <option key={size} value={size}>{size}</option>)}</select></label>
-        <div className="pager">
-          <button onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={safePage <= 1}>Anterior</button>
-          <span>{safePage} / {pages}</span>
-          <button onClick={() => setPage((current) => Math.min(pages, current + 1))} disabled={safePage >= pages}>Siguiente</button>
-        </div>
-      </div>
-    </>
+    <Table
+      rows={rows}
+      columns={columns}
+      loading={loading}
+      searchPlaceholder={searchPlaceholder}
+      onSelect={onSelect}
+      rowClassName={(row) => selectedId === idOf(row) ? 'selected-row' : undefined}
+    />
   );
 }

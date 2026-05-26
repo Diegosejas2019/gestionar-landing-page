@@ -77,7 +77,7 @@ export function JoinPage() {
         <div className="login-card join-card">
           <div className="login-icon">{sent ? <CheckCircle2 size={28} /> : <Building2 size={28} />}</div>
           <h1>{loading ? 'Cargando registro' : organization?.organizationName || 'Registro no disponible'}</h1>
-          <p>{loading ? 'Estamos validando el enlace.' : `Alta de ${memberLabel.toLowerCase()} para esta organizacion.`}</p>
+          <p>{loading ? 'Estamos validando el enlace.' : `Alta de ${memberLabel.toLowerCase()} para esta organización.`}</p>
 
           {sent ? (
             <div className="join-success">

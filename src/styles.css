@@ -3566,7 +3566,22 @@ footer {
   color: var(--ink-1);
   vertical-align: middle;
 }
+.tbl tbody tr.selectable,
+.tbl-wrap .selectable {
+  cursor: pointer;
+}
+.tbl tbody tr.selectable:focus-visible,
+.tbl-wrap .selectable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.tbl tbody tr.selected-row td,
+.tbl-wrap .selected-row > div {
+  background: rgba(156,242,123,.07);
+  color: var(--ink-0);
+}
 .tbl tbody tr:hover td { background: rgba(255,255,255,0.025); }
+.tbl-wrap .selectable:hover > div { background: rgba(255,255,255,0.025); }
 .tbl tbody tr:last-child td { border-bottom: none; }
 .tbl .tbl-num { text-align: right; font-family: var(--font-mono); font-feature-settings: 'tnum'; color: var(--ink-0); }
 .tbl .tbl-strong { color: var(--ink-0); font-weight: 500; }

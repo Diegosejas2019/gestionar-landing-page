@@ -102,7 +102,7 @@ const nav = [
   { key: 'visitas', label: 'Visitas', icon: LogIn },
   { key: 'proveedores', label: 'Proveedores', icon: Landmark },
   { key: 'documentos', label: 'Documentos', icon: FileText },
-  { key: 'config', label: 'Configuracion', icon: Settings }
+  { key: 'config', label: 'Configuración', icon: Settings }
 ] as const;
 
 const adminRoleLabels: Record<string, string> = {
@@ -113,8 +113,8 @@ const adminRoleLabels: Record<string, string> = {
 };
 
 const adminRoleDescriptions: Record<string, string> = {
-  owner_admin: 'Acceso total a todos los modulos de la organizacion.',
-  read_only: 'Puede consultar informacion, pero no puede crear, editar, eliminar ni registrar pagos.',
+  owner_admin: 'Acceso total a todos los módulos de la organización.',
+  read_only: 'Puede consultar información, pero no puede crear, editar, eliminar ni registrar pagos.',
   billing_manager: 'Puede ver propietarios, deudas, pagos y recibos, y registrar pagos.',
   communications_manager: 'Puede gestionar reclamos, avisos y comunicaciones.'
 };
@@ -145,8 +145,8 @@ const permissionDisplay: Record<string, { module: string; label: string }> = {
   'notices.create': { module: 'Avisos', label: 'Crear' },
   'notices.update': { module: 'Avisos', label: 'Editar' },
   'notices.delete': { module: 'Avisos', label: 'Eliminar' },
-  'settings.read': { module: 'Configuracion', label: 'Ver' },
-  'settings.update': { module: 'Configuracion', label: 'Editar' },
+  'settings.read': { module: 'Configuración', label: 'Ver' },
+  'settings.update': { module: 'Configuración', label: 'Editar' },
   'admins.read': { module: 'Administradores', label: 'Ver' },
   'admins.create': { module: 'Administradores', label: 'Invitar' },
   'admins.update': { module: 'Administradores', label: 'Editar rol' },
@@ -1051,7 +1051,7 @@ export function AdminPreviewPage() {
       await refresh(tab);
       return true;
     } catch (error) {
-      setNotice({ type: 'error', text: error instanceof Error ? error.message : 'No pudimos completar la accion.' });
+      setNotice({ type: 'error', text: error instanceof Error ? error.message : 'No pudimos completar la acción.' });
       return false;
     } finally {
       setBusy('');
@@ -1731,7 +1731,7 @@ export function AdminPreviewPage() {
       dueDayOfMonth: Number(data.dueDayOfMonth || 10),
       lateFeePercent: Number(data.lateFeePercent || 0),
       lateFeeFixed: Number(data.lateFeeFixed || 0)
-    }), 'Configuracion actualizada.');
+    }), 'Configuración actualizada.');
   }
 
   function submitMercadoPago(event: FormEvent<HTMLFormElement>) {
@@ -4139,7 +4139,7 @@ export function AdminPreviewPage() {
               </div>
             </div>
             <div className="admin-grid two">
-            <Panel title="Configuracion general" icon={Settings}>
+            <Panel title="Configuración general" icon={Settings}>
               <form className="admin-form" onSubmit={submitConfig}>
                 <Field label="Nombre" name="consortiumName" defaultValue={config?.consortiumName} />
                 <Field label="Direccion" name="consortiumAddress" defaultValue={config?.consortiumAddress} />
@@ -4207,7 +4207,7 @@ export function AdminPreviewPage() {
                     return (
                       <div className="admin-role-card" key={role.role}>
                         <strong>{role.label || adminRoleLabels[role.role] || role.role}</strong>
-                        <span>{adminRoleDescriptions[role.role] || 'Permisos administrativos configurados para la organizacion.'}</span>
+                        <span>{adminRoleDescriptions[role.role] || 'Permisos administrativos configurados para la organización.'}</span>
                         <small>{rolePermissions.length} permisos incluidos</small>
                         <div className="permission-group-list">
                           {groups.length ? groups.map((group) => (
@@ -4301,7 +4301,7 @@ export function AdminPreviewPage() {
                       ))}
                       </select>
                     </label>
-                    <p className="admin-form-note">{adminRoleDescriptions[adminInviteRole] || 'Permisos administrativos configurados para la organizacion.'}</p>
+                    <p className="admin-form-note">{adminRoleDescriptions[adminInviteRole] || 'Permisos administrativos configurados para la organización.'}</p>
                     <p className="admin-form-note">
                       {adminInviteMode === 'existing_owner'
                         ? 'Se reutiliza el usuario del propietario y se agrega un acceso administrativo separado.'
@@ -4334,7 +4334,7 @@ export function AdminPreviewPage() {
                         <option key={role.role} value={role.role}>{role.label || adminRoleLabels[role.role] || role.role}</option>
                       ))}
                     </SelectField>
-                    <p className="admin-form-note">{adminRoleDescriptions[editingAdminUser.role] || 'Permisos administrativos configurados para la organizacion.'}</p>
+                    <p className="admin-form-note">{adminRoleDescriptions[editingAdminUser.role] || 'Permisos administrativos configurados para la organización.'}</p>
                     <p className="admin-form-note">La organización debe conservar al menos un administrador principal activo.</p>
                     <div className="form-modal-foot">
                       <button type="button" className="btn btn-ghost" onClick={() => setEditingAdminUser(null)}>Cancelar</button>
@@ -4460,7 +4460,7 @@ function BusyBanner() {
   return (
     <div className="admin-busy" role="status" aria-live="polite">
       <span className="action-spinner" />
-      Ejecutando accion...
+      Ejecutando acción...
     </div>
   );
 }

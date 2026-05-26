@@ -38,7 +38,7 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
       window.location.assign('/login');
     }
 
-    throw new Error(data?.message || 'Ocurrio un error inesperado. Intenta nuevamente.');
+    throw new Error(data?.message || 'Ocurrió un error inesperado. Intenta nuevamente.');
   }
 
   return data as T;

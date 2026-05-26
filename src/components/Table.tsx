@@ -16,6 +16,8 @@ interface TableProps {
   loading?: boolean;
   filters?: GridFilter[];
   searchPlaceholder?: string;
+  onSelect?: (row: Record<string, unknown>) => void;
+  rowClassName?: (row: Record<string, unknown>) => string | undefined;
 }
 
 const VIRTUAL_THRESHOLD = 50;
@@ -70,7 +72,9 @@ export const Table = memo(function Table({
   columns,
   loading = false,
   filters = [],
-  searchPlaceholder = 'Buscar'
+  searchPlaceholder = 'Buscar',
+  onSelect,
+  rowClassName
 }: TableProps) {
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
@@ -115,7 +119,12 @@ export const Table = memo(function Table({
       </div>
 
       {!filteredRows.length ? <EmptyState text="No hay registros con esos filtros." /> : useVirtual ? (
-        <VirtualTable rows={filteredRows as Record<string, unknown>[]} columns={columns as Array<[string, (row: Record<string, unknown>) => ReactNode]>} />
+        <VirtualTable
+          rows={filteredRows as Record<string, unknown>[]}
+          columns={columns as Array<[string, (row: Record<string, unknown>) => ReactNode]>}
+          onSelect={onSelect}
+          rowClassName={rowClassName}
+        />
       ) : (
         <>
           <div className="tbl-wrap">
@@ -123,7 +132,19 @@ export const Table = memo(function Table({
               <thead><tr>{columns.map(([label]) => <th key={label}>{label}</th>)}</tr></thead>
               <tbody>
                 {visibleRows.map((row, index) => (
-                  <tr key={String(row._id || row.id || index)}>
+                  <tr
+                    key={String(row._id || row.id || index)}
+                    className={[onSelect ? 'selectable' : '', rowClassName?.(row) || ''].filter(Boolean).join(' ') || undefined}
+                    role={onSelect ? 'button' : undefined}
+                    tabIndex={onSelect ? 0 : undefined}
+                    onClick={onSelect ? () => onSelect(row) : undefined}
+                    onKeyDown={onSelect ? (event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        onSelect(row);
+                      }
+                    } : undefined}
+                  >
                     {columns.map(([label, render]) => <td key={label}>{render(row)}</td>)}
                   </tr>
                 ))}

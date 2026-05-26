@@ -5,13 +5,17 @@ interface VirtualTableProps {
   columns: Array<[string, (row: Record<string, unknown>) => ReactNode]>;
   rowHeight?: number;
   maxHeight?: number;
+  onSelect?: (row: Record<string, unknown>) => void;
+  rowClassName?: (row: Record<string, unknown>) => string | undefined;
 }
 
 export const VirtualTable = memo(function VirtualTable({
   rows,
   columns,
   rowHeight = 56,
-  maxHeight = 400
+  maxHeight = 400,
+  onSelect,
+  rowClassName
 }: VirtualTableProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
@@ -49,7 +53,17 @@ export const VirtualTable = memo(function VirtualTable({
             {visibleRows.map((row, i) => (
               <div
                 key={startIndex + i}
+                className={[onSelect ? 'selectable' : '', rowClassName?.(row) || ''].filter(Boolean).join(' ') || undefined}
+                role={onSelect ? 'button' : undefined}
+                tabIndex={onSelect ? 0 : undefined}
                 style={{ display: 'table-row', height: rowHeight }}
+                onClick={onSelect ? () => onSelect(row) : undefined}
+                onKeyDown={onSelect ? (event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onSelect(row);
+                  }
+                } : undefined}
               >
                 {columns.map(([label, render]) => (
                   <div key={label} style={{ display: 'table-cell', padding: '12px 8px', verticalAlign: 'middle' }}>

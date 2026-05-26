@@ -50,9 +50,9 @@ export function LoginPage() {
         return;
       }
 
-      setMessage('No pudimos iniciar sesion. Revisa tu correo y contrasena.');
+      setMessage('No pudimos iniciar sesión. Revisa tu correo y contraseña.');
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'No pudimos iniciar sesion.');
+      setMessage(error instanceof Error ? error.message : 'No pudimos iniciar sesión.');
     } finally {
       setLoading(false);
     }
@@ -71,9 +71,9 @@ export function LoginPage() {
         redirectWithToken(response, token);
         return;
       }
-      setMessage('No pudimos seleccionar la organizacion.');
+      setMessage('No pudimos seleccionar la organización.');
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'No pudimos seleccionar la organizacion.');
+      setMessage(error instanceof Error ? error.message : 'No pudimos seleccionar la organización.');
     } finally {
       setLoading(false);
     }
@@ -87,7 +87,7 @@ export function LoginPage() {
         <div className="auth-hero-copy">
           <div className="auth-accent" />
           <h2>Excelencia en la administracion de barrios privados.</h2>
-          <p>Descubra la plataforma lider para gestionar consorcios con la tranquilidad y eficiencia que sus residentes merecen.</p>
+          <p>Descubra la plataforma líder para gestionar consorcios con la tranquilidad y eficiencia que sus residentes merecen.</p>
         </div>
       </section>
 
@@ -121,14 +121,14 @@ export function LoginPage() {
               </label>
               <label>
                 <span className="login-label-row">
-                  Contrasena
-                  <a href="mailto:soporte@gestionar.com">Olvido su contrasena?</a>
+                  Contraseña
+                  <a href="mailto:soporte@gestionar.com">¿Olvidó su contraseña?</a>
                 </span>
                 <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="••••••••" required />
               </label>
               <label className="remember-row">
                 <input type="checkbox" />
-                <span>Recordar mi sesion</span>
+                <span>Recordar mi sesión</span>
               </label>
               <button className="btn primary login-submit" type="submit" disabled={loading}>
                 {loading ? 'Ingresando...' : 'Ingresar'} <LogIn size={20} />
@@ -138,7 +138,7 @@ export function LoginPage() {
           )}
 
           <div className="login-support">
-            <p>No tiene una cuenta? <a href="mailto:soporte@gestionar.com">Contactar soporte</a></p>
+            <p>¿No tiene una cuenta? <a href="mailto:soporte@gestionar.com">Contactar soporte</a></p>
           </div>
         </div>
         <p className="login-footer">Gestionar © 2026</p>
