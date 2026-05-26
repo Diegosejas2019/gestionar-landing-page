@@ -1,4 +1,4 @@
-﻿import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useState, memo } from 'react';
+﻿import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle, Bell, Building2, CalendarCheck, CalendarDays, CheckCircle2, ChevronDown, ChevronRight,
   CreditCard, Download, FileText, Home, Inbox, Landmark, LogIn, LogOut, Mail, Megaphone, MessageSquare, MoreVertical,
@@ -24,7 +24,6 @@ import {
   PRIORITY_LABELS,
   STATUS_LABELS,
   adminInitials,
-  buildSparklinePoints,
   dateLabel,
   debtAmount,
   documentCategoryLabels,
@@ -38,18 +37,17 @@ import {
   money,
   normalizeNotice,
   orgLogoText,
-  paymentMethodLabels,
   person,
   pick,
   roleLabels,
   salaryPaidAmount,
   salaryRemainingAmount,
-  shortMonth,
   statusText,
   todayMonth,
   toLocalInput,
   unitLabel
 } from './adminFormat';
+import { Actions, BusyBanner, Empty, Field, Metric, Panel, PaymentChannel, SelectField, Status } from './adminComponents';
 
 type Notice = { type: 'ok' | 'error'; text: string } | null;
 type AdminInviteMode = 'new_user' | 'existing_owner';
@@ -96,85 +94,6 @@ const adminRoleDescriptions: Record<string, string> = {
   billing_manager: 'Puede ver propietarios, deudas, pagos y recibos, y registrar pagos.',
   communications_manager: 'Puede gestionar reclamos, avisos y comunicaciones.'
 };
-
-const Metric = memo(function Metric({ loading, label, value, hint, icon: Icon, delta, row }: {
-  loading?: boolean; label: string; value: string | number; hint?: string; icon: any; delta?: { text: string; trend: string }; row?: boolean
-}) {
-  if (row) {
-    return (
-      <div className={`metric-card metric-card-row ${loading ? 'skeleton' : ''}`}>
-        <div className="metric-icon"><Icon size={16} /></div>
-        <div className="metric-row-copy">
-          <span className="metric-label">{label}</span>
-          {hint && !loading && <span className="metric-hint">{hint}</span>}
-        </div>
-        {loading ? <div className="skeleton-val" /> : <span className="metric-value">{value}</span>}
-      </div>
-    );
-  }
-  return (
-    <div className={`metric-card ${loading ? 'skeleton' : ''}`}>
-      <div className="metric-icon"><Icon size={18} /></div>
-      <div className="metric-body">
-        <div className="metric-label">{label}</div>
-        {loading ? <div className="skeleton-val" /> : <div className="metric-value">{value}</div>}
-        {hint && !loading && <div className="metric-hint">{hint}</div>}
-        {delta && !loading && <div className={`metric-delta ${delta.trend}`}>{delta.text}</div>}
-      </div>
-    </div>
-  );
-});
-
-const Status = memo(function Status({ value, label }: { value?: string; label?: string }) {
-  const tone = (value === 'approved' || value === 'paid' || value === 'resolved' || value === 'exited' || value === 'active') ? 'pos'
-    : (value === 'rejected' || value === 'cancelled') ? 'neg'
-    : (value === 'pending' || value === 'partially_paid' || value === 'open' || value === 'in_progress' || value === 'inside' || value === 'leave') ? 'warn'
-    : (value === 'closed') ? 'muted'
-    : '';
-  return (
-    <span className={`pill ${tone}`}>
-      <span className="d" />
-      {label || statusText[value || ''] || value || '-'}
-    </span>
-  );
-});
-
-const Empty = memo(function Empty({ text = 'Sin datos para mostrar.' }: { text?: string }) {
-  return (
-    <div className="admin-empty">
-      <Inbox size={28} />
-      <span>{text}</span>
-    </div>
-  );
-});
-
-const PaymentChannel = memo(function PaymentChannel({ payment }: { payment: any }) {
-  const label = paymentMethodLabels[payment?.paymentMethod] || payment?.paymentMethod || '-';
-  const isMpPending = payment?.paymentMethod === 'mercadopago' && payment?.mpStatus === 'approved' && payment?.status === 'pending';
-  return (
-    <span className={`channel-pill ${isMpPending ? 'mp-pending' : ''}`}>
-      {label}{isMpPending ? ' acreditado' : ''}
-    </span>
-  );
-});
-
-const Field = memo(function Field(props: { label: string; name?: string; type?: string; placeholder?: string; defaultValue?: unknown; value?: unknown; required?: boolean; onChange?: (event: any) => void }) {
-  return (
-    <label className="admin-field">
-      <span>{props.label}</span>
-      <input name={props.name} type={props.type || 'text'} placeholder={props.placeholder} defaultValue={props.value === undefined ? String(props.defaultValue ?? '') : undefined} value={props.value === undefined ? undefined : String(props.value ?? '')} required={props.required} onChange={props.onChange} />
-    </label>
-  );
-});
-
-const SelectField = memo(function SelectField(props: { label: string; name: string; defaultValue?: unknown; children: ReactNode; onChange?: (event: any) => void }) {
-  return (
-    <label className="admin-field">
-      <span>{props.label}</span>
-      <select name={props.name} defaultValue={String(props.defaultValue ?? '')} onChange={props.onChange}>{props.children}</select>
-    </label>
-  );
-});
 
 function statusFilter(statuses: string[]): GridFilter {
   return {
@@ -4142,148 +4061,6 @@ export function AdminPreviewPage() {
   );
 }
 
-function MetricRow({ label, value, hint, delta, icon: _Icon, loading }: {
-  label: string; value: string | number; hint: string;
-  delta?: { text: string; trend: 'pos' | 'neg' | 'neutral' };
-  icon: any; loading?: boolean
-}) {
-  if (loading) {
-    return (
-      <article className="metric">
-        <div className="skeleton-line short" style={{ marginBottom: 8 }} />
-        <div className="skeleton-line big" />
-        <div className="skeleton-line" style={{ width: '55%', marginTop: 6 }} />
-      </article>
-    );
-  }
-
-  return (
-    <article className="metric">
-      <div className="m-label">{label}</div>
-      <div className="m-value">{value}</div>
-      {delta && <div className={`m-delta ${delta.trend}`}>{delta.text}</div>}
-      {hint && <div className="m-meta">{hint}</div>}
-    </article>
-  );
-}
-
-function Panel({ title, sub, icon: _Icon, action, children }: { title: string; sub?: string; icon: any; action?: ReactNode; children: ReactNode }) {
-  return (
-    <section className="card">
-      <div className="card-h">
-        <div>
-          <h3>{title}</h3>
-          {sub && <div className="card-sub">{sub}</div>}
-        </div>
-        {action && <div style={{ flexShrink: 0 }}>{action}</div>}
-      </div>
-      <div className="card-body">
-        {children}
-      </div>
-    </section>
-  );
-}
-
-function Actions({ children }: { children: ReactNode }) {
-  return <div className="row-actions">{children}</div>;
-}
-
-function BusyBanner() {
-  return (
-    <div className="admin-busy" role="status" aria-live="polite">
-      <span className="action-spinner" />
-      Ejecutando acción...
-    </div>
-  );
-}
-
-function CompactList({ rows, loading = false }: { rows: any[]; loading?: boolean }) {
-  if (loading) {
-    return (
-      <div className="compact-list">
-        {Array.from({ length: 5 }).map((_, index) => (
-          <div key={index} className="compact-skeleton">
-            <span className="skeleton-line" />
-            <span className="skeleton-line short" />
-            <span className="skeleton-pill" />
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (!rows?.length) return <Empty text="No hay pendientes abiertos." />;
-  const iconColor: Record<string, { bg: string; color: string }> = {
-    pending: { bg: 'rgba(245,194,101,0.12)', color: '#f5c265' },
-    open: { bg: 'rgba(245,194,101,0.12)', color: '#f5c265' },
-    in_progress: { bg: 'rgba(124,198,240,0.12)', color: '#7cc6f0' },
-    approved: { bg: 'rgba(110,232,151,0.12)', color: '#6ee897' },
-    rejected: { bg: 'rgba(240,138,138,0.12)', color: '#f08a8a' },
-  };
-  return (
-    <div className="compact-list">
-      {rows.map((row, index) => {
-        const ic = iconColor[row.status] || { bg: 'rgba(255,255,255,0.06)', color: 'var(--text-faint)' };
-        return (
-          <div key={idOf(row) || index}>
-            <div className="compact-list-icon" style={{ background: ic.bg, color: ic.color }}>
-              {row.amount ? <CreditCard size={15} /> : <MessageSquare size={15} />}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <b>{row.title || person(row)}</b>
-              <span>{row.amount ? money(row.amount) : row.description || row.month || dateLabel(row.createdAt)}</span>
-            </div>
-            <div className="compact-list-trail"><Status value={row.status} /></div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function MiniChart({
-  rows,
-  loading = false,
-  selectedMonth,
-  onSelect
-}: {
-  rows: any[];
-  loading?: boolean;
-  selectedMonth?: string;
-  onSelect?: (month: string) => void;
-}) {
-  if (loading) {
-    return (
-      <div className="mini-chart skeleton-chart">
-        {Array.from({ length: 12 }).map((_, index) => (
-          <div key={index}><span style={{ height: `${20 + ((index * 17) % 70)}%` }} /><small /></div>
-        ))}
-      </div>
-    );
-  }
-
-  if (!rows?.length) return <Empty text="Todavia no hay recaudacion registrada este ano." />;
-  const max = Math.max(...rows.map((item) => Number(item.total || 0)), 1);
-  return (
-    <div className="mini-chart">
-      {rows.map((item) => (
-        <button
-          key={item._id}
-          type="button"
-          className={selectedMonth === item._id ? 'active' : ''}
-          title={`${item._id}: ${money(item.total)} aprobados, ${item.pending || 0} pendientes`}
-          onClick={() => onSelect?.(item._id)}
-        >
-          <span className="chart-value">{money(item.total)}</span>
-          <span className="chart-bar" style={{ height: `${Number(item.total || 0) > 0 ? Math.max(8, (Number(item.total || 0) / max) * 100) : 4}%` }} />
-          <small>{shortMonth(String(item._id))}</small>
-          <em>{item.count || 0} pagos</em>
-        </button>
-      ))}
-    </div>
-  );
-}
-
 function AttentionHero({ payments, claims, loading, onFinanzas, onComunidad }: {
   payments: any[]; claims: any[]; loading: boolean;
   onFinanzas: () => void; onComunidad: () => void;
@@ -4335,136 +4112,6 @@ function AttentionHero({ payments, claims, loading, onFinanzas, onComunidad }: {
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-function CashflowSVG({ rows, loading, onSelect }: {
-  rows: any[]; loading: boolean; onSelect?: (month: string) => void;
-}) {
-  if (loading) {
-    return (
-      <div className="mini-chart skeleton-chart">
-        {Array.from({ length: 12 }).map((_, i) => (
-          <div key={i}><span style={{ height: `${20 + ((i * 17) % 70)}%` }} /><small /></div>
-        ))}
-      </div>
-    );
-  }
-  if (!rows?.length) return <Empty text="Sin datos de recaudación aún." />;
-
-  const values = rows.map((r) => Number(r.total || 0));
-  const max = Math.max(...values, 1);
-  const labels = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  const W = 640, H = 160, pad = 28;
-  const step = (W - pad) / (rows.length - 1 || 1);
-  const pts = values.map((v, i) => [i * step + pad / 2, H - 20 - (v / max) * (H - 36)]);
-  const line = pts.map(([x, y]) => `${x},${y}`).join(' ');
-  const area = `M ${pad / 2} ${H - 20} L ${pts.map(([x, y]) => `${x} ${y}`).join(' L ')} L ${(rows.length - 1) * step + pad / 2} ${H - 20} Z`;
-  const lastIdx = rows.length - 1;
-
-  return (
-    <div className="cf-chart-wrap">
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', overflow: 'visible' }}>
-        <defs>
-          <linearGradient id="cf-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--acc-1)" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="var(--acc-1)" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        {[0, 0.33, 0.66, 1].map((p, i) => (
-          <line key={i} x1={pad / 2} y1={16 + p * (H - 36)} x2={W - pad / 2} y2={16 + p * (H - 36)}
-            stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
-        ))}
-        <path d={area} fill="url(#cf-grad)" />
-        <polyline points={line} fill="none" stroke="var(--acc-1)" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
-        {pts.map(([x, y], i) => (
-          <circle key={i} cx={x} cy={y} r={i === lastIdx ? 3.5 : 0} fill="var(--acc-1)" stroke="var(--surface)" strokeWidth="2" />
-        ))}
-        {rows.map((r, i) => {
-          const isLast = i === lastIdx;
-          const [x] = pts[i];
-          return (
-            <g key={i} style={{ cursor: 'pointer' }} onClick={() => onSelect?.(String(r._id))}>
-              <rect x={x - step / 2} y={0} width={step} height={H} fill="transparent" />
-              <text x={x} y={H - 4} fontSize="9.5" fill={isLast ? 'var(--acc-1)' : 'var(--ink-3)'}
-                textAnchor="middle" fontFamily="var(--font-mono)" fontWeight={isLast ? '600' : '400'}>
-                {labels[i]}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
-    </div>
-  );
-}
-
-function ActivityFeed({ payments, claims, notices, loading }: {
-  payments: any[]; claims: any[]; notices: any[]; loading: boolean;
-}) {
-  if (loading) {
-    return (
-      <div className="compact-list">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="compact-skeleton">
-            <span className="skeleton-line" /><span className="skeleton-line short" /><span className="skeleton-pill" />
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  type FeedItem = { tone: string; icon: ReactNode; who: string; what: string; amount?: string; when: string };
-  const items: FeedItem[] = [];
-
-  const approvedPayments = (payments || []).filter((p) => p.status === 'approved').slice(0, 3);
-  approvedPayments.forEach((p) => {
-    items.push({
-      tone: 'pos',
-      icon: <CheckCircle2 size={12} />,
-      who: person(p),
-      what: `pagó expensas${p.month ? ` ${p.month}` : ''}`,
-      amount: money(p.amount),
-      when: dateLabel(p.updatedAt || p.createdAt),
-    });
-  });
-
-  const recentClaims = (claims || []).filter((c) => c.status === 'open').slice(0, 2);
-  recentClaims.forEach((c) => {
-    items.push({
-      tone: 'warn',
-      icon: <AlertTriangle size={12} />,
-      who: person(c),
-      what: `envió un reclamo: ${c.title || c.description || ''}`,
-      when: dateLabel(c.createdAt),
-    });
-  });
-
-  const recentNotices = (notices || []).slice(0, 2);
-  recentNotices.forEach((n) => {
-    items.push({
-      tone: 'info',
-      icon: <Megaphone size={12} />,
-      who: 'Comunicado',
-      what: n.title || '',
-      when: dateLabel(n.createdAt),
-    });
-  });
-
-  if (!items.length) return <Empty text="Sin actividad reciente." />;
-
-  return (
-    <div className="activity-feed">
-      {items.map((it, i) => (
-        <div key={i} className="activity-item">
-          <div className={`activity-icon ${it.tone}`}>{it.icon}</div>
-          <div className="activity-body">
-            <span className="act-text"><b>{it.who}</b> {it.what}</span>
-            {it.amount && <span className="act-amount">{it.amount}</span>}
-            <span className="act-time">{it.when}</span>
-          </div>
-        </div>
-      ))}
     </div>
   );
 }
@@ -4758,88 +4405,6 @@ function OpenClaimsSection({ claims, loading, onNavigate }: {
   );
 }
 
-function BalanceHero({ totalIncome, totalExpenses, year, loading }: {
-  totalIncome: number; totalExpenses: number; year: number; loading: boolean;
-}) {
-  if (loading) {
-    return (
-      <div className="balance-hero">
-        <div className="skeleton-line short" style={{ marginBottom: 12 }} />
-        <div className="skeleton-line big" style={{ marginBottom: 10 }} />
-        <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
-          <div className="skeleton-line" style={{ flex: 1 }} />
-          <div className="skeleton-line" style={{ flex: 1 }} />
-        </div>
-      </div>
-    );
-  }
-  const balance = (totalIncome || 0) - (totalExpenses || 0);
-  return (
-    <div className="balance-hero">
-      <div className="balance-hero-top">
-        <div className="balance-hero-label"><span className="dot" />BALANCE {year}</div>
-        <div className="balance-hero-ytd">YTD</div>
-      </div>
-      <div className="balance-hero-amt">
-        <span className="balance-cur">$</span>
-        <span className="balance-num">{fmtK(balance)}</span>
-      </div>
-      <div className="balance-hero-sub" style={{ color: balance >= 0 ? 'var(--pos)' : 'var(--neg)' }}>
-        {balance >= 0 ? '↑ ingresos superan los gastos' : '↓ gastos superan los ingresos'}
-      </div>
-      <div className="balance-flow">
-        <div className="balance-flow-item in">
-          <div className="balance-flow-lbl">Ingresos</div>
-          <div className="balance-flow-val in">${fmtK(totalIncome)}</div>
-        </div>
-        <div className="balance-flow-item out">
-          <div className="balance-flow-lbl">Gastos</div>
-          <div className="balance-flow-val out">${fmtK(totalExpenses)}</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function KpiRow({ ownerStats, monthly, loading }: { ownerStats: any; monthly: any[]; loading: boolean }) {
-  if (loading) {
-    return (
-      <div className="kpi-row">
-        <div className="kpi-card"><div className="skeleton-line short" /><div className="skeleton-line big" style={{ marginTop: 8 }} /></div>
-        <div className="kpi-card"><div className="skeleton-line short" /><div className="skeleton-line big" style={{ marginTop: 8 }} /></div>
-      </div>
-    );
-  }
-  const complianceSpark = buildSparklinePoints(monthly.map((m) => m.count || 0));
-  const debtorSpark = buildSparklinePoints(monthly.map((m) => (m.pending || 0) + (m.rejected || 0)));
-  return (
-    <div className="kpi-row">
-      <div className="kpi-card">
-        <div className="kpi-card-top">
-          <span className="kpi-lbl">CUMPLIMIENTO</span>
-          <span className="kpi-ico ok">✓</span>
-        </div>
-        <div className="kpi-val ok">{ownerStats?.complianceRate || 0}%</div>
-        <div className="kpi-sub">{ownerStats?.upToDate || 0} de {ownerStats?.totalOwners || 0}</div>
-        <svg className="kpi-spark" viewBox="0 0 50 20" preserveAspectRatio="none">
-          <polyline points={complianceSpark} fill="none" stroke="var(--pos)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
-      <div className="kpi-card alert">
-        <div className="kpi-card-top">
-          <span className="kpi-lbl">MOROSOS</span>
-          <span className="kpi-ico alert">!</span>
-        </div>
-        <div className="kpi-val alert">{ownerStats?.debtors || 0}</div>
-        <div className="kpi-sub">{ownerStats?.pendingPayments || 0} pendiente{(ownerStats?.pendingPayments || 0) !== 1 ? 's' : ''}</div>
-        <svg className="kpi-spark" viewBox="0 0 50 20" preserveAspectRatio="none">
-          <polyline points={debtorSpark} fill="none" stroke="var(--neg)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
-    </div>
-  );
-}
-
 function PeriodTabs({ value, onChange }: { value: string; onChange: (v: 'mes' | 'trimestre' | 'año' | 'todo') => void }) {
   const opts: Array<{ key: 'mes' | 'trimestre' | 'año' | 'todo'; label: string }> = [
     { key: 'mes', label: 'Mes' },
@@ -4896,53 +4461,6 @@ function ExpenseBreakdown({ yearExpenses, loading }: { yearExpenses: any[]; load
             <div className="expense-bd-bar">
               <div className="expense-bd-fill" style={{ width: `${Math.max(cat.pct, 2)}%`, background: cat.color }} />
             </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function TopMovers({ yearPayments, owners, loading }: { yearPayments: any[]; owners: any[]; loading: boolean }) {
-  if (loading) return null;
-  const payerMap: Record<string, { owner: any; total: number; count: number }> = {};
-  (yearPayments || []).forEach((p) => {
-    if (!p.owner) return;
-    const id = p.owner._id || p.owner;
-    if (!payerMap[id]) payerMap[id] = { owner: p.owner, total: 0, count: 0 };
-    payerMap[id].total += Number(p.amount || 0);
-    payerMap[id].count++;
-  });
-  const topPayers = Object.values(payerMap).sort((a, b) => b.total - a.total).slice(0, 3);
-  const topDebtors = (owners || [])
-    .filter((o) => (o.totalOwed || 0) > 0)
-    .sort((a, b) => (b.totalOwed || 0) - (a.totalOwed || 0))
-    .slice(0, 3);
-
-  if (!topPayers.length && !topDebtors.length) return null;
-
-  return (
-    <div className="top-movers card" style={{ marginBottom: 16 }}>
-      <div className="card-h"><h3>Top propietarios</h3></div>
-      <div style={{ padding: 0 }}>
-        {topPayers.map(({ owner, total, count }) => (
-          <div key={idOf(owner)} className="mover-row">
-            <div className="mover-ava">{adminInitials(owner.name || '')}</div>
-            <div className="mover-info">
-              <div className="mover-name">{owner.name}</div>
-              <div className="mover-meta">{owner.unit ? owner.unit + ' · ' : ''}{count} PAGO{count !== 1 ? 'S' : ''} APROBADOS</div>
-            </div>
-            <div className="mover-amt pos">+${fmtK(total)}<span className="mover-tag">YTD</span></div>
-          </div>
-        ))}
-        {topDebtors.map((o) => (
-          <div key={idOf(o)} className="mover-row">
-            <div className="mover-ava debtor">{adminInitials(o.name || '')}</div>
-            <div className="mover-info">
-              <div className="mover-name">{o.name}</div>
-              <div className="mover-meta">{o.unit ? o.unit + ' · ' : ''}MOROSO</div>
-            </div>
-            <div className="mover-amt neg">−${fmtK(o.totalOwed || 0)}<span className="mover-tag">DEUDA</span></div>
           </div>
         ))}
       </div>
