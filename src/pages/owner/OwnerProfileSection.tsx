@@ -78,7 +78,9 @@ export function OwnerProfileSection({ user, membership, onUserUpdate }: Props) {
 
   return (
     <div>
-      <h2 style={{ margin: '0 0 20px', fontSize: 22, fontWeight: 700 }}>Mi perfil</h2>
+      <div className="admin-page-head">
+        <div><h1 className="admin-page-title">Mi perfil</h1></div>
+      </div>
 
       <div style={{ display: 'grid', gap: 20, gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
 

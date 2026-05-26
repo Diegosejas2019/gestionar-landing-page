@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Bell, Building2, CreditCard, FileText, Home, LogOut,
-  MessageSquare, Megaphone, Receipt, User, WalletCards
+  MessageSquare, Receipt, User, WalletCards
 } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
 import { clearAuthToken, getAuthToken, goAdmin, goLogin } from '../../services/navigationService';
@@ -105,8 +105,8 @@ export function OwnerPage() {
       });
   }, []);
 
-  // Guard: hide tabs for disabled features
   const visibleNav = NAV.filter(item => !item.feature || features[item.feature] !== false);
+  const ActiveIcon = visibleNav.find(n => n.key === tab)?.icon ?? Home;
 
   // If hidden tab is active, redirect to inicio
   useEffect(() => {
@@ -183,7 +183,7 @@ export function OwnerPage() {
       <main className="admin-workspace">
         <div className="admin-topbar">
           <div className="admin-topbar-crumbs">
-            <Megaphone size={14} />
+            <ActiveIcon size={14} />
             <span className="sep">/</span>
             <span className="cur">{TAB_LABELS[tab]}</span>
           </div>

@@ -58,7 +58,9 @@ export function OwnerPaymentsSection() {
 
   return (
     <div>
-      <h2 style={{ margin: '0 0 20px', fontSize: 22, fontWeight: 700 }}>Pagar expensas</h2>
+      <div className="admin-page-head">
+        <div><h1 className="admin-page-title">Pagar expensas</h1></div>
+      </div>
 
       {error && <div className="admin-notice error" style={{ marginBottom: 16 }}>{error}</div>}
 

@@ -27,7 +27,9 @@ export function OwnerAccountSection() {
 
   return (
     <div>
-      <h2 style={{ margin: '0 0 20px', fontSize: 22, fontWeight: 700 }}>Mi cuenta</h2>
+      <div className="admin-page-head">
+        <div><h1 className="admin-page-title">Mi cuenta</h1></div>
+      </div>
 
       <div className="metric-grid" style={{ marginBottom: 24 }}>
         <Metric

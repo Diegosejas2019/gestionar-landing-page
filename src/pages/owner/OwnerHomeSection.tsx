@@ -69,15 +69,15 @@ export function OwnerHomeSection({ user, features }: Props) {
 
   return (
     <div>
-      <div style={{ marginBottom: 20 }}>
-        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>
-          Bienvenido{user?.name ? `, ${user.name.split(' ')[0]}` : ''}
-        </h2>
-        {unitNames !== '-' && (
-          <p style={{ margin: '4px 0 0', color: 'var(--text-faint)', fontSize: 13 }}>
-            Unidad{units.length > 1 ? 'es' : ''}: {unitNames}
-          </p>
-        )}
+      <div className="admin-page-head">
+        <div>
+          <h1 className="admin-page-title">
+            Bienvenido{user?.name ? `, ${user.name.split(' ')[0]}` : ''}
+          </h1>
+          {unitNames !== '-' && (
+            <div className="admin-page-sub">Unidad{units.length > 1 ? 'es' : ''}: {unitNames}</div>
+          )}
+        </div>
       </div>
 
       {/* Status metrics */}

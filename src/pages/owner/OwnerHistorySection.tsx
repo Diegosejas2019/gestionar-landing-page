@@ -47,7 +47,9 @@ export function OwnerHistorySection() {
 
   return (
     <div>
-      <h2 style={{ margin: '0 0 20px', fontSize: 22, fontWeight: 700 }}>Historial de pagos</h2>
+      <div className="admin-page-head">
+        <div><h1 className="admin-page-title">Historial de pagos</h1></div>
+      </div>
 
       {error && <div className="admin-notice error" style={{ marginBottom: 16 }}>{error}</div>}
 

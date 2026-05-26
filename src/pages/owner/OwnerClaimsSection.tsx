@@ -68,21 +68,22 @@ export function OwnerClaimsSection() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
-        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>
-          Reclamos
-          {openCount > 0 && (
-            <span className="pill warn" style={{ marginLeft: 10, fontSize: 13 }}>
-              <span className="d" />{openCount} abierto{openCount !== 1 ? 's' : ''}
-            </span>
-          )}
-        </h2>
-        <button
-          onClick={() => { setShowForm(!showForm); setNotice(null); }}
-          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 16px', background: 'var(--green)', border: 0, borderRadius: 10, color: '#0e1512', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
-        >
-          <Plus size={15} /> Nuevo reclamo
-        </button>
+      <div className="admin-page-head">
+        <div>
+          <h1 className="admin-page-title">
+            Reclamos
+            {openCount > 0 && (
+              <span className="pill warn" style={{ marginLeft: 10, fontSize: 13 }}>
+                <span className="d" />{openCount} abierto{openCount !== 1 ? 's' : ''}
+              </span>
+            )}
+          </h1>
+        </div>
+        <div className="admin-page-actions">
+          <button className="btn btn-primary" onClick={() => { setShowForm(!showForm); setNotice(null); }}>
+            <Plus size={14} /> Nuevo reclamo
+          </button>
+        </div>
       </div>
 
       {error && <div className="admin-notice error" style={{ marginBottom: 16 }}>{error}</div>}
