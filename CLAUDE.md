@@ -66,22 +66,42 @@ src/
     apiClient.ts
     authService.ts
     adminService.ts
+    joinService.ts
+    navigationService.ts
+    cache.ts
+  components/
+    Table.tsx
+    VirtualTable.tsx
   pages/
     public/
       HomePage.tsx
+      JoinPage.tsx
     auth/
       LoginPage.tsx
     admin/
-      AdminPreviewPage.tsx
+      AdminPreviewPage.tsx       # orquestador principal del dashboard
+      AdminFinanceSection.tsx    # sección Finanzas
+      AdminNoticesSection.tsx    # sección Avisos / Comunidad
+      AdminOwnersUnitsSection.tsx # sección Propietarios y Unidades
+      AdminDelinquencyPlansSection.tsx # sección Morosidad y Planes de pago
+      AdminEmployeesSalariesSection.tsx # sección Empleados y Sueldos
+      AdminVotesSection.tsx      # sección Votaciones
+      adminComponents.tsx        # componentes atómicos reutilizables del dashboard
+      adminWidgets.tsx           # widgets compuestos del dashboard
     super-admin/
       SuperAdminPage.tsx
 ```
 
 Notas:
 
-- `AdminPreviewPage.tsx` ya no es solo preview: contiene el dashboard web funcional.
-- El nombre del archivo puede cambiarse mas adelante, pero hoy la ruta `/admin` lo usa directamente.
+- `AdminPreviewPage.tsx` es el orquestador; cada módulo del dashboard vive en su propio archivo de sección.
+- `adminComponents.tsx` exporta `Field`, `Actions`, `Status`, `Metric` y similares usados en todas las secciones.
+- `adminWidgets.tsx` exporta widgets más complejos (gráficos, paneles combinados).
+- `Table.tsx` es el componente de tabla estándar; `VirtualTable.tsx` se usa para grillas con muchos registros.
 - `adminService.ts` centraliza los endpoints del panel admin.
+- `joinService.ts` maneja el flujo de alta pública via enlace de registro.
+- `navigationService.ts` centraliza el token (`gestionar_token`), helpers de navegación y la URL de la PWA.
+- `cache.ts` provee caché en memoria para reducir requests redundantes.
 - `SuperAdminPage.tsx` contiene el dashboard global interno del SaaS.
 
 ## Rutas
@@ -92,8 +112,9 @@ Definidas en `src/App.tsx`:
 - `/login`: login administrativo.
 - `/admin`: dashboard privado.
 - `/super-admin`: dashboard global interno del SaaS.
+- `/join/:code`: página pública de solicitud de acceso (propietario se une a una organización via enlace).
 
-No hay React Router instalado. Mantener routing simple salvo que exista una razon clara para migrar.
+No hay React Router instalado. El matching de `/join/` usa `path.startsWith('/join/')`. Mantener routing simple salvo que exista una razon clara para migrar.
 
 ## Landing Publica
 
@@ -213,9 +234,35 @@ Centraliza endpoints del dashboard:
 - `reservations`
 - `support`
 - `config`
+- `delinquency`
+- `unidentifiedPayments`
+- `accessRequests`
+- `renditions`
 - `superAdminApi.organizations`
 
 Mantener este archivo como punto unico para llamadas del dashboard.
+
+### `joinService.ts`
+
+Flujo de alta pública via enlace de registro:
+
+- `getJoinOrganization(code)` — GET `/join/:code`, retorna nombre y metadatos de la org
+- `submitJoinRequest(code, payload)` — POST `/join/:code`, envía solicitud con nombre, email, phone, unidad
+
+### `navigationService.ts`
+
+Centraliza token y navegación:
+
+- `TOKEN_KEY` = `'gestionar_token'`
+- `PWA_URL` = URL de la PWA de propietarios
+- `getAuthToken()`, `setAuthToken(token)`, `clearAuthToken()`
+- `goHome()`, `goLogin()`, `goAdmin()`, `goSuperAdmin()`
+- `goOwnerApp(token)` — redirige a la PWA con el token como hash param
+- `goDashboardForRole(role?)` — redirige a `/super-admin` o `/admin` según rol
+
+### `cache.ts`
+
+Caché en memoria para reducir requests redundantes en el dashboard.
 
 ## Dashboard Web
 
@@ -244,6 +291,12 @@ Navegacion actual:
 - Comunidad
 - Operaciones
 - Proveedores
+- Morosidad
+- Planes de pago
+- Pagos sin identificar
+- Solicitudes de acceso
+- Empleados
+- Sueldos
 - Soporte
 - Configuracion
 
@@ -495,6 +548,41 @@ Dashboard/admin:
 - `PATCH /support-tickets/:id`
 - `GET /config`
 - `PATCH /config`
+- `GET /delinquency/summary`
+- `GET /delinquency/owners`
+- `GET /delinquency/aging`
+- `GET /delinquency/export`
+- `GET /delinquency/owners/:ownerId`
+- `GET /delinquency/owners/:ownerId/export`
+- `POST /delinquency/owners/:ownerId/reminders`
+- `GET /unidentified-payments`
+- `POST /unidentified-payments`
+- `GET /unidentified-payments/:id`
+- `PUT /unidentified-payments/:id`
+- `DELETE /unidentified-payments/:id`
+- `GET /unidentified-payments/:id/suggestions`
+- `POST /unidentified-payments/:id/associate`
+- `POST /unidentified-payments/:id/reject`
+- `POST /unidentified-payments/:id/archive`
+- `GET /access-requests/settings`
+- `PATCH /access-requests/settings`
+- `POST /access-requests/regenerate-code`
+- `GET /access-requests`
+- `GET /access-requests/:id`
+- `POST /access-requests/:id/approve`
+- `POST /access-requests/:id/reject`
+- `GET /renditions/preview`
+- `GET /renditions/history`
+- `GET /renditions/annual`
+- `POST /renditions/:period/generate-pdf`
+- `GET /renditions/:period/export-csv`
+- `PATCH /renditions/:period/observations`
+
+Endpoints de la landing pública:
+
+- `GET /join/:code`
+- `POST /join/:code`
+- `POST /contact/demo-request`
 
 Antes de cambiar payloads o nombres de campos, revisar los controladores/modelos de `../consorcio-api`.
 
