@@ -1,6 +1,7 @@
 import { Suspense, lazy } from 'react';
 import { LoginPage } from './pages/auth/LoginPage';
 import { HomePage } from './pages/public/HomePage';
+import { JoinPage } from './pages/public/JoinPage';
 
 const AdminPreviewPage = lazy(() => import(
   /* webpackPrefetch: true */
@@ -33,6 +34,10 @@ export function App() {
 
   if (path.startsWith('/login')) {
     return <LoginPage />;
+  }
+
+  if (path.startsWith('/join/')) {
+    return <JoinPage />;
   }
 
   if (path.startsWith('/super-admin')) {

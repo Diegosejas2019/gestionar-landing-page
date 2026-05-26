@@ -94,7 +94,7 @@ const nav = [
   { key: 'empleados', label: 'Empleados', icon: UserRoundCog },
   { key: 'sueldos', label: 'Sueldos', icon: WalletCards },
   { key: 'propietarios', label: 'Comunidad', icon: Users },
-  { key: 'solicitudes', label: 'Solicitudes', icon: Inbox },
+  { key: 'solicitudes', label: 'Registro autónomo', icon: Inbox },
   { key: 'comunicados', label: 'Comunicados', icon: Megaphone },
   { key: 'reclamos', label: 'Reclamos', icon: MessageSquare },
   { key: 'votaciones', label: 'Votaciones', icon: Vote },
@@ -755,6 +755,11 @@ export function AdminPreviewPage() {
     if (item.priority === 'urgent') acc.urgent = (acc.urgent || 0) + 1;
     return acc;
   }, { sent: 0, scheduled: 0, draft: 0, urgent: 0 }), [normalizedNotices]);
+  const publicJoinUrl = useMemo(() => (
+    accessSettings?.publicJoinCode
+      ? `${window.location.origin}/join/${encodeURIComponent(accessSettings.publicJoinCode)}`
+      : ''
+  ), [accessSettings?.publicJoinCode]);
 
   const delinquencyParams = useCallback((overrides: Record<string, unknown> = {}) => {
     const merged = { ...delinquencyFilters, ...overrides };
@@ -1254,6 +1259,16 @@ export function AdminPreviewPage() {
 
   async function regenerateAccessCode() {
     await run('access-code', () => adminApi.accessRequests.regenerateCode(), 'Código regenerado.');
+  }
+
+  async function copyAccessJoinLink() {
+    if (!publicJoinUrl) return;
+    try {
+      await navigator.clipboard.writeText(publicJoinUrl);
+      setNotice({ type: 'ok', text: 'Enlace copiado.' });
+    } catch {
+      setNotice({ type: 'error', text: 'No pudimos copiar el enlace. Podés seleccionarlo manualmente.' });
+    }
   }
 
   async function openDelinquencyDetail(ownerId: string) {
@@ -2753,8 +2768,8 @@ export function AdminPreviewPage() {
             <div className="admin-page-head">
               <div>
                 <div className="admin-page-kicker"><span className="dot" />Comunidad</div>
-                <h1 className="admin-page-title">Solicitudes de acceso</h1>
-                <div className="admin-page-sub">Altas enviadas desde el registro autónomo de la organización</div>
+                <h1 className="admin-page-title">Registro autónomo de propietarios</h1>
+                <div className="admin-page-sub">Solicitudes de alta enviadas por propietarios desde el enlace público</div>
               </div>
               <div className="admin-page-actions">
                 <label className="admin-field" style={{ minWidth: 180 }}>
@@ -2771,13 +2786,27 @@ export function AdminPreviewPage() {
             </div>
             <div className="admin-panel">
               <div className="panel-head"><h2><Settings size={14} />Registro autónomo</h2></div>
-              <div className="admin-page-actions" style={{ justifyContent: 'flex-start' }}>
-                <span className={`pill ${accessSettings?.publicJoinEnabled ? 'pos' : 'muted'}`}><span className="d" />{accessSettings?.publicJoinEnabled ? 'Habilitado' : 'Deshabilitado'}</span>
-                {accessSettings?.publicJoinCode && <span className="chip is-active">Código: {accessSettings.publicJoinCode}</span>}
-                <button className="btn btn-ghost" onClick={() => toggleAccessRequestSettings(!accessSettings?.publicJoinEnabled)}>
-                  {accessSettings?.publicJoinEnabled ? 'Deshabilitar' : 'Habilitar'}
-                </button>
-                <button className="btn btn-ghost" onClick={regenerateAccessCode}>Regenerar código</button>
+              <div className="access-link-box">
+                <div>
+                  <span className={`pill ${accessSettings?.publicJoinEnabled ? 'pos' : 'muted'}`}><span className="d" />{accessSettings?.publicJoinEnabled ? 'Habilitado' : 'Deshabilitado'}</span>
+                  <p>Compartí este enlace para que los propietarios pidan acceso sin cargarlos manualmente.</p>
+                </div>
+                {publicJoinUrl ? (
+                  <div className="access-link-row">
+                    <input value={publicJoinUrl} readOnly onFocus={(event) => event.currentTarget.select()} />
+                    <button className="btn btn-ghost" onClick={copyAccessJoinLink}>Copiar</button>
+                    <a className="btn btn-ghost" href={publicJoinUrl} target="_blank" rel="noreferrer">Abrir</a>
+                  </div>
+                ) : (
+                  <p className="admin-form-note">Generá un código para crear el enlace de registro.</p>
+                )}
+                <div className="admin-page-actions" style={{ justifyContent: 'flex-start' }}>
+                  {accessSettings?.publicJoinCode && <span className="chip is-active">Código: {accessSettings.publicJoinCode}</span>}
+                  <button className="btn btn-ghost" onClick={() => toggleAccessRequestSettings(!accessSettings?.publicJoinEnabled)}>
+                    {accessSettings?.publicJoinEnabled ? 'Deshabilitar' : 'Habilitar'}
+                  </button>
+                  <button className="btn btn-ghost" onClick={regenerateAccessCode}>Regenerar código</button>
+                </div>
               </div>
             </div>
             <div className="admin-panel">

@@ -1889,6 +1889,75 @@ footer {
   border-color: #a6f285;
   box-shadow: 0 0 0 3px rgba(166,242,133,.16);
 }
+.join-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(430px, 32vw);
+  background: #0e1510;
+  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+}
+.join-hero {
+  position: relative;
+  display: flex;
+  min-height: 100vh;
+  align-items: flex-end;
+  overflow: hidden;
+  padding: 64px;
+  background:
+    linear-gradient(0deg, rgba(9,16,11,.9) 0%, rgba(9,16,11,.28) 54%, rgba(9,16,11,.1) 100%),
+    linear-gradient(270deg, #0e1510 0%, rgba(14,21,16,.5) 28%, rgba(14,21,16,0) 58%),
+    url('https://lh3.googleusercontent.com/aida-public/AB6AXuDzi_HVtOUmQrehA8TNL6qa02_BREsVFoCM1Rd4ZUWdjE2AkWagFUDcJnRqGCEvY_2Eu_e5b3EnZxr6L_inTnFoEVTAiKDiw_3NLgGjkKbcSB0MNkZCvUKzJoHSJ7loEASz3WGjPgIlShI_8lw8rB6PNW0ydGfb04IB6L9Wi47qkbLhIs4v1OG9Z6s4Hr9AWYeRnaUN6RBxOMCl_uukSjBBKuh86iMAfnnhVQ3z4Hi48qu7jRW25PMm9CI811azQSU0WXgpPjkD_4U') center / cover;
+}
+.join-panel {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 64px 48px 40px;
+  background: #09100b;
+  border-left: 1px solid rgba(65,73,59,.24);
+}
+.join-card textarea {
+  width: 100%;
+  min-height: 110px;
+  resize: vertical;
+  background: #242c26;
+  border: 1px solid rgba(139,148,131,.22);
+  color: #dde5dc;
+  border-radius: 10px;
+  padding: 18px 24px;
+  font: 500 16px 'Manrope', 'Inter', system-ui, sans-serif;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.join-card textarea::placeholder {
+  color: rgba(192,201,183,.38);
+}
+.join-card textarea:focus {
+  outline: none;
+  border-color: #a6f285;
+  box-shadow: 0 0 0 3px rgba(166,242,133,.16);
+}
+.join-success {
+  display: grid;
+  gap: 12px;
+  padding: 22px;
+  border: 1px solid rgba(166,242,133,.24);
+  background: rgba(166,242,133,.08);
+  border-radius: 14px;
+  color: #dde5dc;
+}
+.join-success svg {
+  color: #a6f285;
+}
+.join-success strong {
+  color: #f3f7f1;
+  font-size: 20px;
+}
+.join-success span {
+  color: #c0c9b7;
+  line-height: 1.5;
+}
 .btn.primary, .btn.btn-primary { background: var(--green); color: var(--bg); }
 .btn.ghost, .btn.btn-ghost {
   background: transparent;
@@ -2533,6 +2602,35 @@ footer {
   text-transform: none;
   letter-spacing: 0;
   line-height: 1.6;
+}
+.access-link-box {
+  display: grid;
+  gap: 14px;
+}
+.access-link-box p {
+  margin: 10px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.access-link-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+}
+.access-link-row input {
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-bright);
+  padding: 0 12px;
+  font: 600 13px var(--font);
+}
+.access-link-row input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(156,242,123,.12);
 }
 .admin-invite-mode {
   grid-column: 1 / -1;
@@ -3534,16 +3632,19 @@ footer {
 }
 
 @media (max-width: 1120px) {
-  .auth-page {
+  .auth-page,
+  .join-page {
     grid-template-columns: 1fr minmax(390px, 38vw);
   }
-  .auth-visual {
+  .auth-visual,
+  .join-hero {
     padding: 44px;
   }
   .auth-secure {
     left: 44px;
   }
-  .login-panel {
+  .login-panel,
+  .join-panel {
     padding: 54px 34px 34px;
   }
   .admin-shell { grid-template-columns: minmax(0, 1fr); }
@@ -3745,14 +3846,17 @@ footer {
   .modal-actions button {
     width: 100%;
   }
-  .auth-page {
+  .auth-page,
+  .join-page {
     grid-template-columns: 1fr;
     min-height: 100svh;
   }
-  .auth-visual {
+  .auth-visual,
+  .join-hero {
     display: none;
   }
-  .login-panel {
+  .login-panel,
+  .join-panel {
     min-height: 100svh;
     padding: 92px 24px 28px;
   }
@@ -3772,6 +3876,15 @@ footer {
   }
   .login-card input {
     height: 58px;
+  }
+  .join-card textarea {
+    min-height: 96px;
+  }
+  .access-link-row {
+    grid-template-columns: 1fr;
+  }
+  .access-link-row .btn {
+    justify-content: center;
   }
   .login-submit {
     height: 62px;
