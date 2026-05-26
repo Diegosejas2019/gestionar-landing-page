@@ -188,6 +188,8 @@ export function AdminFinanceSection({ ctx }: AdminFinanceSectionProps) {
                       <SelectField label="Categoria" name="category" defaultValue="maintenance">
                         <option value="cleaning">Limpieza</option><option value="security">Seguridad</option><option value="maintenance">Mantenimiento</option><option value="utilities">Servicios</option><option value="administration">Administracion</option><option value="other">Otros</option>
                       </SelectField>
+                      <Field label="N° Factura" name="invoiceNumber" placeholder="A0001-00001234" />
+                      <Field label="CUIT emisor" name="invoiceCuit" placeholder="20-12345678-0" />
                       <button className="btn btn-primary" disabled={busy === 'expense'}>Guardar gasto</button>
                     </form>
                   </Panel>
