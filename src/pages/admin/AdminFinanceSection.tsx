@@ -25,6 +25,9 @@ export function AdminFinanceSection({ ctx }: AdminFinanceSectionProps) {
 
   const [expReceiptFile, setExpReceiptFile] = useState<File | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [annualYear, setAnnualYear] = useState(new Date().getFullYear());
+  const [annualData, setAnnualData] = useState<any>(null);
+  const [annualLoading, setAnnualLoading] = useState(false);
 
   function handleExpenseSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -61,6 +64,19 @@ export function AdminFinanceSection({ ctx }: AdminFinanceSectionProps) {
       }
     } catch { /* ignorar */ }
     finally { setAnalyzing(false); }
+  }
+
+  async function loadAnnualRendition() {
+    setAnnualLoading(true);
+    setAnnualData(null);
+    try {
+      const res = await adminApi.renditions.annual(annualYear);
+      setAnnualData(res?.data || null);
+    } catch (e: any) {
+      setAnnualData({ error: e?.message || 'Error al cargar el cierre anual.' });
+    } finally {
+      setAnnualLoading(false);
+    }
   }
 
   return (
@@ -191,6 +207,68 @@ export function AdminFinanceSection({ ctx }: AdminFinanceSectionProps) {
                       ]} />
                     </div>
                   )}
+                </div>
+
+                <div className="admin-panel" style={{ marginTop: 16 }}>
+                  <div className="panel-head">
+                    <h2><TrendingUp size={14} />Cierre anual</h2>
+                  </div>
+                  <div className="admin-page-actions" style={{ justifyContent: 'flex-start', marginBottom: 12, flexWrap: 'wrap' }}>
+                    <label className="admin-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 8, margin: 0 }}>
+                      <span style={{ whiteSpace: 'nowrap', fontSize: 13 }}>Año</span>
+                      <input
+                        type="number" min={2020} max={2099}
+                        value={annualYear}
+                        onChange={e => setAnnualYear(Number(e.target.value))}
+                        style={{ width: 80 }}
+                      />
+                    </label>
+                    <button className="btn btn-ghost" onClick={loadAnnualRendition} disabled={annualLoading}>
+                      {annualLoading ? 'Cargando…' : 'Ver cierre anual'}
+                    </button>
+                  </div>
+
+                  {annualData?.error && (
+                    <div style={{ color: 'var(--danger)', fontSize: 13, padding: '8px 0' }}>{annualData.error}</div>
+                  )}
+
+                  {annualData && !annualData.error && (() => {
+                    const { rows, totals, warnings } = annualData;
+                    const moneyFmt = (n: number) => money(n ?? 0);
+                    return (
+                      <>
+                        <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 12 }}>
+                          <Metric row label="Recaudación total" value={moneyFmt(totals.income)} hint={`Prom. ${moneyFmt(totals.averageMonthlyIncome)}/mes`} icon={TrendingUp} />
+                          <Metric row label="Egresos totales"   value={moneyFmt(totals.expTotal)} hint={`Prom. ${moneyFmt(totals.averageMonthlyExpenses)}/mes`} icon={FileText} />
+                          <Metric row label="Saldo final"       value={moneyFmt(totals.resultado)} hint={`${totals.monthsWithRendition ?? 0}/12 meses cerrados`} icon={Landmark} />
+                        </div>
+
+                        {warnings?.length > 0 && (
+                          <div style={{ marginBottom: 12, padding: '8px 12px', background: 'var(--surface-2)', borderLeft: '3px solid var(--warning)', borderRadius: 6, fontSize: 12, color: 'var(--text)' }}>
+                            {warnings.map((w: any, i: number) => (
+                              <div key={i} style={{ marginBottom: 2 }}>
+                                {w.severity === 'warning' ? '🟡' : w.severity === 'critical' ? '🔴' : 'ℹ️'} {w.message}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <Table
+                          loading={false}
+                          searchPlaceholder="Buscar mes"
+                          rows={rows.filter((r: any) => !r.error)}
+                          columns={[
+                            ['Mes',        (r: any) => r.periodLabel],
+                            ['Ingresos',   (r: any) => <span style={{ color: 'var(--success)', fontWeight: 600 }}>{moneyFmt(r.income)}</span>],
+                            ['Egresos',    (r: any) => <span style={{ color: 'var(--danger)' }}>{moneyFmt(r.expTotal)}</span>],
+                            ['Resultado',  (r: any) => <span style={{ fontWeight: 700, color: r.resultado >= 0 ? 'var(--success)' : 'var(--danger)' }}>{moneyFmt(r.resultado)}</span>],
+                            ['Estado',     (r: any) => <Status value={r.status === 'generated' ? 'approved' : r.status === 'archived' ? 'closed' : 'pending'} />],
+                            ['PDF',        (r: any) => r.hasSavedRendition ? <a href={r.savedPdfUrl} target="_blank" rel="noopener" className="btn btn-ghost" style={{ padding: '2px 8px', fontSize: 11 }}>Ver PDF</a> : <span style={{ color: 'var(--muted)', fontSize: 12 }}>—</span>],
+                          ]}
+                        />
+                      </>
+                    );
+                  })()}
                 </div>
 
               </>
