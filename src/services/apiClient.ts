@@ -1,3 +1,5 @@
+import { clearAuthToken, getAuthToken, goLogin } from './navigationService';
+
 type RequestOptions = RequestInit & {
   auth?: boolean;
 };
@@ -13,7 +15,7 @@ const DEFAULT_API_URL = 'https://consorcio-api-production.up.railway.app/api';
 export const API_URL = import.meta.env.VITE_API_URL || window.CONSORCIO_API_URL || DEFAULT_API_URL;
 
 export async function apiClient<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const token = localStorage.getItem('gestionar_token');
+  const token = getAuthToken();
   const headers = new Headers(options.headers);
   const isFormData = options.body instanceof FormData;
 
@@ -34,8 +36,8 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
 
   if (!response.ok) {
     if (response.status === 401) {
-      localStorage.removeItem('gestionar_token');
-      window.location.assign('/login');
+      clearAuthToken();
+      goLogin();
     }
 
     throw new Error(data?.message || 'Ocurrió un error inesperado. Intenta nuevamente.');
@@ -45,7 +47,7 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
 }
 
 export async function apiBlob(path: string, options: RequestOptions = {}): Promise<Blob> {
-  const token = localStorage.getItem('gestionar_token');
+  const token = getAuthToken();
   const headers = new Headers(options.headers);
 
   if (options.auth && token) {

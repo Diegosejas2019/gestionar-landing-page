@@ -1,8 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { ArrowLeft, Building2, LogIn } from 'lucide-react';
-import { isSuperAdminRole, login, LoginResponse, selectOrganization } from '../../services/authService';
-
-const PWA_URL = 'https://gestionar-it.vercel.app/';
+import { login, LoginResponse, selectOrganization } from '../../services/authService';
+import { goDashboardForRole, goOwnerApp, setAuthToken } from '../../services/navigationService';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
@@ -17,11 +16,11 @@ export function LoginPage() {
 
   function redirectWithToken(response: LoginResponse, token: string) {
     if (isOwnerContext(response)) {
-      window.location.assign(`${PWA_URL}#auth_token=${encodeURIComponent(token)}`);
+      goOwnerApp(token);
       return;
     }
     const role = response.data?.user?.role;
-    window.location.assign(isSuperAdminRole(role) ? '/super-admin' : '/admin');
+    goDashboardForRole(role);
   }
 
   function contextLabel(org: NonNullable<LoginResponse['organizations']>[number]) {
@@ -45,7 +44,7 @@ export function LoginPage() {
       }
 
       if (token) {
-        localStorage.setItem('gestionar_token', token);
+        setAuthToken(token);
         redirectWithToken(response, token);
         return;
       }
@@ -67,7 +66,7 @@ export function LoginPage() {
       const response = await selectOrganization(membershipId, selection.selectionToken);
       const token = response.token || response.data?.token;
       if (token) {
-        localStorage.setItem('gestionar_token', token);
+        setAuthToken(token);
         redirectWithToken(response, token);
         return;
       }

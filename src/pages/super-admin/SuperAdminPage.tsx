@@ -3,6 +3,7 @@ import { Activity, AlertTriangle, BarChart3, Building2, Check, CreditCard, FileT
 import { superAdminApi } from '../../services/adminService';
 import { isSuperAdminRole } from '../../services/authService';
 import { Table } from '../../components/Table';
+import { clearAuthToken, getAuthToken, goAdmin, goHome, goLogin } from '../../services/navigationService';
 
 type Notice = { type: 'ok' | 'error'; text: string } | null;
 
@@ -127,7 +128,7 @@ export function SuperAdminPage() {
       const me = await superAdminApi.me();
       const loggedUser = me?.data?.user;
       if (!isSuperAdminRole(loggedUser?.role)) {
-        window.location.assign('/admin');
+        goAdmin();
         return;
       }
 
@@ -164,15 +165,15 @@ export function SuperAdminPage() {
   }
 
   useEffect(() => {
-    if (!localStorage.getItem('gestionar_token')) {
-      window.location.assign('/login');
+    if (!getAuthToken()) {
+      goLogin();
       return;
     }
     refresh();
   }, []);
 
   useEffect(() => {
-    if (!localStorage.getItem('gestionar_token')) return;
+    if (!getAuthToken()) return;
     loadAnalytics(analyticsRange);
   }, [analyticsRange]);
 
@@ -195,8 +196,8 @@ export function SuperAdminPage() {
   }
 
   function logout() {
-    localStorage.removeItem('gestionar_token');
-    window.location.assign('/');
+    clearAuthToken();
+    goHome();
   }
 
   function submitOrganization(event: FormEvent<HTMLFormElement>) {

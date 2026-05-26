@@ -1,5 +1,6 @@
 import { apiBlob, apiClient } from './apiClient';
 import { cacheDelete, cacheDeletePrefix, cacheKey, cachedApiCall } from './cache';
+import type { AdminPermissionsData, ApiEnvelope, AuthMeData, FeatureFlags, OrganizationConfig } from '../types/api';
 
 type Params = Record<string, string | number | boolean | undefined | null>;
 type Payload = Record<string, unknown> | FormData;
@@ -19,7 +20,7 @@ const body = (data: Payload) => data instanceof FormData ? data : JSON.stringify
 const invalidateList = (prefix: string) => cacheDeletePrefix(prefix);
 
 export const adminApi = {
-  me: () => cachedApiCall('me', () => apiClient<any>('/auth/me', { auth: true })),
+  me: () => cachedApiCall('me', () => apiClient<ApiEnvelope<AuthMeData>>('/auth/me', { auth: true })),
 
   owners: {
     stats: () => cachedApiCall('owners:stats', () => apiClient<any>('/owners/stats', { auth: true })),
@@ -120,7 +121,7 @@ export const adminApi = {
   },
 
   permissions: {
-    me: () => cachedApiCall('admin:permissions:me', () => apiClient<any>('/admin/permissions/me', { auth: true }))
+    me: () => cachedApiCall('admin:permissions:me', () => apiClient<ApiEnvelope<AdminPermissionsData>>('/admin/permissions/me', { auth: true }))
   },
 
   adminUsers: {
@@ -336,8 +337,8 @@ export const adminApi = {
   },
 
   config: {
-    get: () => cachedApiCall('config', () => apiClient<any>('/config', { auth: true })),
-    update: (data: Payload) => { cacheDelete('config'); return apiClient<any>('/config', { method: 'PATCH', auth: true, body: body(data) }); }
+    get: () => cachedApiCall('config', () => apiClient<ApiEnvelope<{ config: OrganizationConfig }>>('/config', { auth: true })),
+    update: (data: Payload) => { cacheDelete('config'); return apiClient<ApiEnvelope<{ config: OrganizationConfig }>>('/config', { method: 'PATCH', auth: true, body: body(data) }); }
   },
 
   documents: {
@@ -354,7 +355,7 @@ export const adminApi = {
   organizations: {
     features: (id: string) => cachedApiCall(
       `organizations:features:${id}`,
-      () => apiClient<any>(`/organizations/${id}/features`, { auth: true })
+      () => apiClient<ApiEnvelope<{ features: FeatureFlags }>>(`/organizations/${id}/features`, { auth: true })
     ),
     updateFeatures: (id: string, data: Payload) => {
       cacheDelete(`organizations:features:${id}`);
@@ -364,7 +365,7 @@ export const adminApi = {
 };
 
 export const superAdminApi = {
-  me: () => cachedApiCall('super-admin:me', () => apiClient<any>('/auth/me', { auth: true })),
+  me: () => cachedApiCall('super-admin:me', () => apiClient<ApiEnvelope<AuthMeData>>('/auth/me', { auth: true })),
 
   analytics: {
     overview: () => apiClient<any>('/super-admin/analytics/overview', { auth: true }),
@@ -402,7 +403,7 @@ export const superAdminApi = {
     ),
     features: (id: string) => cachedApiCall(
       `organizations:features:${id}`,
-      () => apiClient<any>(`/organizations/${id}/features`, { auth: true })
+      () => apiClient<ApiEnvelope<{ features: FeatureFlags }>>(`/organizations/${id}/features`, { auth: true })
     ),
     updateFeatures: (id: string, data: Payload) => {
       cacheDelete(`organizations:features:${id}`);

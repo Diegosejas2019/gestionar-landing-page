@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { FeatureFlags, Membership, OrganizationConfig, SessionUser } from '../types/api';
 
 interface OwnerStats {
   totalOwners?: number;
@@ -15,34 +16,6 @@ interface DashboardData {
   pending?: number;
 }
 
-interface User {
-  _id: string;
-  name: string;
-  email: string;
-  role: string;
-  organization?: string;
-}
-
-interface Membership {
-  _id: string;
-  organization: string;
-  role: string;
-  balance?: number;
-  debt?: number;
-}
-
-interface Config {
-  orgId?: string;
-  consortiumName?: string;
-  monthlyFee?: number;
-  dueDayOfMonth?: number;
-  lateFeePercent?: number;
-  lateFeeFixed?: number;
-  bankAccount?: string;
-  bankName?: string;
-  [key: string]: unknown;
-}
-
 interface Expense {
   _id: string;
   description: string;
@@ -56,11 +29,11 @@ interface Expense {
 
 interface AdminStore {
   // Auth
-  me: User | null;
+  me: SessionUser | null;
   membership: Membership | null;
   // Config & features
-  config: Config;
-  features: Record<string, boolean>;
+  config: OrganizationConfig;
+  features: FeatureFlags;
   // Dashboard
   ownerStats: OwnerStats;
   dashboard: DashboardData;
@@ -83,9 +56,9 @@ interface AdminStore {
   yearExpenses: Expense[];
   yearPayments: Array<Record<string, unknown>>;
   // Actions
-  setMe: (me: User | null, membership: Membership | null) => void;
-  setConfig: (config: Config) => void;
-  setFeatures: (features: Record<string, boolean>) => void;
+  setMe: (me: SessionUser | null, membership: Membership | null) => void;
+  setConfig: (config: OrganizationConfig) => void;
+  setFeatures: (features: FeatureFlags) => void;
   setOwnerStats: (stats: OwnerStats) => void;
   setDashboard: (dashboard: DashboardData) => void;
   setReport: (report: Record<string, unknown>) => void;
@@ -122,7 +95,7 @@ const defaultFeatures: Record<string, boolean> = {
 const initialState = {
   me: null,
   membership: null,
-  config: {} as Config,
+  config: {} as OrganizationConfig,
   features: defaultFeatures,
   ownerStats: {} as OwnerStats,
   dashboard: {} as DashboardData,

@@ -1,4 +1,5 @@
 import { apiClient } from './apiClient';
+import type { AccessType, SessionUser } from '../types/api';
 
 export type LoginResponse = {
   success: boolean;
@@ -18,15 +19,11 @@ export type LoginResponse = {
   }>;
   data?: {
     token?: string;
-    accessType?: 'admin' | 'owner' | 'super_admin';
+    accessType?: AccessType;
     organizationId?: string;
     ownerId?: string | null;
     adminRole?: string | null;
-    user?: {
-      name: string;
-      email: string;
-      role: string;
-    };
+    user?: SessionUser;
   };
 };
 
