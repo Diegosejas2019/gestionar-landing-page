@@ -2,7 +2,7 @@
 import {
   AlertTriangle, Bell, Building2, CalendarCheck, CalendarClock, CalendarDays, CheckCircle2, ChevronDown,
   CreditCard, Download, FileText, Home, Inbox, Landmark, LogIn, LogOut, Mail, Megaphone, MessageSquare,
-  Paperclip, Plus, RefreshCw, Search, Settings, ShieldCheck, TrendingUp, UserRoundCog, Users, Vote, WalletCards, X
+  Paperclip, Plus, RefreshCw, Search, Settings, ShieldCheck, TrendingUp, UserCheck, UserRoundCog, Users, Vote, WalletCards, X
 } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
 import { isSuperAdminRole } from '../../services/authService';
@@ -328,6 +328,11 @@ export function AdminPreviewPage() {
   const [accessRequestsLoading, setAccessRequestsLoading] = useState(false);
   const [accessRequestStatus, setAccessRequestStatus] = useState('pending');
   const [accessSettings, setAccessSettings] = useState<any>(null);
+  const [arApproveModal, setArApproveModal] = useState<{ request: any; availableUnits: any[] } | null>(null);
+  const [arApproveUnitIds, setArApproveUnitIds] = useState<string[]>([]);
+  const [arApproveCharge, setArApproveCharge] = useState(true);
+  const [arRejectModal, setArRejectModal] = useState<{ request: any } | null>(null);
+  const [arRejectReason, setArRejectReason] = useState('');
   const [renditionPreview, setRenditionPreview] = useState<any>(null);
   const [renditionHistory, setRenditionHistory] = useState<any[]>([]);
 
@@ -915,16 +920,42 @@ export function AdminPreviewPage() {
   }
 
   async function approveAccessRequest(request: any) {
-    const unitIds = window.prompt('IDs de unidades a asignar, separados por coma (opcional)', '') || '';
-    await run(`access-approve-${idOf(request)}`, () => adminApi.accessRequests.approve(idOf(request), {
-      unitIds: unitIds.split(',').map(item => item.trim()).filter(Boolean),
-      chargeCurrentMonth: true
-    }), 'Solicitud aprobada.');
+    const availableUnits = (units || []).filter((u: any) => !u.owner && u.active !== false);
+    const query = (request.requestedUnitLabel || '').toLowerCase().trim();
+    const suggested = query
+      ? availableUnits.filter((u: any) => u.name?.toLowerCase().includes(query) || query.includes((u.name || '').toLowerCase()))
+      : [];
+    setArApproveUnitIds(suggested.map((u: any) => idOf(u)));
+    setArApproveCharge(true);
+    setArApproveModal({ request, availableUnits });
+  }
+
+  async function doApproveRequest() {
+    if (!arApproveModal) return;
+    const ok = await run(
+      `access-approve-${idOf(arApproveModal.request)}`,
+      () => adminApi.accessRequests.approve(idOf(arApproveModal.request), {
+        unitIds: arApproveUnitIds,
+        chargeCurrentMonth: arApproveCharge,
+      }),
+      'Solicitud aprobada. El propietario recibirá un email con sus datos de acceso.'
+    );
+    if (ok) setArApproveModal(null);
   }
 
   async function rejectAccessRequest(request: any) {
-    const rejectionReason = window.prompt('Motivo del rechazo') || '';
-    await run(`access-reject-${idOf(request)}`, () => adminApi.accessRequests.reject(idOf(request), { rejectionReason }), 'Solicitud rechazada.');
+    setArRejectReason('');
+    setArRejectModal({ request });
+  }
+
+  async function doRejectRequest() {
+    if (!arRejectModal) return;
+    const ok = await run(
+      `access-reject-${idOf(arRejectModal.request)}`,
+      () => adminApi.accessRequests.reject(idOf(arRejectModal.request), { rejectionReason: arRejectReason }),
+      'Solicitud rechazada.'
+    );
+    if (ok) setArRejectModal(null);
   }
 
   async function toggleAccessRequestSettings(enabled: boolean) {
@@ -1794,21 +1825,44 @@ export function AdminPreviewPage() {
                 ) : (
                   <p className="admin-form-note">Generá un código para crear el enlace de registro.</p>
                 )}
-                <div className="admin-page-actions" style={{ justifyContent: 'flex-start' }}>
+                {publicJoinUrl && (
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(publicJoinUrl)}&format=svg&ecc=M`}
+                      alt="QR de registro"
+                      width={100} height={100}
+                      style={{ borderRadius: 8, background: '#fff', padding: 4 }}
+                    />
+                    <div>
+                      <p style={{ margin: '0 0 0.25rem', fontSize: '0.8rem', fontWeight: 600, color: 'var(--muted)' }}>Código QR</p>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--muted)' }}>Escaneá para solicitar acceso o compartí el QR por WhatsApp.</p>
+                    </div>
+                  </div>
+                )}
+                <div className="admin-page-actions" style={{ justifyContent: 'flex-start', marginTop: '0.75rem' }}>
                   {accessSettings?.publicJoinCode && <span className="chip is-active">Código: {accessSettings.publicJoinCode}</span>}
                   <button className="btn btn-ghost" onClick={() => toggleAccessRequestSettings(!accessSettings?.publicJoinEnabled)}>
                     {accessSettings?.publicJoinEnabled ? 'Deshabilitar' : 'Habilitar'}
                   </button>
                   <button className="btn btn-ghost" onClick={regenerateAccessCode}>Regenerar código</button>
                 </div>
+                {accessSettings?.publicJoinCode && (
+                  <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: 'var(--muted)' }}>⚠️ Regenerar el código invalida el enlace anterior.</p>
+                )}
               </div>
             </div>
             <div className="admin-panel">
               <div className="panel-head"><h2><Inbox size={14} />Solicitudes</h2><span>{accessRequests.length} registros</span></div>
               <Table loading={accessRequestsLoading || loading} searchPlaceholder="Buscar nombre, email o unidad" rows={accessRequests} columns={[
-                ['Solicitante', (r: any) => <div><strong>{r.name || r.userName || '-'}</strong><div style={{ color: 'var(--muted)', fontSize: 12 }}>{r.email || '-'}</div></div>],
+                ['Solicitante', (r: any) => (
+                  <div>
+                    <strong>{r.name || r.userName || '-'}</strong>
+                    {r.isExistingUser && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 10, background: 'rgba(251,191,36,0.15)', color: 'var(--warn)' }}>Usuario existente</span>}
+                    <div style={{ color: 'var(--muted)', fontSize: 12 }}>{r.email || '-'}</div>
+                  </div>
+                )],
                 ['Teléfono', (r: any) => r.phone || '-'],
-                ['Unidad declarada', (r: any) => r.unitName || r.unit || '-'],
+                ['Unidad declarada', (r: any) => r.requestedUnitLabel || r.unitName || r.unit || '-'],
                 ['Estado', (r: any) => <Status value={r.status} />],
                 ['Fecha', (r: any) => dateLabel(r.createdAt)],
                 ['Acciones', (r: any) => <Actions>
@@ -1817,6 +1871,91 @@ export function AdminPreviewPage() {
                 </Actions>]
               ]} />
             </div>
+
+            {arApproveModal && (() => {
+              const r = arApproveModal.request;
+              const avail = arApproveModal.availableUnits;
+              const query = (r.requestedUnitLabel || '').toLowerCase().trim();
+              const suggested = query ? avail.filter((u: any) => u.name?.toLowerCase().includes(query) || query.includes((u.name || '').toLowerCase())) : [];
+              return (
+                <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) setArApproveModal(null); }}>
+                  <div className="form-modal">
+                    <div className="form-modal-head">
+                      <div className="form-modal-title"><UserCheck size={16} />Aprobar solicitud</div>
+                      <button className="icon-btn" onClick={() => setArApproveModal(null)}><X size={16} /></button>
+                    </div>
+                    {r.isExistingUser && (
+                      <div style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid var(--warn)', borderRadius: 8, padding: '0.6rem 0.875rem', marginBottom: '1rem', fontSize: '0.83rem', color: 'var(--warn)' }}>
+                        ⚠️ Este email ya tiene cuenta en GestionAr. Se vinculará sin modificar su contraseña.
+                      </div>
+                    )}
+                    <div style={{ background: 'var(--surface-2)', borderRadius: 8, padding: '0.75rem', marginBottom: '1rem' }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-bright)', marginBottom: 2 }}>{r.name}</div>
+                      <div style={{ fontSize: '0.83rem', color: 'var(--muted)' }}>{r.email}</div>
+                      {r.phone && <div style={{ fontSize: '0.81rem', color: 'var(--muted)' }}>📞 {r.phone}</div>}
+                      {r.requestedUnitLabel && <div style={{ fontSize: '0.83rem', color: 'var(--muted)', marginTop: 2 }}>Solicita: <strong>{r.requestedUnitLabel}</strong></div>}
+                      {r.message && <div style={{ fontSize: '0.81rem', color: 'var(--muted)', fontStyle: 'italic', marginTop: 4 }}>"{r.message}"</div>}
+                    </div>
+                    <label className="admin-field full" style={{ marginBottom: '0.5rem' }}>
+                      <span>Unidades a asignar <span style={{ fontWeight: 400, color: 'var(--muted)' }}>({avail.length} disponibles, opcional)</span></span>
+                      <select multiple style={{ minHeight: 100 }}
+                        value={arApproveUnitIds}
+                        onChange={(e) => setArApproveUnitIds([...e.target.selectedOptions].map(o => o.value))}>
+                        {suggested.length > 0 && <optgroup label={`Sugeridas por "${r.requestedUnitLabel}"`}>
+                          {suggested.map((u: any) => <option key={idOf(u)} value={idOf(u)}>{u.name}</option>)}
+                        </optgroup>}
+                        {avail.filter((u: any) => !suggested.find((s: any) => idOf(s) === idOf(u))).length > 0 && (
+                          <optgroup label="Otras disponibles">
+                            {avail.filter((u: any) => !suggested.find((s: any) => idOf(s) === idOf(u))).map((u: any) => <option key={idOf(u)} value={idOf(u)}>{u.name}</option>)}
+                          </optgroup>
+                        )}
+                      </select>
+                      <small style={{ color: 'var(--muted)' }}>Ctrl/Cmd para seleccionar varias.</small>
+                      {suggested.length > 0 && <small style={{ color: 'var(--accent)' }}>✓ {suggested.length} unidad{suggested.length !== 1 ? 'es' : ''} preseleccionada{suggested.length !== 1 ? 's' : ''} por coincidencia con el nombre declarado.</small>}
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.875rem', cursor: 'pointer', marginBottom: '1rem' }}>
+                      <input type="checkbox" checked={arApproveCharge} onChange={(e) => setArApproveCharge(e.target.checked)} style={{ accentColor: 'var(--accent)' }} />
+                      Cobrar mes en curso
+                    </label>
+                    <div className="form-modal-foot">
+                      <button className="btn btn-ghost" onClick={() => setArApproveModal(null)}>Cancelar</button>
+                      <button className="btn btn-primary" disabled={busy.startsWith('access-approve')} onClick={doApproveRequest}>
+                        {busy.startsWith('access-approve') ? 'Aprobando…' : 'Aprobar'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {arRejectModal && (
+              <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) setArRejectModal(null); }}>
+                <div className="form-modal">
+                  <div className="form-modal-head">
+                    <div className="form-modal-title"><X size={16} />Rechazar solicitud</div>
+                    <button className="icon-btn" onClick={() => setArRejectModal(null)}><X size={16} /></button>
+                  </div>
+                  <div style={{ background: 'var(--surface-2)', borderRadius: 8, padding: '0.75rem', marginBottom: '1rem' }}>
+                    <div style={{ fontWeight: 600, color: 'var(--text-bright)' }}>{arRejectModal.request.name}</div>
+                    <div style={{ fontSize: '0.83rem', color: 'var(--muted)' }}>{arRejectModal.request.email}</div>
+                    {arRejectModal.request.requestedUnitLabel && (
+                      <div style={{ fontSize: '0.83rem', color: 'var(--muted)', marginTop: 2 }}>Solicita: <strong>{arRejectModal.request.requestedUnitLabel}</strong></div>
+                    )}
+                  </div>
+                  <label className="admin-field full" style={{ marginBottom: '1rem' }}>
+                    <span>Motivo del rechazo <span style={{ fontWeight: 400, color: 'var(--muted)' }}>(recomendado)</span></span>
+                    <textarea rows={3} value={arRejectReason} onChange={(e) => setArRejectReason(e.target.value)}
+                      placeholder="Ej: La unidad indicada no existe o ya tiene propietario asignado." />
+                  </label>
+                  <div className="form-modal-foot">
+                    <button className="btn btn-ghost" onClick={() => setArRejectModal(null)}>Cancelar</button>
+                    <button className="btn btn-primary" disabled={busy.startsWith('access-reject')} onClick={doRejectRequest}>
+                      {busy.startsWith('access-reject') ? 'Rechazando…' : 'Rechazar'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         )}
 
