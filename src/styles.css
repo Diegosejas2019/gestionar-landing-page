@@ -2835,6 +2835,15 @@ footer {
   overflow-x: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(255,255,255,.15) transparent;
+  background-image:
+    linear-gradient(to right, var(--surface), transparent),
+    linear-gradient(to left,  var(--surface), transparent),
+    linear-gradient(to right, rgba(0,0,0,.22), transparent),
+    linear-gradient(to left,  rgba(0,0,0,.22), transparent);
+  background-size: 24px 100%, 24px 100%, 20px 100%, 20px 100%;
+  background-position: left, right, left, right;
+  background-repeat: no-repeat;
+  background-attachment: local, local, scroll, scroll;
 }
 .grid-toolbar {
   display: flex;
@@ -2906,7 +2915,7 @@ footer {
 }
 .row-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
 }
 .row-actions button,
@@ -3598,7 +3607,19 @@ footer {
 .tbl tbody tr:last-child td { border-bottom: none; }
 .tbl .tbl-num { text-align: right; font-family: var(--font-mono); font-feature-settings: 'tnum'; color: var(--ink-0); }
 .tbl .tbl-strong { color: var(--ink-0); font-weight: 500; }
-.tbl-wrap { width: 100%; overflow-x: auto; }
+.tbl-wrap {
+  width: 100%;
+  overflow-x: auto;
+  background-image:
+    linear-gradient(to right, var(--surface), transparent),
+    linear-gradient(to left,  var(--surface), transparent),
+    linear-gradient(to right, rgba(0,0,0,.22), transparent),
+    linear-gradient(to left,  rgba(0,0,0,.22), transparent);
+  background-size: 24px 100%, 24px 100%, 20px 100%, 20px 100%;
+  background-position: left, right, left, right;
+  background-repeat: no-repeat;
+  background-attachment: local, local, scroll, scroll;
+}
 
 /* Status pill v2 */
 .pill {
@@ -3881,7 +3902,7 @@ footer {
     min-width: 132px;
   }
   .row-actions button {
-    flex: 1 1 58px;
+    flex: 0 0 auto;
     padding: 8px;
   }
   .grid-footer {
