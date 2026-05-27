@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Bell, Building2, CreditCard, FileText, Home, LogOut,
+  Bell, Building2, CreditCard, FileText, HelpCircle, Home, LogOut,
   MessageSquare, Receipt, User, WalletCards
 } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
@@ -14,10 +14,11 @@ import { OwnerNoticesSection } from './OwnerNoticesSection';
 import { OwnerDocumentsSection } from './OwnerDocumentsSection';
 import { OwnerClaimsSection } from './OwnerClaimsSection';
 import { OwnerProfileSection } from './OwnerProfileSection';
+import { OwnerSupportTab } from './OwnerSupportTab';
 
-type OwnerTab = 'inicio' | 'cuenta' | 'pagos' | 'historial' | 'avisos' | 'documentos' | 'reclamos' | 'perfil';
+type OwnerTab = 'inicio' | 'cuenta' | 'pagos' | 'historial' | 'avisos' | 'documentos' | 'reclamos' | 'soporte' | 'perfil';
 
-const VALID_TABS: OwnerTab[] = ['inicio', 'cuenta', 'pagos', 'historial', 'avisos', 'documentos', 'reclamos', 'perfil'];
+const VALID_TABS: OwnerTab[] = ['inicio', 'cuenta', 'pagos', 'historial', 'avisos', 'documentos', 'reclamos', 'soporte', 'perfil'];
 
 const getInitialTab = (): OwnerTab => {
   const hash = window.location.hash.replace('#', '') as OwnerTab;
@@ -36,6 +37,7 @@ const NAV: Array<{ key: OwnerTab; label: string; icon: React.ElementType; featur
   { key: 'avisos', label: 'Avisos', icon: Bell },
   { key: 'documentos', label: 'Documentos', icon: FileText, feature: 'documents' },
   { key: 'reclamos', label: 'Reclamos', icon: MessageSquare },
+  { key: 'soporte', label: 'Soporte técnico', icon: HelpCircle },
   { key: 'perfil', label: 'Mi perfil', icon: User },
 ];
 
@@ -47,6 +49,7 @@ const TAB_LABELS: Record<OwnerTab, string> = {
   avisos: 'Avisos',
   documentos: 'Documentos',
   reclamos: 'Reclamos',
+  soporte: 'Soporte técnico',
   perfil: 'Mi perfil',
 };
 
@@ -199,6 +202,7 @@ export function OwnerPage() {
         {tab === 'avisos' && <OwnerNoticesSection />}
         {tab === 'documentos' && <OwnerDocumentsSection />}
         {tab === 'reclamos' && <OwnerClaimsSection />}
+        {tab === 'soporte' && <OwnerSupportTab />}
         {tab === 'perfil' && <OwnerProfileSection user={user} membership={membership} onUserUpdate={setUser} />}
       </main>
     </div>

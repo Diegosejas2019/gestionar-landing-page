@@ -103,5 +103,16 @@ export const ownerApi = {
       apiClient<ApiEnvelope>('/auth/update-password', { method: 'PATCH', auth: true, body: JSON.stringify(data) }),
     update: (ownerId: string, data: Record<string, unknown>) =>
       apiClient<ApiEnvelope>(`/owners/${ownerId}`, { method: 'PATCH', auth: true, body: JSON.stringify(data) })
+  },
+
+  supportTickets: {
+    list: () => cachedApiCall(
+      'owner:support-tickets',
+      () => apiClient<ApiEnvelope>('/support-tickets/my', { auth: true })
+    ),
+    create: (data: Record<string, unknown>) => {
+      invalidate('owner:support-tickets');
+      return apiClient<ApiEnvelope>('/support-tickets', { method: 'POST', auth: true, body: JSON.stringify(data) });
+    }
   }
 };
