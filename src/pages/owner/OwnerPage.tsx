@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import {
   Bell, Building2, CreditCard, FileText, HelpCircle, Home, LogOut,
-  MessageSquare, Receipt, User, WalletCards
+  MessageSquare, Receipt, Smartphone, User, WalletCards, AlertCircle, RefreshCw
 } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
-import { clearAuthToken, getAuthToken, goAdmin, goLogin } from '../../services/navigationService';
+import { clearAuthToken, getAuthToken, goAdmin, goLogin, goOwnerApp, goSuperAdmin } from '../../services/navigationService';
+import { isSuperAdminRole } from '../../services/authService';
 import type { SessionUser, Membership, FeatureFlags } from '../../types/api';
 import { OwnerHomeSection } from './OwnerHomeSection';
 import { OwnerAccountSection } from './OwnerAccountSection';
@@ -53,12 +54,24 @@ const TAB_LABELS: Record<OwnerTab, string> = {
   perfil: 'Mi perfil',
 };
 
+type AvailableContext = {
+  membershipId?: string;
+  id?: string;
+  organizationId?: string;
+  organizationName?: string;
+  name?: string;
+  role?: string;
+  accessType?: string;
+};
+
 export function OwnerPage() {
   const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState<SessionUser | null>(null);
   const [membership, setMembership] = useState<Membership | null>(null);
   const [features, setFeatures] = useState<FeatureFlags>({});
   const [tab, setTab] = useState<OwnerTab>(getInitialTab);
+  const [mustChangePwd, setMustChangePwd] = useState(false);
+  const [availableContexts, setAvailableContexts] = useState<AvailableContext[]>([]);
 
   // Sync tab from hash changes
   useEffect(() => {
@@ -81,8 +94,15 @@ export function OwnerPage() {
         const u = response?.data?.user;
         const m = response?.data?.membership;
         const access = response?.data?.accessType;
+        const contexts: AvailableContext[] = response?.data?.availableContexts || [];
 
-        // Redirect non-owner users
+        // Redirect superadmin
+        if (isSuperAdminRole(u?.role)) {
+          goSuperAdmin();
+          return;
+        }
+
+        // Redirect non-owner (admin)
         if (access !== 'owner' && u?.role !== 'owner') {
           goAdmin();
           return;
@@ -90,6 +110,8 @@ export function OwnerPage() {
 
         setUser(u ?? null);
         setMembership(m ?? null);
+        setAvailableContexts(contexts);
+        setMustChangePwd(!!(u as any)?.mustChangePassword);
         setAuthChecked(true);
 
         // Load feature flags
@@ -119,9 +141,22 @@ export function OwnerPage() {
     }
   }, [authChecked, tab, features]);
 
+  // If mustChangePassword is active and user navigates away from perfil, redirect back
+  useEffect(() => {
+    if (!authChecked || !mustChangePwd) return;
+    if (tab !== 'perfil') {
+      navigateToTab('perfil');
+    }
+  }, [authChecked, mustChangePwd, tab]);
+
   function handleLogout() {
     clearAuthToken();
     goLogin();
+  }
+
+  function handleGoToPwa() {
+    const token = getAuthToken();
+    if (token) goOwnerApp(token);
   }
 
   if (!authChecked) {
@@ -139,6 +174,10 @@ export function OwnerPage() {
   const orgName = (typeof membership?.organization === 'string'
     ? null
     : (membership?.organization as any)?.name) ?? 'Mi organización';
+
+  const otherContexts = availableContexts.filter(c =>
+    (c.membershipId || c.id) !== (membership?._id || membership?.id)
+  );
 
   return (
     <div className="admin-shell">
@@ -172,6 +211,29 @@ export function OwnerPage() {
             {user?.name && <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>{user.name}</div>}
             {user?.email}
           </div>
+
+          {/* PWA button */}
+          <button
+            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 10, background: 'transparent', color: 'var(--text-dim)', fontSize: 12, cursor: 'pointer', marginBottom: 6 }}
+            onClick={handleGoToPwa}
+            title="Ir a la app mobile"
+          >
+            <Smartphone size={14} />
+            Ir a la app mobile
+          </button>
+
+          {/* Org switcher: re-login */}
+          {otherContexts.length > 0 && (
+            <button
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 10, background: 'transparent', color: 'var(--text-dim)', fontSize: 12, cursor: 'pointer', marginBottom: 6 }}
+              onClick={() => { clearAuthToken(); goLogin(); }}
+              title="Cambiar organización"
+            >
+              <RefreshCw size={14} />
+              Cambiar organización
+            </button>
+          )}
+
           <button
             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '10px 12px', border: 0, borderRadius: 10, background: 'transparent', color: 'var(--text-faint)', fontSize: 13, cursor: 'pointer' }}
             onClick={handleLogout}
@@ -195,6 +257,17 @@ export function OwnerPage() {
           </button>
         </div>
 
+        {/* mustChangePassword banner */}
+        {mustChangePwd && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.4)', borderRadius: 10, marginBottom: 16, color: '#FCD34D', fontSize: 13 }}>
+            <AlertCircle size={16} style={{ flexShrink: 0 }} />
+            <span>
+              <strong>Debés cambiar tu contraseña temporal</strong> antes de continuar.
+              Completá el formulario en la sección <strong>Mi perfil</strong>.
+            </span>
+          </div>
+        )}
+
         {tab === 'inicio' && <OwnerHomeSection user={user} membership={membership} features={features} />}
         {tab === 'cuenta' && <OwnerAccountSection />}
         {tab === 'pagos' && <OwnerPaymentsSection />}
@@ -203,7 +276,7 @@ export function OwnerPage() {
         {tab === 'documentos' && <OwnerDocumentsSection />}
         {tab === 'reclamos' && <OwnerClaimsSection />}
         {tab === 'soporte' && <OwnerSupportTab />}
-        {tab === 'perfil' && <OwnerProfileSection user={user} membership={membership} onUserUpdate={setUser} />}
+        {tab === 'perfil' && <OwnerProfileSection user={user} membership={membership} onUserUpdate={(u) => { setUser(u); setMustChangePwd(false); }} />}
       </main>
     </div>
   );

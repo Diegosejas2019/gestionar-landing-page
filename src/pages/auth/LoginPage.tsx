@@ -1,7 +1,9 @@
 import { FormEvent, useState } from 'react';
 import { ArrowLeft, Building2, LogIn } from 'lucide-react';
 import { login, LoginResponse, selectOrganization } from '../../services/authService';
-import { goDashboardForRole, goOwnerDashboard, setAuthToken } from '../../services/navigationService';
+import { goDashboardForRole, goOwnerApp, goOwnerDashboard, setAuthToken } from '../../services/navigationService';
+
+const OWNER_WEB_ENABLED = import.meta.env.VITE_OWNER_WEB_ENABLED !== 'false';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
@@ -14,9 +16,13 @@ export function LoginPage() {
     return response.data?.accessType === 'owner' || response.data?.user?.role === 'owner';
   }
 
-  function redirectWithToken(response: LoginResponse) {
+  function redirectWithToken(response: LoginResponse, token: string) {
     if (isOwnerContext(response)) {
-      goOwnerDashboard();
+      if (OWNER_WEB_ENABLED) {
+        goOwnerDashboard();
+      } else {
+        goOwnerApp(token);
+      }
       return;
     }
     const role = response.data?.user?.role;
@@ -45,7 +51,7 @@ export function LoginPage() {
 
       if (token) {
         setAuthToken(token);
-        redirectWithToken(response);
+        redirectWithToken(response, token);
         return;
       }
 
@@ -67,7 +73,7 @@ export function LoginPage() {
       const token = response.token || response.data?.token;
       if (token) {
         setAuthToken(token);
-        redirectWithToken(response);
+        redirectWithToken(response, token);
         return;
       }
       setMessage('No pudimos seleccionar la organización.');

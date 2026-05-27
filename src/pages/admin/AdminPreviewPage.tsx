@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
 import { isSuperAdminRole } from '../../services/authService';
-import { clearAuthToken, getAuthToken, goHome, goLogin, goOwnerApp, goSuperAdmin } from '../../services/navigationService';
+import { clearAuthToken, getAuthToken, goHome, goLogin, goOwnerApp, goOwnerDashboard, goSuperAdmin } from '../../services/navigationService';
 import { useAdminStore } from '../../stores/adminStore';
 import { Table, type GridFilter } from '../../components/Table';
 import {
@@ -686,12 +686,7 @@ export function AdminPreviewPage() {
           return;
         }
         if (response?.data?.accessType === 'owner' || user?.role === 'owner') {
-          const token = getAuthToken();
-          if (token) {
-            goOwnerApp(token);
-          } else {
-            goLogin();
-          }
+          goOwnerDashboard();
           return;
         }
         setMe(user ?? null, response?.data?.membership ?? null);
