@@ -2352,10 +2352,20 @@ export function AdminPreviewPage() {
                 )],
                 ['Servicio', (p: any) => <span className="pill muted">{EXPENSE_LABELS_MAP[p.serviceType] || p.serviceType || '—'}</span>],
                 ['Contacto', (p: any) => p.phone || p.email || <span style={{ color: 'var(--ink-3)' }}>—</span>],
-                ['Estado', (p: any) => p.active !== false
-                  ? <span className="pill pos"><span className="d" />Activo</span>
-                  : <span className="pill neg"><span className="d" />Inactivo</span>
-                ],
+                ['Estado', (p: any) => (
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                    {p.active === false
+                      ? <span className="pill neg"><span className="d" />Inactivo</span>
+                      : p.status === 'suspended'
+                        ? <span className="pill neg"><span className="d" />Suspendido</span>
+                        : p.status === 'incomplete'
+                          ? <span className="pill" style={{ background: 'rgba(251,191,36,.15)', color: '#d4a017' }}><span className="d" />Incompleto</span>
+                          : <span className="pill pos"><span className="d" />Activo</span>}
+                    {p.documentStatus === 'expired' && <span className="pill neg" style={{ fontSize: 10 }}>Doc. vencida</span>}
+                    {p.documentStatus === 'expiring_soon' && <span className="pill" style={{ background: 'rgba(251,191,36,.15)', color: '#d4a017', fontSize: 10 }}>Por vencer</span>}
+                    {p.documentStatus === 'no_docs' && <span className="pill muted" style={{ fontSize: 10 }}>Sin docs</span>}
+                  </div>
+                )],
                 ['Archivos', (p: any) => {
                   const docs: any[] = p.documents || [];
                   if (!docs.length) return <span style={{ color: 'var(--ink-3)' }}>—</span>;

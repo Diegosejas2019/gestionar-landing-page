@@ -225,6 +225,7 @@ export const adminApi = {
     delete: (id: string) => { invalidateList('providers:list'); return apiClient<ApiEnvelope>(`/providers/${id}`, { method: 'DELETE', auth: true }); },
     deleteDocument: (id: string, index: number) => { invalidateList('providers:list'); return apiClient<ApiEnvelope>(`/providers/${id}/document/${index}`, { method: 'DELETE', auth: true }); },
     getDocumentBlob: (id: string, index: number) => apiBlob(`/providers/${id}/document/${index}`, { auth: true }),
+    getDetails: (id: string) => apiClient<ApiEnvelope>(`/providers/${id}/details`, { auth: true }),
   },
 
   reports: {
