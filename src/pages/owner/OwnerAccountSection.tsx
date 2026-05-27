@@ -4,17 +4,24 @@ import { ownerApi } from '../../services/ownerService';
 import { dateLabel, money } from '../admin/adminFormat';
 import { Empty, Metric, Status } from '../admin/adminComponents';
 
+const PLAN_STATUS: Record<string, string> = {
+  requested: 'Solicitado', approved: 'Aprobado', active: 'Activo',
+  completed: 'Completado', rejected: 'Rechazado', cancelled: 'Cancelado', defaulted: 'Incumplido',
+};
+
 export function OwnerAccountSection() {
   const [loading, setLoading] = useState(true);
   const [debtItems, setDebtItems] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
+  const [paymentPlans, setPaymentPlans] = useState<any[]>([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    Promise.all([ownerApi.debtItems.mine(), ownerApi.summary()])
-      .then(([debtRes, sumRes]) => {
+    Promise.all([ownerApi.debtItems.mine(), ownerApi.summary(), ownerApi.paymentPlans.my()])
+      .then(([debtRes, sumRes, plansRes]) => {
         setDebtItems(debtRes?.data?.debtItems || []);
         setSummary(sumRes?.data ?? sumRes);
+        setPaymentPlans(plansRes?.data?.plans || []);
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Error al cargar cuenta.'))
       .finally(() => setLoading(false));
@@ -87,6 +94,43 @@ export function OwnerAccountSection() {
           )}
         </div>
       </section>
+
+      {(loading || paymentPlans.length > 0) && (
+        <section className="card">
+          <div className="card-h">
+            <div>
+              <h3>Planes de pago</h3>
+              <div className="card-sub">Acuerdos de pago en cuotas con el administrador</div>
+            </div>
+          </div>
+          <div className="card-body">
+            {loading ? (
+              <div className="skeleton-list">
+                {[1, 2].map(i => <div key={i} className="skeleton-box" style={{ height: 52, borderRadius: 8, marginBottom: 8 }} />)}
+              </div>
+            ) : paymentPlans.length === 0 ? (
+              <Empty text="Sin planes de pago activos." />
+            ) : (
+              <div style={{ display: 'grid', gap: 8 }}>
+                {paymentPlans.map((plan) => (
+                  <div key={plan._id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                    <WalletCards size={16} color="var(--text-faint)" style={{ flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 13 }}>Plan de {plan.installmentsCount} cuota{plan.installmentsCount !== 1 ? 's' : ''}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 2 }}>
+                        {money(plan.totalAmount)} · {plan.startDate ? `Desde ${plan.startDate}` : 'Sin fecha'}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <Status value={plan.status} label={PLAN_STATUS[plan.status] || plan.status} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

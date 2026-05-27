@@ -361,6 +361,11 @@ export const adminApi = {
     deleteTask: (id: string) => { cacheDelete('agenda:summary'); return apiClient<ApiEnvelope>(`/agenda/tasks/${id}`, { method: 'DELETE', auth: true }); }
   },
 
+  support: {
+    listMy: () => cachedApiCall('admin:support:my', () => apiClient<ApiEnvelope>('/support-tickets/my', { auth: true })),
+    create: (data: Payload) => { cacheDelete('admin:support:my'); return apiClient<ApiEnvelope>('/support-tickets', { method: 'POST', auth: true, body: body(data) }); }
+  },
+
   organizations: {
     features: (id: string) => cachedApiCall(
       `organizations:features:${id}`,

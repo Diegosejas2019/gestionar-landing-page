@@ -1,4 +1,4 @@
-export type TabKey = 'agenda' | 'inicio' | 'finanzas' | 'morosidad' | 'planes' | 'empleados' | 'sueldos' | 'propietarios' | 'solicitudes' | 'comunicados' | 'reclamos' | 'votaciones' | 'reservas' | 'visitas' | 'proveedores' | 'documentos' | 'config';
+export type TabKey = 'agenda' | 'inicio' | 'finanzas' | 'morosidad' | 'planes' | 'empleados' | 'sueldos' | 'propietarios' | 'solicitudes' | 'comunicados' | 'reclamos' | 'votaciones' | 'reservas' | 'visitas' | 'proveedores' | 'documentos' | 'config' | 'soporte';
 export type FeatureKey = 'visits' | 'reservations' | 'votes' | 'claims' | 'notices' | 'expenses' | 'providers' | 'documents';
 export type AdminRoleKey = 'owner_admin' | 'read_only' | 'billing_manager' | 'communications_manager' | 'security_guard';
 
@@ -19,7 +19,8 @@ export const tabPermissions: Record<TabKey, string> = {
   visitas: 'visits.read',
   proveedores: 'providers.read',
   documentos: 'documents.read',
-  config: 'settings.read'
+  config: 'settings.read',
+  soporte: 'dashboard.read'
 };
 
 export const defaultFeatures: Record<FeatureKey, boolean> = {
