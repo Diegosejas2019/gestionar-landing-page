@@ -36,10 +36,21 @@ export type Membership = {
   debt?: number;
 };
 
+export type AvailableContext = {
+  membershipId?: string;
+  id?: string;
+  organizationId?: string;
+  organizationName?: string;
+  name?: string;
+  role?: string;
+  accessType?: string;
+};
+
 export type AuthMeData = {
   user?: SessionUser;
   membership?: Membership;
   accessType?: AccessType;
+  availableContexts?: AvailableContext[];
 };
 
 export type OrganizationConfig = {

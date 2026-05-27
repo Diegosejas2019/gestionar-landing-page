@@ -6,7 +6,7 @@ import {
 import { adminApi } from '../../services/adminService';
 import { clearAuthToken, getAuthToken, goAdmin, goLogin, goOwnerApp, goSuperAdmin } from '../../services/navigationService';
 import { isSuperAdminRole } from '../../services/authService';
-import type { SessionUser, Membership, FeatureFlags } from '../../types/api';
+import type { SessionUser, Membership, FeatureFlags, AvailableContext } from '../../types/api';
 import { OwnerHomeSection } from './OwnerHomeSection';
 import { OwnerAccountSection } from './OwnerAccountSection';
 import { OwnerPaymentsSection } from './OwnerPaymentsSection';
@@ -52,16 +52,6 @@ const TAB_LABELS: Record<OwnerTab, string> = {
   reclamos: 'Reclamos',
   soporte: 'Soporte técnico',
   perfil: 'Mi perfil',
-};
-
-type AvailableContext = {
-  membershipId?: string;
-  id?: string;
-  organizationId?: string;
-  organizationName?: string;
-  name?: string;
-  role?: string;
-  accessType?: string;
 };
 
 export function OwnerPage() {

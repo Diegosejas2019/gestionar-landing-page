@@ -102,6 +102,10 @@ export function OwnerProfileSection({ user, membership, onUserUpdate }: Props) {
                 <input name="name" defaultValue={user?.name || ''} required placeholder="Tu nombre" />
               </label>
               <label className="admin-field">
+                <span>Teléfono</span>
+                <input name="phone" defaultValue={(user as any)?.phone || ''} placeholder="+54 9 11 1234-5678" />
+              </label>
+              <label className="admin-field">
                 <span>Correo electrónico</span>
                 <input value={user?.email || ''} disabled style={{ opacity: 0.6 }} />
               </label>
