@@ -439,7 +439,7 @@ export function SuperAdminPage() {
               <Field label="Slug" name="slug" />
               <SelectField label="Tipo" name="businessType" defaultValue="consorcio">
                 <option value="consorcio">Consorcio</option>
-                <option value="barrio">Barrio privado</option>
+                <option value="other">Barrio privado / Otro</option>
                 <option value="club">Club</option>
                 <option value="gimnasio">Gimnasio</option>
                 <option value="colegio">Colegio</option>
