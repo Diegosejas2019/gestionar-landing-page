@@ -1,7 +1,10 @@
 import type { FormEvent } from 'react';
 
 export const todayMonth = () => new Date().toISOString().slice(0, 7);
-export const money = (value: unknown) => `$ ${Number(value || 0).toLocaleString('es-AR')}`;
+export const formatARS = (value: unknown) => `ARS ${Number(value || 0).toLocaleString('es-AR')}`;
+export const money = formatARS;
+export const formatDate = (value: unknown) => value ? new Date(String(value)).toLocaleDateString('es-AR') : '-';
+export const formatDateTime = (value: unknown) => value ? new Date(String(value)).toLocaleString('es-AR') : '-';
 export const shortMonth = (value: string) => {
   const [, month] = value.split('-');
   return ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][Number(month) - 1] || value;
@@ -18,7 +21,7 @@ export const unitNames = (row: any) => {
   return [row?.owner?.unit, row?.unit].filter(Boolean);
 };
 export const unitLabel = (row: any) => unitNames(row).join(', ') || '-';
-export const dateLabel = (value: unknown) => value ? new Date(String(value)).toLocaleDateString('es-AR') : '-';
+export const dateLabel = formatDate;
 export const formObject = (event: FormEvent<HTMLFormElement>) => Object.fromEntries(new FormData(event.currentTarget).entries());
 
 export const CATEGORY_LABELS: Record<string, string> = {

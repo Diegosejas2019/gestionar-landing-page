@@ -74,3 +74,57 @@ export type AdminPermissionsData = {
   permissions?: string[];
   roles?: Array<{ role: string; label?: string; permissions?: string[] }>;
 };
+
+export type PaymentStatus = 'pending' | 'approved' | 'rejected';
+export type PaymentType = 'monthly' | 'extraordinary' | 'balance' | 'installment';
+
+export type PaymentRecord = ApiRecord & {
+  organization?: string;
+  owner?: string | ApiRecord;
+  membership?: string;
+  month?: string;
+  amount: number;
+  status: PaymentStatus;
+  type?: PaymentType;
+  receipt?: {
+    url?: string;
+    filename?: string;
+    mimetype?: string;
+    size?: number;
+  };
+  systemReceipt?: {
+    url?: string;
+    publicId?: string;
+  };
+  receiptNumber?: string;
+  receiptIssuedAt?: string;
+};
+
+export type OwnerRecord = ApiRecord & {
+  organization?: string;
+  membershipId?: string;
+  units?: ApiRecord[];
+  unitNames?: string[];
+  balance?: number;
+  balanceOwed?: number;
+  totalOwed?: number;
+  isDebtor?: boolean;
+};
+
+export type OrganizationDocumentRecord = ApiRecord & {
+  organization?: string;
+  title?: string;
+  category?: string;
+  visibility?: 'admin' | 'owners';
+  fileType?: string;
+  fileName?: string;
+  size?: number;
+};
+
+export type ClaimRecord = ApiRecord & {
+  organization?: string;
+  owner?: string | ApiRecord;
+  category?: string;
+  description?: string;
+  status?: 'open' | 'in_progress' | 'resolved';
+};
