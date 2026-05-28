@@ -59,12 +59,7 @@ export function OwnerHistorySection() {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            style={{
-              padding: '6px 14px', borderRadius: 20, border: '1px solid var(--border)',
-              background: filter === f ? 'var(--green)' : 'var(--surface)',
-              color: filter === f ? '#0e1512' : 'var(--text-dim)',
-              fontWeight: filter === f ? 700 : 500, fontSize: 13, cursor: 'pointer'
-            }}
+            className={`filter-btn${filter === f ? ' active' : ''}`}
           >
             {{ all: 'Todos', approved: 'Aprobados', pending: 'Pendientes', rejected: 'Rechazados' }[f]}
           </button>
@@ -94,10 +89,12 @@ export function OwnerHistorySection() {
                     <div style={{ fontWeight: 600, fontSize: 14 }}>
                       {money(p.amount)} — {p.month || '-'}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 2 }}>
-                      {dateLabel(p.createdAt)}
-                      {p.rejectionNote ? ` · ${p.rejectionNote}` : ''}
-                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 2 }}>{dateLabel(p.createdAt)}</div>
+                    {p.status === 'rejected' && p.rejectionNote && (
+                      <div style={{ fontSize: 12, color: 'var(--neg)', background: 'var(--neg-soft)', borderRadius: 6, padding: '4px 8px', marginTop: 4 }}>
+                        Motivo del rechazo: {p.rejectionNote}
+                      </div>
+                    )}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                     <Status value={p.status} />

@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react';
-import { AlertTriangle, CheckCircle2, WalletCards } from 'lucide-react';
+import { AlertTriangle, Building2, CheckCircle2, WalletCards } from 'lucide-react';
 import { ownerApi } from '../../services/ownerService';
 import { dateLabel, money } from '../admin/adminFormat';
 import { Empty, Metric, Status } from '../admin/adminComponents';
+
+const MESES_CORTO = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+function fmtPeriod(ym: string | undefined): string | null {
+  if (!ym) return null;
+  const [y, m] = ym.split('-');
+  return `${MESES_CORTO[parseInt(m, 10) - 1] || m} ${y}`;
+}
 
 const PLAN_STATUS: Record<string, string> = {
   requested: 'Solicitado', approved: 'Aprobado', active: 'Activo',
@@ -13,6 +20,7 @@ export function OwnerAccountSection() {
   const [loading, setLoading] = useState(true);
   const [debtItems, setDebtItems] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
+  const [units, setUnits] = useState<any[]>([]);
   const [paymentPlans, setPaymentPlans] = useState<any[]>([]);
   const [error, setError] = useState('');
 
@@ -20,7 +28,9 @@ export function OwnerAccountSection() {
     Promise.all([ownerApi.debtItems.mine(), ownerApi.summary(), ownerApi.paymentPlans.my()])
       .then(([debtRes, sumRes, plansRes]) => {
         setDebtItems(debtRes?.data?.debtItems || []);
-        setSummary(sumRes?.data ?? sumRes);
+        const sd = sumRes?.data ?? sumRes;
+        setSummary(sd);
+        setUnits(sd?.units || []);
         setPaymentPlans(plansRes?.data?.plans || []);
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Error al cargar cuenta.'))
@@ -94,6 +104,44 @@ export function OwnerAccountSection() {
           )}
         </div>
       </section>
+
+      {(loading || units.length > 0) && (
+        <section className="card">
+          <div className="card-h">
+            <div>
+              <h3>Mis unidades</h3>
+              <div className="card-sub">Unidades y cuotas mensuales asignadas</div>
+            </div>
+          </div>
+          <div className="card-body">
+            {loading ? (
+              <div className="skeleton-list">
+                {[1, 2].map(i => <div key={i} className="skeleton-box" style={{ height: 52, borderRadius: 8, marginBottom: 8 }} />)}
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gap: 8 }}>
+                {units.map((u) => (
+                  <div key={u._id || u.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                    <Building2 size={16} color="var(--text-faint)" style={{ flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 13 }}>{u.name || 'Unidad'}</div>
+                      {fmtPeriod(u.collectionStartPeriod) && (
+                        <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 2 }}>
+                          Facturación desde {fmtPeriod(u.collectionStartPeriod)}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14 }}>{money(u.finalFee ?? 0)}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>por mes</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {(loading || paymentPlans.length > 0) && (
         <section className="card">
