@@ -2170,6 +2170,7 @@ footer {
   min-width: 0;
   padding: 26px;
   max-width: 1600px;
+  margin: 0 auto;
 }
 .admin-topbar {
   display: flex;
@@ -2930,7 +2931,7 @@ footer {
 }
 .row-actions {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 6px;
 }
 .row-actions button,
@@ -3643,6 +3644,57 @@ footer {
 .admin-shell .btn-sm {
   padding: 4px 8px;
   font-size: 11.5px;
+}
+
+/* Inner tab switcher */
+.inner-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.inner-tab-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--line-1);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: 500 13px var(--font);
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.inner-tab-btn.active {
+  background: var(--acc-1);
+  color: var(--acc-ink);
+  font-weight: 700;
+  border-color: transparent;
+}
+
+/* List item (listas compactas en owner y admin) */
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line-1);
+}
+.list-item-body {
+  flex: 1;
+  min-width: 0;
+}
+.list-item-title {
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.list-item-sub {
+  font-size: 12px;
+  color: var(--ink-3);
+  margin-top: 2px;
 }
 
 /* Page head */

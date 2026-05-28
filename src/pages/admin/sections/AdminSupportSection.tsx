@@ -78,10 +78,10 @@ export function AdminSupportSection({ ctx }: { ctx: any }) {
                 </select>
               </label>
               <Field label="Título" name="title" placeholder="Ej: No puedo cargar un comprobante" />
-              <div className="field-group">
-                <label className="field-label">Descripción</label>
-                <textarea className="field-input" name="description" placeholder="Contanos qué pasó y qué estabas intentando hacer…" rows={4} maxLength={3000} required style={{ resize: 'vertical' }} />
-              </div>
+              <label className="admin-field">
+                <span>Descripción</span>
+                <textarea name="description" placeholder="Contanos qué pasó y qué estabas intentando hacer…" rows={4} maxLength={3000} required style={{ resize: 'vertical' }} />
+              </label>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button type="submit" disabled={supportSubmitting} className="btn btn-primary" style={{ flex: 1 }}>{supportSubmitting ? 'Enviando…' : 'Enviar ticket'}</button>
                 <button type="button" className="btn btn-ghost" onClick={() => setShowSupportForm(false)}>Cancelar</button>
@@ -91,9 +91,9 @@ export function AdminSupportSection({ ctx }: { ctx: any }) {
         </section>
       )}
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+      <div className="inner-tabs">
         {(['tickets', 'faq'] as const).map(t => (
-          <button key={t} onClick={() => setSupportInnerTab(t)} style={{ padding: '6px 14px', borderRadius: 20, border: '1px solid var(--border)', background: supportInnerTab === t ? 'var(--green)' : 'var(--surface)', color: supportInnerTab === t ? '#0e1512' : 'var(--text-dim)', fontWeight: supportInnerTab === t ? 700 : 500, fontSize: 13, cursor: 'pointer' }}>
+          <button key={t} onClick={() => setSupportInnerTab(t)} className={`inner-tab-btn${supportInnerTab === t ? ' active' : ''}`}>
             {{ tickets: 'Mis tickets', faq: 'Preguntas frecuentes' }[t]}
           </button>
         ))}

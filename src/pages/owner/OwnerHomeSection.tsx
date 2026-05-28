@@ -135,15 +135,13 @@ export function OwnerHomeSection({ user, features }: Props) {
             ) : (
               <div style={{ display: 'grid', gap: 8 }}>
                 {notices.slice(0, 5).map((n: any) => (
-                  <div key={n._id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                  <div key={n._id} className="list-item">
                     <Bell size={15} color="var(--green)" style={{ flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {n.title || n.subject}
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>{dateLabel(n.createdAt || n.sentAt)}</div>
+                    <div className="list-item-body">
+                      <div className="list-item-title">{n.title || n.subject}</div>
+                      <div className="list-item-sub">{dateLabel(n.createdAt || n.sentAt)}</div>
                     </div>
-                    {!n.isRead && <span className="pill warn" style={{ fontSize: 11 }}><span className="d" />Nuevo</span>}
+                    {!n.isRead && <span className="pill warn"><span className="d" />Nuevo</span>}
                   </div>
                 ))}
               </div>
@@ -167,13 +165,11 @@ export function OwnerHomeSection({ user, features }: Props) {
           ) : (
             <div style={{ display: 'grid', gap: 8 }}>
               {payments.slice(0, 5).map((p: any) => (
-                <div key={p._id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border)' }}>
-                  <MessageSquare size={15} color="var(--text-faint)" style={{ flexShrink: 0 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>
-                      {money(p.amount)} — {p.month || '-'}
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>{dateLabel(p.createdAt)}</div>
+                <div key={p._id} className="list-item">
+                  <MessageSquare size={15} color="var(--ink-3)" style={{ flexShrink: 0 }} />
+                  <div className="list-item-body">
+                    <div className="list-item-title">{money(p.amount)} — {p.month || '-'}</div>
+                    <div className="list-item-sub">{dateLabel(p.createdAt)}</div>
                   </div>
                   <Status value={p.status} />
                 </div>
