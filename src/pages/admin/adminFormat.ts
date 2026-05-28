@@ -128,7 +128,7 @@ export function orgLogoText(name: string) {
 }
 
 export const EXPENSE_COLORS: Record<string, string> = {
-  maintenance: '#8fd694', services: '#7cc6f0', salaries: '#f5c265', security: '#c9a7ff', cleaning: '#f08a8a', other: '#9aa3a0'
+  maintenance: 'var(--success)', services: 'var(--info)', salaries: 'var(--warning)', security: 'var(--purple)', cleaning: 'var(--danger)', other: 'var(--text-dim)'
 };
 
 export const EXPENSE_LABELS_MAP: Record<string, string> = {
