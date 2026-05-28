@@ -3860,6 +3860,7 @@ footer {
   .admin-grid.two {
     grid-template-columns: 1fr 1fr;
   }
+  .admin-sidebar button.active::before { display: none; }
 }
 
 @media (max-width: 768px) {
@@ -3876,6 +3877,9 @@ footer {
 }
 
 @media (max-width: 720px) {
+  .admin-page-title { font-size: 22px; }
+  .admin-page-head { align-items: flex-start; }
+  .admin-page-actions { flex-wrap: wrap; }
   .admin-sidebar {
     padding: 12px 12px 10px;
   }
