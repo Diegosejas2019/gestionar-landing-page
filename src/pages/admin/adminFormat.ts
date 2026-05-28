@@ -71,6 +71,8 @@ export const statusText: Record<string, string> = {
   paid: 'Pagado',
   partially_paid: 'Parcialmente pagado',
   unpaid: 'Impago',
+  overdue: 'Vencido',
+  leave: 'Licencia',
   closed: 'Cerrado',
   active: 'Activo',
   requested: 'Solicitado',

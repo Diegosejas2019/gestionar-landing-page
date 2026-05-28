@@ -2083,10 +2083,10 @@ export function AdminPreviewPage() {
                       : p.status === 'suspended'
                         ? <span className="pill neg"><span className="d" />Suspendido</span>
                         : p.status === 'incomplete'
-                          ? <span className="pill" style={{ background: 'rgba(251,191,36,.15)', color: '#d4a017' }}><span className="d" />Incompleto</span>
+                          ? <span className="pill warn"><span className="d" />Incompleto</span>
                           : <span className="pill pos"><span className="d" />Activo</span>}
                     {p.documentStatus === 'expired' && <span className="pill neg" style={{ fontSize: 10 }}>Doc. vencida</span>}
-                    {p.documentStatus === 'expiring_soon' && <span className="pill" style={{ background: 'rgba(251,191,36,.15)', color: '#d4a017', fontSize: 10 }}>Por vencer</span>}
+                    {p.documentStatus === 'expiring_soon' && <span className="pill warn" style={{ fontSize: 10 }}>Por vencer</span>}
                     {p.documentStatus === 'no_docs' && <span className="pill muted" style={{ fontSize: 10 }}>Sin docs</span>}
                   </div>
                 )],
@@ -2099,7 +2099,7 @@ export function AdminPreviewPage() {
                         <button key={i} type="button" className="btn btn-ghost"
                           style={{ fontSize: 11, padding: '2px 6px', gap: 4 }}
                           onClick={() => downloadProviderDoc(idOf(p), i, doc.filename)}>
-                          <Paperclip size={11} />{doc.filename || `Doc ${i + 1}`}
+                          <Paperclip size={13} />{doc.filename || `Doc ${i + 1}`}
                         </button>
                       ))}
                     </div>

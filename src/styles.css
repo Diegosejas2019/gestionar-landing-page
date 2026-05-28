@@ -3670,6 +3670,25 @@ footer {
   border-color: transparent;
 }
 
+/* Filter buttons (OwnerClaimsSection y similares) */
+.filter-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+  font-weight: 500;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.filter-btn.active {
+  background: var(--green);
+  color: var(--acc-ink);
+  font-weight: 700;
+  border-color: transparent;
+}
+
 /* List item (listas compactas en owner y admin) */
 .list-item {
   display: flex;

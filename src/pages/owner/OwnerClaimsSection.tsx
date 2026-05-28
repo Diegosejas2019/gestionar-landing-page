@@ -154,12 +154,7 @@ export function OwnerClaimsSection() {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            style={{
-              padding: '6px 14px', borderRadius: 20, border: '1px solid var(--border)',
-              background: filter === f ? 'var(--green)' : 'var(--surface)',
-              color: filter === f ? '#0e1512' : 'var(--text-dim)',
-              fontWeight: filter === f ? 700 : 500, fontSize: 13, cursor: 'pointer'
-            }}
+            className={`filter-btn${filter === f ? ' active' : ''}`}
           >
             {{ all: 'Todos', open: 'Abiertos', in_progress: 'En progreso', resolved: 'Resueltos' }[f]}
           </button>

@@ -32,7 +32,7 @@ export const Metric = memo(function Metric({ loading, label, value, hint, icon: 
 
 export const Status = memo(function Status({ value, label }: { value?: string; label?: string }) {
   const tone = (value === 'approved' || value === 'paid' || value === 'resolved' || value === 'exited' || value === 'active') ? 'pos'
-    : (value === 'rejected' || value === 'cancelled') ? 'neg'
+    : (value === 'rejected' || value === 'cancelled' || value === 'overdue') ? 'neg'
     : (value === 'pending' || value === 'partially_paid' || value === 'open' || value === 'in_progress' || value === 'inside' || value === 'leave') ? 'warn'
     : (value === 'closed') ? 'muted'
     : '';
@@ -47,7 +47,7 @@ export const Status = memo(function Status({ value, label }: { value?: string; l
 export const Empty = memo(function Empty({ text = 'Sin datos para mostrar.' }: { text?: string }) {
   return (
     <div className="admin-empty">
-      <Inbox size={28} />
+      <Inbox size={20} />
       <span>{text}</span>
     </div>
   );
