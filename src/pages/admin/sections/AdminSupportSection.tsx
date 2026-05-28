@@ -82,8 +82,8 @@ export function AdminSupportSection({ ctx }: { ctx: any }) {
                 <span>Descripción</span>
                 <textarea name="description" placeholder="Contanos qué pasó y qué estabas intentando hacer…" rows={4} maxLength={3000} required style={{ resize: 'vertical' }} />
               </label>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button type="submit" disabled={supportSubmitting} className="btn btn-primary" style={{ flex: 1 }}>{supportSubmitting ? 'Enviando…' : 'Enviar ticket'}</button>
+              <div className="form-actions">
+                <button type="submit" disabled={supportSubmitting} className="btn btn-primary">{supportSubmitting ? 'Enviando…' : 'Enviar ticket'}</button>
                 <button type="button" className="btn btn-ghost" onClick={() => setShowSupportForm(false)}>Cancelar</button>
               </div>
             </form>

@@ -3697,6 +3697,61 @@ footer {
   margin-top: 2px;
 }
 
+/* Attach zone (horizontal inline file picker) */
+.attach-zone {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px dashed var(--line-1);
+  border-radius: 10px;
+  cursor: pointer;
+  background: var(--bg);
+  transition: border-color .15s, background .15s;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.attach-zone:hover { border-color: var(--acc-1); background: var(--acc-soft); }
+.attach-zone-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Attach chips (multi-file preview) */
+.attach-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  background: var(--surface);
+  border: 1px solid var(--line-1);
+  border-radius: 6px;
+  font-size: 12px;
+}
+.attach-chip-remove {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--ink-3);
+  padding: 0;
+}
+
+/* Add attachment button (dashed) */
+.attach-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: var(--bg);
+  border: 1px dashed var(--line-1);
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--ink-3);
+}
+.attach-add:hover { border-color: var(--acc-1); color: var(--ink-2); }
+
+/* Form actions row */
+.form-actions { display: flex; gap: 10px; }
+.form-actions > .btn-primary { flex: 1; }
+
 /* Page head */
 .admin-page-head {
   display: flex;

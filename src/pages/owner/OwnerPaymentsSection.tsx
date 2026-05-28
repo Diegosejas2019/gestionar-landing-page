@@ -95,7 +95,7 @@ export function OwnerPaymentsSection() {
               </label>
 
               {selectedInfo?.amount && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                <div className="list-item">
                   <CreditCard size={16} color="var(--green)" />
                   <span style={{ fontSize: 14 }}>Importe del período: <strong>{money(selectedInfo.amount)}</strong></span>
                 </div>
@@ -104,26 +104,23 @@ export function OwnerPaymentsSection() {
               {/* File upload */}
               <label className="admin-field">
                 <span>Comprobante de pago</span>
-                <div
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: '1px dashed var(--border)', borderRadius: 10, cursor: 'pointer', background: 'var(--bg)' }}
-                  onClick={() => fileRef.current?.click()}
-                >
+                <div className="attach-zone" onClick={() => fileRef.current?.click()}>
                   {file ? (
                     <>
-                      <Paperclip size={15} color="var(--green)" />
-                      <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
+                      <Paperclip size={15} color="var(--acc-1)" />
+                      <span className="attach-zone-text">{file.name}</span>
                       <button
                         type="button"
                         onClick={e => { e.stopPropagation(); setFile(null); if (fileRef.current) fileRef.current.value = ''; }}
-                        style={{ border: 0, background: 'transparent', color: 'var(--text-faint)', cursor: 'pointer', padding: 2 }}
+                        className="attach-chip-remove"
                       >
                         <X size={14} />
                       </button>
                     </>
                   ) : (
                     <>
-                      <Upload size={15} color="var(--text-faint)" />
-                      <span style={{ fontSize: 13, color: 'var(--text-faint)' }}>Hacer clic para seleccionar archivo (PDF, JPG, PNG)</span>
+                      <Upload size={15} color="var(--ink-3)" />
+                      <span>Hacer clic para seleccionar archivo (PDF, JPG, PNG)</span>
                     </>
                   )}
                 </div>

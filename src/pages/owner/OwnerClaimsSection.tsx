@@ -119,13 +119,13 @@ export function OwnerClaimsSection() {
                 <div style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 6 }}>Adjuntos (opcional, máx. 3)</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {attachments.map((f, i) => (
-                    <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 8px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }}>
+                    <span key={i} className="attach-chip">
                       <Paperclip size={11} />{f.name}
-                      <button type="button" onClick={() => setAttachments(a => a.filter((_, j) => j !== i))} style={{ border: 0, background: 'transparent', cursor: 'pointer', color: 'var(--text-faint)', padding: 0 }}><X size={11} /></button>
+                      <button type="button" onClick={() => setAttachments(a => a.filter((_, j) => j !== i))} className="attach-chip-remove"><X size={11} /></button>
                     </span>
                   ))}
                   {attachments.length < 3 && (
-                    <button type="button" onClick={() => fileRef.current?.click()} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', background: 'var(--bg)', border: '1px dashed var(--border)', borderRadius: 6, fontSize: 12, cursor: 'pointer', color: 'var(--text-dim)' }}>
+                    <button type="button" onClick={() => fileRef.current?.click()} className="attach-add">
                       <Plus size={11} /> Agregar archivo
                     </button>
                   )}
@@ -135,11 +135,11 @@ export function OwnerClaimsSection() {
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button type="submit" disabled={submitting} className="btn-primary" style={{ flex: 1 }}>
+              <div className="form-actions">
+                <button type="submit" disabled={submitting} className="btn btn-primary">
                   {submitting ? 'Enviando…' : 'Enviar reclamo'}
                 </button>
-                <button type="button" onClick={() => setShowForm(false)} style={{ padding: '9px 16px', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface)', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 14 }}>
+                <button type="button" onClick={() => setShowForm(false)} className="btn btn-ghost">
                   Cancelar
                 </button>
               </div>
