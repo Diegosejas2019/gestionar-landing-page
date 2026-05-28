@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { AlertTriangle, Bell, CheckCircle2, ChevronDown, CreditCard, Download, FileText, Landmark, Search, ShieldCheck, TrendingUp, X } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { AlertTriangle, Bell, CheckCircle2, ChevronDown, CreditCard, Download, FileText, Landmark, Paperclip, Search, ShieldCheck, TrendingUp, Upload, X } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
 import { Table } from '../../components/Table';
 import { Actions, Empty, Field, Metric, Panel, PaymentChannel, SelectField, Status } from './adminComponents';
@@ -28,6 +28,7 @@ export function AdminFinanceSection({ ctx }: AdminFinanceSectionProps) {
   const [annualYear, setAnnualYear] = useState(new Date().getFullYear());
   const [annualData, setAnnualData] = useState<any>(null);
   const [annualLoading, setAnnualLoading] = useState(false);
+  const expReceiptFileRef = useRef<HTMLInputElement>(null);
 
   function handleExpenseSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -311,13 +312,28 @@ export function AdminFinanceSection({ ctx }: AdminFinanceSectionProps) {
                       <Field label="CUIT emisor" name="invoiceCuit" placeholder="20-12345678-0" />
                       <label className="admin-field">
                         <span>Comprobante</span>
-                        <input type="file" name="attachments" accept=".pdf,image/*" onChange={(e) => setExpReceiptFile(e.target.files?.[0] || null)} />
-                      </label>
-                      {expReceiptFile && (
-                        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-                          {expReceiptFile.name.endsWith('.pdf') ? '📄' : '🖼️'} {expReceiptFile.name} ({Math.round(expReceiptFile.size / 1024)} KB)
+                        <div className="attach-zone" onClick={() => expReceiptFileRef.current?.click()}>
+                          {expReceiptFile ? (
+                            <>
+                              <Paperclip size={15} color="var(--acc-1)" />
+                              <span className="attach-zone-text">{expReceiptFile.name}</span>
+                              <button
+                                type="button"
+                                className="attach-chip-remove"
+                                onClick={e => { e.stopPropagation(); setExpReceiptFile(null); if (expReceiptFileRef.current) expReceiptFileRef.current.value = ''; }}
+                              >
+                                <X size={14} />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <Upload size={15} color="var(--ink-3)" />
+                              <span>Seleccionar comprobante (PDF o imagen)</span>
+                            </>
+                          )}
                         </div>
-                      )}
+                        <input ref={expReceiptFileRef} type="file" name="attachments" accept=".pdf,image/*" style={{ display: 'none' }} onChange={(e) => setExpReceiptFile(e.target.files?.[0] || null)} />
+                      </label>
                       {expReceiptFile && (
                         <button type="button" className="btn btn-ghost" style={{ fontSize: 12, padding: '4px 10px' }} onClick={handleAnalyzeReceipt} disabled={analyzing}>
                           {analyzing ? 'Analizando…' : '🔍 Análisis preliminar'}

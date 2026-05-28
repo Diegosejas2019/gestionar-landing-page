@@ -73,7 +73,7 @@ function EmployeesSection({ ctx }: { ctx: any }) {
                   const subtitle = e.customRole || roleLabels[e.role] || e.role || '-';
                   return (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--accent-soft, rgba(74,222,128,0.15))', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{initials}</div>
+                      <div className="emp-avatar">{initials}</div>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 13 }}>{e.name}</div>
                         <div style={{ fontSize: 11, color: 'var(--muted)' }}>{subtitle}</div>
@@ -168,26 +168,19 @@ function EmployeesSection({ ctx }: { ctx: any }) {
                           e.target.value = '';
                         }}
                       />
-                      {employeeFiles.length < 5 && (
-                        <div className="notice-attach-zone" onClick={() => document.getElementById('emp-files-input')?.click()}>
-                          <Paperclip size={16} style={{ color: 'var(--muted)' }} />
-                          <span style={{ fontSize: 13, color: 'var(--text)' }}>Adjuntar PDF o imagen</span>
-                          <small style={{ color: 'var(--muted)', fontSize: 11 }}>Clic para seleccionar</small>
-                        </div>
-                      )}
-                      {employeeFiles.length > 0 && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                           {employeeFiles.map((f: File, i: number) => (
-                            <div key={i} className="notice-attach-chip notice-attach-chip--local">
-                              <span>{f.type.startsWith('image/') ? '🖼️' : '📄'}</span>
-                              <span>{f.name.length > 24 ? f.name.slice(0, 23) + '…' : f.name}</span>
-                              <span style={{ color: 'var(--muted)', fontSize: 10 }}>({(f.size / 1024).toFixed(0)} KB)</span>
-                              <button type="button" className="notice-attach-chip-remove"
-                                onClick={() => setEmployeeFiles((prev: File[]) => prev.filter((_: File, j: number) => j !== i))}>✕</button>
-                            </div>
+                            <span key={i} className="attach-chip">
+                              <Paperclip size={12} />{f.name.length > 24 ? f.name.slice(0, 23) + '…' : f.name}
+                              <button type="button" className="attach-chip-remove" onClick={() => setEmployeeFiles((prev: File[]) => prev.filter((_: File, j: number) => j !== i))}><X size={11} /></button>
+                            </span>
                           ))}
+                          {employeeFiles.length < 5 && (
+                            <button type="button" className="attach-add" onClick={() => document.getElementById('emp-files-input')?.click()}>
+                              <Paperclip size={12} /> Agregar archivo
+                            </button>
+                          )}
                         </div>
-                      )}
                     </div>
 
                     <div className="form-modal-foot">
