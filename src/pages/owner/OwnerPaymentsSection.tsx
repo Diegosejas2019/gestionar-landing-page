@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
-import { CreditCard, Paperclip, Upload, X } from 'lucide-react';
+import { AlertTriangle, CreditCard, Paperclip, Upload, X } from 'lucide-react';
 import { ownerApi } from '../../services/ownerService';
 import { money } from '../admin/adminFormat';
 import { Empty } from '../admin/adminComponents';
@@ -18,6 +18,8 @@ export function OwnerPaymentsSection() {
   const [periods, setPeriods] = useState<Period[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState('');
   const [config, setConfig] = useState<any>(null);
+  const [invoice, setInvoice] = useState<any>(null);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
@@ -42,6 +44,16 @@ export function OwnerPaymentsSection() {
       .catch((e) => setError(e instanceof Error ? e.message : 'Error al cargar períodos.'))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!selectedPeriod) { setInvoice(null); return; }
+    setInvoiceLoading(true);
+    setInvoice(null);
+    ownerApi.invoice(selectedPeriod)
+      .then(res => setInvoice((res as any)?.data ?? null))
+      .catch(() => setInvoice(null))
+      .finally(() => setInvoiceLoading(false));
+  }, [selectedPeriod]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -112,22 +124,74 @@ export function OwnerPaymentsSection() {
                 </select>
               </label>
 
-              {selectedInfo?.amount && (
-                <div className="list-item">
-                  <CreditCard size={16} color="var(--green)" />
-                  <span style={{ fontSize: 14 }}>Importe del período: <strong>{money(selectedInfo.amount)}</strong></span>
+              {/* Invoice detail */}
+              {invoiceLoading && (
+                <div className="skeleton-box" style={{ height: 80, borderRadius: 8 }} />
+              )}
+
+              {!invoiceLoading && invoice && (
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px', display: 'grid', gap: 8 }}>
+                  {/* Monthly fee summary */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <CreditCard size={14} color="var(--green)" />
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>Cuota {invoice.periodLabel}</span>
+                    </div>
+                    <strong style={{ fontSize: 14 }}>{money(invoice.totals.expected)}</strong>
+                  </div>
+
+                  {/* Unit breakdown (only if >1 unit) */}
+                  {invoice.monthlyItems?.length > 1 && (
+                    <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+                      {invoice.monthlyItems.map((u: any, i: number) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '2px 0', color: 'var(--text-dim)' }}>
+                          <span>{u.unitName}</span>
+                          <span>{money(u.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Extraordinary items */}
+                  {invoice.extraordinaryItems?.length > 0 && (
+                    <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-dim)', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.04em' }}>Extraordinarios</div>
+                      {invoice.extraordinaryItems.map((e: any, i: number) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '2px 0' }}>
+                          <span>{e.expense?.description || 'Gasto extraordinario'}</span>
+                          <span>{money(e.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Pending debt items */}
+                  {invoice.debtItems?.length > 0 && (
+                    <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-dim)', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.04em' }}>Deudas pendientes</div>
+                      {invoice.debtItems.map((d: any, i: number) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '2px 0', color: 'var(--neg)' }}>
+                          <span>{d.description || 'Ajuste'}</span>
+                          <span>+{money(d.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Warnings */}
+                  {invoice.warnings?.filter((w: any) => w.severity !== 'info')?.map((w: any, i: number) => (
+                    <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', fontSize: 12, color: 'var(--warn)', paddingTop: 4 }}>
+                      <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 1 }} />
+                      <span>{w.message}</span>
+                    </div>
+                  ))}
                 </div>
               )}
 
-              {(selectedInfo?.units?.length ?? 0) > 1 && (
-                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
-                  <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 8, fontWeight: 600 }}>Detalle por unidad</div>
-                  {selectedInfo!.units!.map(u => (
-                    <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
-                      <span>{u.name}</span>
-                      <strong>{money(u.amount)}</strong>
-                    </div>
-                  ))}
+              {!invoiceLoading && !invoice && selectedInfo?.amount && (
+                <div className="list-item">
+                  <CreditCard size={16} color="var(--green)" />
+                  <span style={{ fontSize: 14 }}>Importe del período: <strong>{money(selectedInfo.amount)}</strong></span>
                 </div>
               )}
 

@@ -23,6 +23,9 @@ export const ownerApi = {
     () => apiClient<ApiEnvelope>('/owners/me/summary?paymentsLimit=50&noticesLimit=5', { auth: true })
   ),
 
+  invoice: (period: string) =>
+    apiClient<ApiEnvelope>(`/owners/me/invoice?period=${encodeURIComponent(period)}`, { auth: true }),
+
   payments: {
     list: (params?: Params) => cachedApiCall(
       cacheKey('owner:payments:list', params),
