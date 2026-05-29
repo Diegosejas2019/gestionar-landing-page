@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
-import { AlertTriangle, CreditCard, Paperclip, Upload, X } from 'lucide-react';
+import { AlertTriangle, CreditCard, Download, Paperclip, Upload, X } from 'lucide-react';
 import { ownerApi } from '../../services/ownerService';
 import { money } from '../admin/adminFormat';
 import { Empty } from '../admin/adminComponents';
@@ -20,6 +20,7 @@ export function OwnerPaymentsSection() {
   const [config, setConfig] = useState<any>(null);
   const [invoice, setInvoice] = useState<any>(null);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
@@ -193,6 +194,37 @@ export function OwnerPaymentsSection() {
                   <CreditCard size={16} color="var(--green)" />
                   <span style={{ fontSize: 14 }}>Importe del período: <strong>{money(selectedInfo.amount)}</strong></span>
                 </div>
+              )}
+
+              {/* Download invoice PDF */}
+              {selectedPeriod && (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center', fontSize: 13 }}
+                  disabled={pdfLoading}
+                  onClick={async () => {
+                    setPdfLoading(true);
+                    try {
+                      const blob = await ownerApi.downloadInvoicePdf(selectedPeriod);
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `liquidacion_${selectedPeriod}.pdf`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                    } catch (err) {
+                      setNotice({ type: 'error', text: err instanceof Error ? err.message : 'No se pudo descargar la liquidación.' });
+                    } finally {
+                      setPdfLoading(false);
+                    }
+                  }}
+                >
+                  <Download size={14} />
+                  {pdfLoading ? 'Generando PDF…' : 'Descargar liquidación'}
+                </button>
               )}
 
               {/* File upload */}

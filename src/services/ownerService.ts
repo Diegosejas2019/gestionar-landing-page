@@ -26,6 +26,9 @@ export const ownerApi = {
   invoice: (period: string) =>
     apiClient<ApiEnvelope>(`/owners/me/invoice?period=${encodeURIComponent(period)}`, { auth: true }),
 
+  downloadInvoicePdf: (period: string) =>
+    apiBlob(`/owners/me/invoice-pdf?period=${encodeURIComponent(period)}`, { auth: true }),
+
   payments: {
     list: (params?: Params) => cachedApiCall(
       cacheKey('owner:payments:list', params),
