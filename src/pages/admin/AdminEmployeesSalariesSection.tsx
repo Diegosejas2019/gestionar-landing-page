@@ -1,4 +1,5 @@
-import { Download, FileText, Paperclip, RefreshCw, ShieldCheck, UserRoundCog, Users, WalletCards, X } from 'lucide-react';
+import { useState } from 'react';
+import { Download, FileText, List, Paperclip, RefreshCw, ShieldCheck, UserRoundCog, Users, WalletCards, X } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
 import { Table } from '../../components/Table';
 import { Actions, Field, Metric, Panel, Status } from './adminComponents';
@@ -197,6 +198,16 @@ function EmployeesSection({ ctx }: { ctx: any }) {
   );
 }
 
+const PAYMENT_TYPE_LABELS: Record<string, string> = {
+  advance: 'Adelanto',
+  salary_payment: 'Pago de sueldo',
+  adjustment: 'Ajuste',
+};
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  cash: 'Efectivo',
+  transfer: 'Transferencia',
+};
+
 function SalariesSection({ ctx }: { ctx: any }) {
   const {
     salaries, config, refresh, tab, setEditingSalary, setShowSalaryModal, loading, month,
@@ -205,6 +216,23 @@ function SalariesSection({ ctx }: { ctx: any }) {
     submitSalaryModal, employees, busy, showSalaryPaymentModal, salaryForPayment,
     salaryPaymentType, submitSalaryPayment
   } = ctx;
+
+  const [movementsTarget, setMovementsTarget] = useState<any>(null);
+  const [movements, setMovements] = useState<any[]>([]);
+  const [loadingMovements, setLoadingMovements] = useState(false);
+
+  async function openMovements(salary: any) {
+    setMovementsTarget(salary);
+    setMovements([]);
+    setLoadingMovements(true);
+    try {
+      const res = await adminApi.salaryPayments.list({ salary: idOf(salary) } as any);
+      setMovements((res as any)?.data?.salaryPayments || []);
+    } catch (_) {}
+    setLoadingMovements(false);
+  }
+
+  function closeMovements() { setMovementsTarget(null); setMovements([]); }
 
   return (
           <>
@@ -248,6 +276,7 @@ function SalariesSection({ ctx }: { ctx: any }) {
                     {canEdit && <button onClick={() => openEditSalary(s)}>Editar</button>}
                     {canPay && <button onClick={() => { setSalaryForPayment(s); setSalaryPaymentType('advance'); setShowSalaryPaymentModal(true); }}>Adelanto</button>}
                     {canPay && <button onClick={() => { setSalaryForPayment(s); setSalaryPaymentType('salary_payment'); setShowSalaryPaymentModal(true); }}>Registrar pago</button>}
+                    <button onClick={() => openMovements(s)}>Movimientos</button>
                     {s.status !== 'cancelled' && <button className="danger-action" onClick={() => run(idOf(s), () => adminApi.salaries.delete(idOf(s)), 'Liquidacion cancelada.')}>Cancelar</button>}
                   </Actions>;
                 }]
@@ -339,6 +368,49 @@ function SalariesSection({ ctx }: { ctx: any }) {
                       </button>
                     </div>
                   </form>
+                </div>
+              </div>
+            )}
+
+            {movementsTarget && (
+              <div className="modal-backdrop" role="dialog" aria-modal="true"
+                onClick={(e) => { if (e.target === e.currentTarget) closeMovements(); }}>
+                <div className="form-modal form-modal--wide">
+                  <div className="form-modal-head">
+                    <div className="form-modal-title"><List size={16} />Movimientos — {movementsTarget.employee?.name || '-'} · {movementsTarget.period}</div>
+                    <button className="icon-btn" onClick={closeMovements}><X size={16} /></button>
+                  </div>
+                  <div style={{ padding: '0.75rem 0' }}>
+                    {loadingMovements && <div style={{ textAlign: 'center', color: 'var(--muted)', padding: '1.5rem' }}>Cargando movimientos…</div>}
+                    {!loadingMovements && movements.length === 0 && <div style={{ textAlign: 'center', color: 'var(--muted)', padding: '1.5rem' }}>Sin movimientos registrados.</div>}
+                    {!loadingMovements && movements.length > 0 && (
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--muted)', textTransform: 'uppercase', fontSize: 11 }}>
+                            <th style={{ textAlign: 'left', padding: '0.4rem 0.75rem' }}>Tipo</th>
+                            <th style={{ textAlign: 'right', padding: '0.4rem 0.75rem' }}>Monto</th>
+                            <th style={{ textAlign: 'left', padding: '0.4rem 0.75rem' }}>Fecha</th>
+                            <th style={{ textAlign: 'left', padding: '0.4rem 0.75rem' }}>Metodo</th>
+                            <th style={{ textAlign: 'left', padding: '0.4rem 0.75rem' }}>Nota</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {movements.map((m: any, i: number) => (
+                            <tr key={m._id || i} style={{ borderBottom: '1px solid var(--border-subtle, var(--border))' }}>
+                              <td style={{ padding: '0.5rem 0.75rem' }}>{PAYMENT_TYPE_LABELS[m.type] || m.type}</td>
+                              <td style={{ padding: '0.5rem 0.75rem', textAlign: 'right', fontWeight: 600 }}>{money(m.amount)}</td>
+                              <td style={{ padding: '0.5rem 0.75rem', color: 'var(--muted)' }}>{m.paymentDate ? String(m.paymentDate).slice(0, 10) : '-'}</td>
+                              <td style={{ padding: '0.5rem 0.75rem', color: 'var(--muted)' }}>{PAYMENT_METHOD_LABELS[m.paymentMethod] || m.paymentMethod || '-'}</td>
+                              <td style={{ padding: '0.5rem 0.75rem', color: 'var(--muted)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.note || '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                  <div className="form-modal-foot">
+                    <button type="button" className="btn btn-ghost" onClick={closeMovements}>Cerrar</button>
+                  </div>
                 </div>
               </div>
             )}

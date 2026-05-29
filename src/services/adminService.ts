@@ -211,8 +211,8 @@ export const adminApi = {
       cacheKey('salary-payments:list', params),
       () => apiClient<ApiEnvelope>(`/salary-payments${qs(params)}`, { auth: true })
     ),
-    create: (data: Payload) => { invalidateList('salary-payments:list'); return apiClient<ApiEnvelope>('/salary-payments', { method: 'POST', auth: true, body: body(data) }); },
-    delete: (id: string) => { invalidateList('salary-payments:list'); return apiClient<ApiEnvelope>(`/salary-payments/${id}`, { method: 'DELETE', auth: true }); }
+    create: (data: Payload) => { invalidateList('salary-payments:list'); invalidateList('salaries:list'); return apiClient<ApiEnvelope>('/salary-payments', { method: 'POST', auth: true, body: body(data) }); },
+    delete: (id: string) => { invalidateList('salary-payments:list'); invalidateList('salaries:list'); return apiClient<ApiEnvelope>(`/salary-payments/${id}`, { method: 'DELETE', auth: true }); }
   },
 
   providers: {
