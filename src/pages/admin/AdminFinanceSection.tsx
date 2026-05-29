@@ -5,6 +5,7 @@ import { Table } from '../../components/Table';
 import { Actions, Empty, Field, Metric, Panel, PaymentChannel, SelectField, Status } from './adminComponents';
 import { CobroStrip, ExpenseBreakdown, PeriodTable, PeriodTabs, YearMonth } from './adminWidgets';
 import { adminInitials, dateLabel, filteredMonthlyByPeriod, fmtK, idOf, money, pick, person } from './adminFormat';
+import { AdminCompositionTab } from './sections/AdminCompositionTab';
 
 type AdminFinanceSectionProps = { ctx: any };
 
@@ -122,6 +123,9 @@ export function AdminFinanceSection({ ctx }: AdminFinanceSectionProps) {
                 </button>
                 <button className={`fin-tab${finSubTab === 'noIdentificados' ? ' is-active' : ''}`} onClick={() => { setFinSubTab('noIdentificados'); fetchUnidentifiedPayments(); }}>
                   No Identificados <span className="fin-tab-count">{unidentifiedPaymentsSummary?.pendingCount || 0}</span>
+                </button>
+                <button className={`fin-tab${finSubTab === 'composicion' ? ' is-active' : ''}`} onClick={() => setFinSubTab('composicion')}>
+                  Composición
                 </button>
               </div>
               {finSubTab === 'cobranza' && (
@@ -449,6 +453,10 @@ export function AdminFinanceSection({ ctx }: AdminFinanceSectionProps) {
                   <AssociateUnidentifiedModal payment={selectedUnidentified} owners={owners} units={units} onClose={() => { setShowUnidentifiedAssociateModal(false); setSelectedUnidentified(null); }} onSuccess={() => { fetchUnidentifiedPayments(); setShowUnidentifiedAssociateModal(false); setSelectedUnidentified(null); }} />
                 )}
               </>
+            )}
+
+            {finSubTab === 'composicion' && (
+              <AdminCompositionTab month={month} />
             )}
           </>
   );

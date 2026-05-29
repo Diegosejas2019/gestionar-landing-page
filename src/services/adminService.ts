@@ -249,7 +249,8 @@ export const adminApi = {
     generatePdf: (period: string) => apiClient<ApiEnvelope>(`/renditions/${encodeURIComponent(period)}/generate-pdf`, { method: 'POST', auth: true }),
     exportCsv: (period: string, section: string) => apiBlob(`/renditions/${encodeURIComponent(period)}/export-csv?section=${encodeURIComponent(section)}`, { auth: true }),
     saveObservations: (period: string, observations: string) =>
-      apiClient<ApiEnvelope>(`/renditions/${encodeURIComponent(period)}/observations`, { method: 'PATCH', auth: true, body: JSON.stringify({ observations }) })
+      apiClient<ApiEnvelope>(`/renditions/${encodeURIComponent(period)}/observations`, { method: 'PATCH', auth: true, body: JSON.stringify({ observations }) }),
+    composition: (period: string) => apiClient<ApiEnvelope>(`/renditions/${encodeURIComponent(period)}/composition`, { auth: true }),
   },
 
   debtItems: {
