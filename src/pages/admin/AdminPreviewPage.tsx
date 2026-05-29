@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
 import { isSuperAdminRole } from '../../services/authService';
-import { clearAuthToken, getAuthToken, goHome, goLogin, goOwnerApp, goOwnerDashboard, goSuperAdmin } from '../../services/navigationService';
+import { clearAuthToken, getAuthToken, goGuard, goHome, goLogin, goOwnerApp, goOwnerDashboard, goSuperAdmin } from '../../services/navigationService';
 import { useAdminStore } from '../../stores/adminStore';
 import { Table, type GridFilter } from '../../components/Table';
 import {
@@ -652,6 +652,10 @@ export function AdminPreviewPage() {
       setConfig(session.config);
       setFeatures(session.features);
       setAdminRole(session.adminRole);
+      if (session.adminRole === 'security_guard') {
+        goGuard();
+        return;
+      }
       setPermissions(session.permissions);
       setAdminRoles(session.adminRoles);
 
@@ -1996,7 +2000,7 @@ export function AdminPreviewPage() {
         )}
 
         {tab === 'visitas' && (
-          <AdminVisitsSection ctx={{ visits, loading, config, tab, run, refresh }} />
+          <AdminVisitsSection ctx={{ visits, loading, config, tab, run, refresh, can: hasPermission }} />
         )}
 
         {tab === 'proveedores' && (

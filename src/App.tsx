@@ -15,6 +15,10 @@ const OwnerPage = lazy(() => import(
   /* webpackPrefetch: true */
   './pages/owner/OwnerPage'
 ).then(m => ({ default: m.OwnerPage })));
+const GuardPortalPage = lazy(() => import(
+  /* webpackPrefetch: true */
+  './pages/guard/GuardPortalPage'
+).then(m => ({ default: m.GuardPortalPage })));
 
 function LoadingFallback() {
   return (
@@ -64,6 +68,14 @@ export function App() {
     return (
       <Suspense fallback={<LoadingFallback />}>
         <AdminPreviewPage />
+      </Suspense>
+    );
+  }
+
+  if (path.startsWith('/guard')) {
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <GuardPortalPage />
       </Suspense>
     );
   }

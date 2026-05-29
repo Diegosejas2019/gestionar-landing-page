@@ -4,7 +4,7 @@ import { adminApi } from '../../services/adminService';
 import { idOf, person } from './adminFormat';
 
 export function AdminVisitsSection({ ctx }: { ctx: any }) {
-  const { visits, loading, config, tab, run, refresh } = ctx;
+  const { visits, loading, config, tab, run, refresh, can } = ctx;
   const [visitFilter, setVisitFilter] = useState<'all' | 'inside' | 'exited' | 'expected'>('all');
 
   const vs = visits || [];
@@ -127,7 +127,7 @@ export function AdminVisitsSection({ ctx }: { ctx: any }) {
                     )}
                   </div>
                   <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                    {(v.status === 'pending') && (
+                    {(v.status === 'pending') && can('visits.update') && (
                       <>
                         <button className="btn btn-ghost" style={{ fontSize: 11, padding: '2px 7px' }} onClick={() => run(idOf(v), () => adminApi.visits.status(idOf(v), 'approved'), 'Visita aprobada.')}>Aprobar</button>
                         <button className="btn btn-ghost" style={{ fontSize: 11, padding: '2px 7px' }} onClick={() => run(idOf(v), () => adminApi.visits.status(idOf(v), 'rejected'), 'Visita rechazada.')}>Rechazar</button>

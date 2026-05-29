@@ -304,7 +304,10 @@ export const adminApi = {
       invalidateList('visits:list');
       return apiClient<ApiEnvelope>(`/visits/${id}/check-out`, { method: 'POST', auth: true, body: JSON.stringify({ comment }) });
     },
-    delete: (id: string) => { invalidateList('visits:list'); return apiClient<ApiEnvelope>(`/visits/${id}`, { method: 'DELETE', auth: true }); }
+    delete: (id: string) => { invalidateList('visits:list'); return apiClient<ApiEnvelope>(`/visits/${id}`, { method: 'DELETE', auth: true }); },
+    validateQr: (token: string) => apiClient<ApiEnvelope>(`/visits/qr/${token}`, { auth: true }),
+    checkInByQr: (token: string, comment?: string) => apiClient<ApiEnvelope>(`/visits/qr/${token}/check-in`, { method: 'POST', auth: true, body: JSON.stringify({ comment }) }),
+    logs: (id: string) => apiClient<ApiEnvelope>(`/visits/${id}/logs`, { auth: true })
   },
 
   spaces: {

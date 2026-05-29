@@ -25,6 +25,10 @@ export function goAdmin() {
   window.location.assign('/admin');
 }
 
+export function goGuard() {
+  window.location.assign('/guard');
+}
+
 export function goSuperAdmin() {
   window.location.assign('/super-admin');
 }
