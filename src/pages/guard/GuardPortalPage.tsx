@@ -317,6 +317,9 @@ export function GuardPortalPage() {
           <button className="btn btn-ghost" style={{ minHeight: 36 }} onClick={loadVisits} disabled={loading}>
             <RefreshCw size={14} /> Actualizar
           </button>
+          <button className="btn btn-ghost" style={{ minHeight: 36 }} onClick={() => { clearAuthToken(); goLogin(); }}>
+            <LogOut size={14} /> Salir
+          </button>
         </div>
       </header>
 
