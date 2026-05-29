@@ -20,6 +20,31 @@ function EmployeesSection({ ctx }: { ctx: any }) {
     employeeFiles, downloadEmployeeDocument, deleteEmployeeDocument, busy
   } = ctx;
 
+  const [accessTarget, setAccessTarget] = useState<any>(null);
+  const [accessError, setAccessError] = useState('');
+  const [accessBusy, setAccessBusy] = useState(false);
+  const [deactivateTarget, setDeactivateTarget] = useState<any>(null);
+
+  async function doCreateAccess() {
+    if (!accessTarget) return;
+    setAccessBusy(true);
+    setAccessError('');
+    try {
+      await adminApi.employees.createAccess(idOf(accessTarget));
+      setAccessTarget(null);
+      refresh(tab);
+    } catch (err: any) {
+      setAccessError(err?.message || 'No se pudo crear el acceso.');
+    }
+    setAccessBusy(false);
+  }
+
+  async function doDeactivate(employee: any, revokeAccess: boolean) {
+    setDeactivateTarget(null);
+    await adminApi.employees.delete(idOf(employee), revokeAccess ? { revokeAccess: true } : undefined);
+    refresh(tab);
+  }
+
   return (
           <>
             <div className="admin-page-head">
@@ -87,17 +112,82 @@ function EmployeesSection({ ctx }: { ctx: any }) {
                 ['Antigüedad', (e: any) => e.startDate ? `desde ${new Date(e.startDate).getFullYear()}` : '—'],
                 ['Estado', (e: any) => {
                   if (e.isOnLeave) return <Status value="leave" label={e.leaveNote || 'En licencia'} />;
-                  return <Status value={e.isActive ? 'active' : 'cancelled'} />;
+                  const statusEl = <Status value={e.isActive ? 'active' : 'cancelled'} />;
+                  if (e.role === 'security') {
+                    const portalEl = e.userId
+                      ? <span style={{ fontSize: 10, color: 'var(--pos)' }}>● Portal activo</span>
+                      : <span style={{ fontSize: 10, color: 'var(--ink-3, var(--muted))' }}>○ Sin acceso</span>;
+                    return <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>{statusEl}{portalEl}</div>;
+                  }
+                  return statusEl;
                 }],
                 ['Acciones', (e: any) => <Actions>
                   <button onClick={() => editEmployee(e)}>Editar</button>
+                  {e.role === 'security' && e.isActive && !e.userId && (
+                    <button onClick={() => { setAccessError(''); setAccessTarget(e); }}><ShieldCheck size={11} />Portal</button>
+                  )}
+                  {e.role === 'security' && e.userId && (
+                    <button className="danger-action" onClick={() => run(idOf(e), () => adminApi.employees.unlinkUser(idOf(e)), 'Vínculo removido.')}>Desvincular</button>
+                  )}
                   {e.isActive
-                    ? <button className="danger-action" onClick={() => run(idOf(e), () => adminApi.employees.delete(idOf(e)), 'Empleado dado de baja.')}>Baja</button>
+                    ? <button className="danger-action" onClick={() => { if (e.userId) { setDeactivateTarget(e); } else { run(idOf(e), () => adminApi.employees.delete(idOf(e)), 'Empleado dado de baja.'); } }}>Baja</button>
                     : <button onClick={() => run(idOf(e), () => adminApi.employees.update(idOf(e), { isActive: true, endDate: null }), 'Empleado reactivado.')}>Reactivar</button>}
                 </Actions>]
               ]} />
             </Panel>
             </div>
+
+            {accessTarget && (
+              <div className="modal-backdrop" role="dialog" aria-modal="true"
+                onClick={(ev) => { if (ev.target === ev.currentTarget) setAccessTarget(null); }}>
+                <div className="form-modal">
+                  <div className="form-modal-head">
+                    <div className="form-modal-title"><ShieldCheck size={16} />Acceso al portal de portería</div>
+                    <button className="icon-btn" onClick={() => setAccessTarget(null)}><X size={16} /></button>
+                  </div>
+                  <div style={{ padding: '0.75rem 0' }}>
+                    <p style={{ fontSize: 13, marginBottom: '0.75rem' }}>
+                      Crear acceso al portal de portería para <strong>{accessTarget.name}</strong>.
+                    </p>
+                    {accessTarget.email
+                      ? <p style={{ fontSize: 13, color: 'var(--muted)' }}>Email: <strong>{accessTarget.email}</strong>. Se enviará una contraseña temporal si el usuario es nuevo.</p>
+                      : <p style={{ fontSize: 13, color: 'var(--neg)' }}>El empleado no tiene email registrado. Editá el empleado y agregá un email primero.</p>}
+                    {accessError && <p style={{ fontSize: 13, color: 'var(--neg)', marginTop: '0.5rem' }}>{accessError}</p>}
+                  </div>
+                  <div className="form-modal-foot">
+                    <button type="button" className="btn btn-ghost" onClick={() => setAccessTarget(null)}>Cancelar</button>
+                    <button className="btn btn-primary" disabled={!accessTarget.email || accessBusy} onClick={doCreateAccess}>
+                      <ShieldCheck size={14} />{accessBusy ? 'Creando…' : 'Crear acceso'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {deactivateTarget && (
+              <div className="modal-backdrop" role="dialog" aria-modal="true"
+                onClick={(ev) => { if (ev.target === ev.currentTarget) setDeactivateTarget(null); }}>
+                <div className="form-modal">
+                  <div className="form-modal-head">
+                    <div className="form-modal-title">Dar de baja a {deactivateTarget.name}</div>
+                    <button className="icon-btn" onClick={() => setDeactivateTarget(null)}><X size={16} /></button>
+                  </div>
+                  <div style={{ padding: '0.75rem 0' }}>
+                    <p style={{ fontSize: 13, marginBottom: '0.5rem' }}>Este empleado tiene acceso activo al portal de portería.</p>
+                    <p style={{ fontSize: 13, color: 'var(--muted)' }}>¿Querés también revocar su acceso al portal?</p>
+                  </div>
+                  <div className="form-modal-foot" style={{ flexDirection: 'column', gap: '0.5rem' }}>
+                    <button className="btn btn-primary danger-action" style={{ width: '100%' }} onClick={() => doDeactivate(deactivateTarget, true)}>
+                      Dar de baja y revocar acceso al portal
+                    </button>
+                    <button className="btn btn-ghost" style={{ width: '100%' }} onClick={() => doDeactivate(deactivateTarget, false)}>
+                      Solo dar de baja al empleado
+                    </button>
+                    <button className="btn btn-ghost" style={{ width: '100%' }} onClick={() => setDeactivateTarget(null)}>Cancelar</button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {showEmployeeModal && (
               <div className="modal-backdrop" role="dialog" aria-modal="true"

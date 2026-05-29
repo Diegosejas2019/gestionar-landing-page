@@ -191,7 +191,10 @@ export const adminApi = {
     ),
     create: (data: Payload) => { invalidateList('employees:list'); return apiClient<ApiEnvelope>('/employees', { method: 'POST', auth: true, body: body(data) }); },
     update: (id: string, data: Payload) => { invalidateList('employees:list'); return apiClient<ApiEnvelope>(`/employees/${id}`, { method: 'PATCH', auth: true, body: body(data) }); },
-    delete: (id: string) => { invalidateList('employees:list'); return apiClient<ApiEnvelope>(`/employees/${id}`, { method: 'DELETE', auth: true }); },
+    delete: (id: string, opts?: { revokeAccess?: boolean }) => { invalidateList('employees:list'); const sfx = opts?.revokeAccess ? '?revokeAccess=true' : ''; return apiClient<ApiEnvelope>(`/employees/${id}${sfx}`, { method: 'DELETE', auth: true }); },
+    createAccess: (id: string) => { invalidateList('employees:list'); return apiClient<ApiEnvelope>(`/employees/${id}/create-access`, { method: 'POST', auth: true, body: '{}' }); },
+    linkUser: (id: string, data: Payload) => { invalidateList('employees:list'); return apiClient<ApiEnvelope>(`/employees/${id}/link-user`, { method: 'PATCH', auth: true, body: body(data) }); },
+    unlinkUser: (id: string) => { invalidateList('employees:list'); return apiClient<ApiEnvelope>(`/employees/${id}/unlink-user`, { method: 'DELETE', auth: true }); },
     getDocument: (id: string, index: number) => apiBlob(`/employees/${id}/document/${index}`, { auth: true }),
     deleteDocument: (id: string, index: number) => apiClient<ApiEnvelope>(`/employees/${id}/document/${index}`, { method: 'DELETE', auth: true })
   },
