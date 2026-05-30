@@ -288,7 +288,7 @@ export function GuardUnitMapTab({ onCheckIn, onCheckOut, canCheckIn, canCheckOut
                 color: filter === val
                   ? (val === 'pending' ? '#1a1a1a' : (val === 'all' ? '#fff' : (STATUS_STYLE[val]?.text || '#fff')))
                   : 'var(--ink-2)',
-                minHeight: 30,
+                minHeight: 44,
               }}
             >
               {label}

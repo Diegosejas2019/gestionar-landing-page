@@ -334,7 +334,7 @@ export function GuardPortalPage() {
             onClick={() => setActiveView('list')}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              padding: '8px 14px', minHeight: 44, fontSize: 13, fontWeight: 600, cursor: 'pointer',
               background: 'none', border: 'none',
               borderBottom: activeView === 'list' ? '2px solid var(--accent)' : '2px solid transparent',
               color: activeView === 'list' ? 'var(--accent)' : 'var(--ink-3)',
@@ -347,7 +347,7 @@ export function GuardPortalPage() {
             onClick={() => setActiveView('map')}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              padding: '8px 14px', minHeight: 44, fontSize: 13, fontWeight: 600, cursor: 'pointer',
               background: 'none', border: 'none',
               borderBottom: activeView === 'map' ? '2px solid var(--accent)' : '2px solid transparent',
               color: activeView === 'map' ? 'var(--accent)' : 'var(--ink-3)',
