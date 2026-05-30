@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
-import { LogIn, LogOut, QrCode, RefreshCw, Search, ShieldCheck, Clock, Users } from 'lucide-react';
+import { LogIn, LogOut, QrCode, RefreshCw, Search, ShieldCheck, Clock, Users, LayoutGrid } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
 import { clearAuthToken, getAuthToken, goAdmin, goLogin } from '../../services/navigationService';
+import { GuardUnitMapTab } from './GuardUnitMapTab';
 
 type Visit = {
   _id: string;
@@ -72,6 +73,7 @@ function visitId(v: Visit) {
 export function GuardPortalPage() {
   const [authChecked, setAuthChecked] = useState(false);
   const [visitsEnabled, setVisitsEnabled] = useState(true);
+  const [activeView, setActiveView] = useState<'list' | 'map'>('list');
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState('');
@@ -323,6 +325,55 @@ export function GuardPortalPage() {
         </div>
       </header>
 
+      {visitsEnabled && (
+        <div style={{
+          display: 'flex', gap: 2, padding: '8px 16px 0',
+          borderBottom: '1px solid var(--line-1)', background: 'var(--bg-0)'
+        }}>
+          <button
+            onClick={() => setActiveView('list')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              background: 'none', border: 'none',
+              borderBottom: activeView === 'list' ? '2px solid var(--accent)' : '2px solid transparent',
+              color: activeView === 'list' ? 'var(--accent)' : 'var(--ink-3)',
+              marginBottom: -1, transition: 'color 0.15s'
+            }}
+          >
+            <Users size={14} /> Lista
+          </button>
+          <button
+            onClick={() => setActiveView('map')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              background: 'none', border: 'none',
+              borderBottom: activeView === 'map' ? '2px solid var(--accent)' : '2px solid transparent',
+              color: activeView === 'map' ? 'var(--accent)' : 'var(--ink-3)',
+              marginBottom: -1, transition: 'color 0.15s'
+            }}
+          >
+            <LayoutGrid size={14} /> Mapa
+          </button>
+        </div>
+      )}
+
+      {activeView === 'map' && visitsEnabled ? (
+        <GuardUnitMapTab
+          onCheckIn={async (id, note) => {
+            await adminApi.visits.checkIn(id, note);
+            showNotice('ok', 'Ingreso registrado correctamente.');
+          }}
+          onCheckOut={async (id, note) => {
+            await adminApi.visits.checkOut(id, note);
+            showNotice('ok', 'Egreso registrado correctamente.');
+          }}
+          canCheckIn={true}
+          canCheckOut={true}
+        />
+      ) : (
+
       <div className="guard-body">
 
         <div className="guard-search-bar">
@@ -553,6 +604,7 @@ export function GuardPortalPage() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

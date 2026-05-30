@@ -310,7 +310,8 @@ export const adminApi = {
     delete: (id: string) => { invalidateList('visits:list'); return apiClient<ApiEnvelope>(`/visits/${id}`, { method: 'DELETE', auth: true }); },
     validateQr: (token: string) => apiClient<ApiEnvelope>(`/visits/qr/${token}`, { auth: true }),
     checkInByQr: (token: string, comment?: string) => apiClient<ApiEnvelope>(`/visits/qr/${token}/check-in`, { method: 'POST', auth: true, body: JSON.stringify({ comment }) }),
-    logs: (id: string) => apiClient<ApiEnvelope>(`/visits/${id}/logs`, { auth: true })
+    logs: (id: string) => apiClient<ApiEnvelope>(`/visits/${id}/logs`, { auth: true }),
+    unitMap: (date?: string) => apiClient<ApiEnvelope>(`/visits/unit-map${date ? `?date=${date}` : ''}`, { auth: true })
   },
 
   spaces: {
