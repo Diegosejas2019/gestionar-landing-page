@@ -1731,13 +1731,11 @@ export function AdminPreviewPage() {
               />
             )}
 
-            <div className="admin-grid two">
-              <PendingCollectionSection
-                rows={owners.filter((o: any) => hasDebt(o)).slice(0, 10)}
-                loading={loading}
-                onViewAll={() => setTab('finanzas')}
-              />
-            </div>
+            <PendingCollectionSection
+              rows={owners.filter((o: any) => hasDebt(o)).slice(0, 10)}
+              loading={loading}
+              onViewAll={() => setTab('finanzas')}
+            />
           </>
         )}
 
