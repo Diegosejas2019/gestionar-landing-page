@@ -260,7 +260,7 @@ export function OwnerPage() {
 
         {tab === 'inicio' && <OwnerHomeSection user={user} membership={membership} features={features} />}
         {tab === 'cuenta' && <OwnerAccountSection />}
-        {tab === 'pagos' && <OwnerPaymentsSection />}
+        {tab === 'pagos' && <OwnerPaymentsSection features={features} />}
         {tab === 'historial' && <OwnerHistorySection />}
         {tab === 'avisos' && <OwnerNoticesSection />}
         {tab === 'documentos' && <OwnerDocumentsSection />}

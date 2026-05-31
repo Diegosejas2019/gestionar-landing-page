@@ -1,8 +1,9 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
-import { AlertTriangle, CreditCard, Download, Paperclip, Upload, X } from 'lucide-react';
+import { AlertTriangle, CreditCard, Download, Info, Paperclip, Upload, X } from 'lucide-react';
 import { ownerApi } from '../../services/ownerService';
 import { money } from '../admin/adminFormat';
 import { Empty } from '../admin/adminComponents';
+import type { FeatureFlags } from '../../types/api';
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 function formatPeriod(ym: string): string {
@@ -13,7 +14,8 @@ function formatPeriod(ym: string): string {
 
 type Period = { period: string; label: string; amount?: number; units?: Array<{id: string; name: string; amount: number}> };
 
-export function OwnerPaymentsSection() {
+export function OwnerPaymentsSection({ features = {} }: { features?: FeatureFlags }) {
+  const allowOwnerRequests = features['paymentPlans.allowOwnerRequests'] !== false;
   const [loading, setLoading] = useState(true);
   const [periods, setPeriods] = useState<Period[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState('');
@@ -268,6 +270,12 @@ export function OwnerPaymentsSection() {
                 {submitting ? 'Enviando…' : 'Enviar comprobante'}
               </button>
             </form>
+            {!allowOwnerRequests && (
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 12, padding: '10px 12px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }}>
+                <Info size={14} color="var(--ink-3)" style={{ marginTop: 1, flexShrink: 0 }} />
+                <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>La solicitud de planes de pago no está habilitada por la administración.</span>
+              </div>
+            )}
             </>
           )}
         </div>

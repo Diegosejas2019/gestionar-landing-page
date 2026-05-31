@@ -340,6 +340,8 @@ export function AdminPreviewPage() {
   const [renditionHistory, setRenditionHistory] = useState<any[]>([]);
   const [supportTickets, setSupportTickets] = useState<any[]>([]);
   const [supportTicketsLoading, setSupportTicketsLoading] = useState(false);
+  const [ppEnabled, setPpEnabled] = useState(true);
+  const [ppAllowOwnerRequests, setPpAllowOwnerRequests] = useState(true);
 
   const { me, membership, config, features, ownerStats, dashboard, owners, units, payments, notices, claims, expenses, employees, salaries, providers, votes, visits, spaces, reservations, orgDocuments, yearExpenses, yearPayments, report } = useAdminStore();
   const setMe = useAdminStore(s => s.setMe);
@@ -733,6 +735,13 @@ export function AdminPreviewPage() {
     if (tab === 'proveedores' && !moduleEnabled('providers')) setTab('inicio');
     if (tab === 'documentos' && !moduleEnabled('documents')) setTab('inicio');
   }, [tab, hasOperations, features]);
+
+  // Sync payment-plan toggles from loaded config
+  useEffect(() => {
+    if (!config) return;
+    setPpEnabled((config as any).paymentPlansEnabled !== false);
+    setPpAllowOwnerRequests((config as any).paymentPlansAllowOwnerRequests !== false);
+  }, [config]);
 
   async function run(label: string, action: () => Promise<unknown>, success = 'Cambios guardados.') {
     setBusy(label);
@@ -1438,6 +1447,13 @@ export function AdminPreviewPage() {
       lateFeePercent: Number(data.lateFeePercent || 0),
       lateFeeFixed: Number(data.lateFeeFixed || 0)
     }), 'Configuración actualizada.');
+  }
+
+  function submitPaymentPlanConfig() {
+    run('paymentPlanConfig', () => adminApi.config.update({
+      paymentPlansEnabled: ppEnabled,
+      paymentPlansAllowOwnerRequests: ppEnabled ? ppAllowOwnerRequests : false,
+    }), 'Configuración de planes de pago actualizada.');
   }
 
   function submitMercadoPago(event: FormEvent<HTMLFormElement>) {
@@ -2307,6 +2323,40 @@ export function AdminPreviewPage() {
                 <Field label="CBU" name="bankCbu" defaultValue={config?.bankCbu} />
                 {hasPermission('settings.update') && <button className="btn btn-primary" disabled={busy === 'config'}>Guardar configuracion</button>}
               </form>
+            </Panel>
+            <Panel title="Planes de pago" icon={CreditCard}>
+              <div className="admin-form" style={{ gap: 16 }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={ppEnabled}
+                    onChange={e => { setPpEnabled(e.target.checked); if (!e.target.checked) setPpAllowOwnerRequests(false); }}
+                    style={{ marginTop: 3 }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>Módulo de planes de pago</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 2 }}>Si está desactivado, los propietarios no verán el módulo de planes de pago.</div>
+                  </div>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: ppEnabled ? 'pointer' : 'not-allowed', opacity: ppEnabled ? 1 : 0.45 }}>
+                  <input
+                    type="checkbox"
+                    checked={ppAllowOwnerRequests}
+                    disabled={!ppEnabled}
+                    onChange={e => setPpAllowOwnerRequests(e.target.checked)}
+                    style={{ marginTop: 3 }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>Permitir que propietarios soliciten planes</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 2 }}>Si está desactivado, solo el administrador podrá crear planes. Los propietarios podrán ver sus planes existentes pero no solicitar nuevos.</div>
+                  </div>
+                </label>
+                {hasPermission('settings.update') && (
+                  <button className="btn btn-primary" disabled={busy === 'paymentPlanConfig'} onClick={submitPaymentPlanConfig} type="button">
+                    Guardar planes de pago
+                  </button>
+                )}
+              </div>
             </Panel>
             <Panel title="MercadoPago" icon={CreditCard}>
               <form className="admin-form" onSubmit={submitMercadoPago}>
