@@ -87,6 +87,7 @@ export function GuardPortalPage() {
   const [qrLoading, setQrLoading] = useState(false);
   const [logs, setLogs] = useState<Log[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
+  const [historyPreset, setHistoryPreset] = useState<'today' | 'yesterday' | 'last7days'>('today');
 
   useEffect(() => {
     if (!getAuthToken()) {
@@ -128,16 +129,12 @@ export function GuardPortalPage() {
     }
   }, []);
 
-  const loadLogs = useCallback(async () => {
+  const loadLogs = useCallback(async (preset: 'today' | 'yesterday' | 'last7days') => {
     setLogsLoading(true);
     try {
-      const res = await adminApi.visits.history({ limit: 30 });
-      const rawLogs: Log[] = [];
-      const items = res?.data?.visits || res?.data || [];
-      items.forEach((v: any) => {
-        if (v.logs) rawLogs.push(...v.logs);
-      });
-      setLogs(rawLogs.sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()).slice(0, 20));
+      const res = await adminApi.visits.history({ preset, limit: 100 });
+      const items: Log[] = res?.data?.logs || [];
+      setLogs(items);
     } catch {
       setLogs([]);
     } finally {
@@ -148,7 +145,13 @@ export function GuardPortalPage() {
   useEffect(() => {
     if (!authChecked) return;
     loadVisits();
-  }, [authChecked, loadVisits]);
+    loadLogs('today');
+  }, [authChecked, loadVisits, loadLogs]);
+
+  useEffect(() => {
+    if (!authChecked) return;
+    loadLogs(historyPreset);
+  }, [historyPreset, authChecked, loadLogs]);
 
   function showNotice(type: 'ok' | 'error', text: string) {
     setNotice({ type, text });
@@ -229,7 +232,6 @@ export function GuardPortalPage() {
   });
 
   const inside = visits.filter(v => v.status === 'inside');
-  const exited = visits.filter(v => v.status === 'exited');
 
   if (!authChecked) {
     return (
@@ -558,31 +560,47 @@ export function GuardPortalPage() {
             <section className="guard-card">
               <div className="guard-card-head">
                 <Clock size={16} style={{ color: 'var(--ink-2)' }} />
-                <span>Historial del día</span>
+                <span>Historial</span>
                 <button
                   style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--ink-3)', cursor: 'pointer', padding: 0 }}
-                  onClick={() => { loadLogs(); }}
+                  onClick={() => loadLogs(historyPreset)}
                   disabled={logsLoading}
-                  title="Cargar historial"
+                  title="Actualizar historial"
                 >
                   <RefreshCw size={13} />
                 </button>
               </div>
-              {exited.length === 0 && logs.length === 0 ? (
-                <div style={{ padding: '14px 16px', color: 'var(--ink-3)', fontSize: 13 }}>Sin movimientos registrados hoy.</div>
+              <div style={{ display: 'flex', gap: 6, padding: '8px 16px', borderBottom: '1px solid var(--line-1)', flexWrap: 'wrap' }}>
+                {(['today', 'yesterday', 'last7days'] as const).map(p => {
+                  const labels = { today: 'Hoy', yesterday: 'Ayer', last7days: 'Últimos 7 días' };
+                  const active = historyPreset === p;
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => setHistoryPreset(p)}
+                      style={{
+                        padding: '6px 12px', minHeight: 34, fontSize: 12, fontWeight: 600,
+                        borderRadius: 6, cursor: 'pointer', border: 'none',
+                        background: active ? 'var(--accent)' : 'var(--bg-2)',
+                        color: active ? '#fff' : 'var(--ink-2)',
+                        transition: 'background 0.15s, color 0.15s',
+                      }}
+                    >
+                      {labels[p]}
+                    </button>
+                  );
+                })}
+              </div>
+              {logsLoading ? (
+                <div style={{ padding: '8px 16px' }}>
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="skeleton" style={{ height: 38, borderRadius: 6, marginBottom: 6 }} />
+                  ))}
+                </div>
+              ) : logs.length === 0 ? (
+                <div style={{ padding: '14px 16px', color: 'var(--ink-3)', fontSize: 13 }}>Sin movimientos registrados en este período.</div>
               ) : (
                 <div style={{ padding: '4px 0' }}>
-                  {exited.map(v => (
-                    <div key={visitId(v)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', borderBottom: '1px solid var(--line-1)' }}>
-                      <LogOut size={13} style={{ color: 'var(--ink-3)', flexShrink: 0 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 12.5, color: 'var(--ink-1)' }}>{visitorName(v)}</div>
-                        <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>{ownerInfo(v)}</div>
-                      </div>
-                      <span style={{ fontSize: 11, color: 'var(--ink-3)', fontFamily: 'monospace' }}>Egresó</span>
-                    </div>
-                  ))}
-                  {logsLoading && <div style={{ padding: '10px 16px', color: 'var(--ink-3)', fontSize: 12 }}>Cargando…</div>}
                   {logs.map((log, i) => (
                     <div key={log._id || i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', borderBottom: '1px solid var(--line-1)' }}>
                       {log.action === 'check_in'
@@ -591,6 +609,11 @@ export function GuardPortalPage() {
                       }
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12.5, color: 'var(--ink-1)' }}>{log.visitorName || '—'}</div>
+                        {log.performedByName && (
+                          <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>
+                            {log.action === 'check_in' ? 'Ingreso' : 'Egreso'} · {log.performedByName}
+                          </div>
+                        )}
                         {log.comment && <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>📋 {log.comment}</div>}
                       </div>
                       <span style={{ fontSize: 11, color: 'var(--ink-3)', fontFamily: 'monospace' }}>
