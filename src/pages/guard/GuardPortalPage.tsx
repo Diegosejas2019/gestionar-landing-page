@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { LogIn, LogOut, QrCode, RefreshCw, Search, ShieldCheck, Clock, Users, LayoutGrid } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
 import { clearAuthToken, getAuthToken, goAdmin, goLogin } from '../../services/navigationService';
@@ -88,6 +88,13 @@ export function GuardPortalPage() {
   const [logs, setLogs] = useState<Log[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
   const [historyPreset, setHistoryPreset] = useState<'today' | 'yesterday' | 'last7days'>('today');
+
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+  const scanIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const videoRef        = useRef<HTMLVideoElement | null>(null);
+  const onQrScannedRef  = useRef<((token: string) => void) | null>(null);
+  const [hasScanner]    = useState(() => 'BarcodeDetector' in window);
+  const [cameraError, setCameraError] = useState('');
 
   useEffect(() => {
     if (!getAuthToken()) {
@@ -185,25 +192,56 @@ export function GuardPortalPage() {
     }
   }
 
-  async function validateQr() {
-    if (!qrToken.trim()) return;
+  const validateQrWithToken = useCallback(async (token: string) => {
     setQrLoading(true);
     setQrError('');
     setQrVisit(null);
     try {
-      const res = await adminApi.visits.validateQr(qrToken.trim());
+      const res = await adminApi.visits.validateQr(token);
       const v = res?.data?.visit || res?.data;
-      if (v) {
-        setQrVisit(v);
-      } else {
-        setQrError('QR no válido o visita no encontrada.');
-      }
+      if (v) setQrVisit(v);
+      else setQrError('QR no válido o visita no encontrada.');
     } catch (err: any) {
       setQrError(err?.message || 'QR no válido para esta organización.');
     } finally {
       setQrLoading(false);
     }
+  }, []);
+
+  async function validateQr() {
+    const token = qrToken.trim();
+    if (!token) return;
+    await validateQrWithToken(token);
   }
+
+  const stopCamera = useCallback(() => {
+    if (scanIntervalRef.current) { clearInterval(scanIntervalRef.current); scanIntervalRef.current = null; }
+    if (cameraStreamRef.current) { cameraStreamRef.current.getTracks().forEach(t => t.stop()); cameraStreamRef.current = null; }
+  }, []);
+
+  const startCamera = useCallback(async () => {
+    if (!hasScanner) return;
+    setCameraError('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      cameraStreamRef.current = stream;
+      if (!videoRef.current) { stream.getTracks().forEach(t => t.stop()); return; }
+      videoRef.current.srcObject = stream;
+      const detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] });
+      scanIntervalRef.current = setInterval(async () => {
+        if (!videoRef.current || videoRef.current.readyState < 2) return;
+        try {
+          const codes = await detector.detect(videoRef.current);
+          if (codes.length > 0) {
+            stopCamera();
+            onQrScannedRef.current?.(codes[0].rawValue);
+          }
+        } catch { /* ignorar errores de frame */ }
+      }, 300);
+    } catch {
+      setCameraError('No se pudo acceder a la cámara. Ingresá el código manualmente.');
+    }
+  }, [hasScanner, stopCamera]);
 
   async function checkInByQr() {
     if (!qrVisit) return;
@@ -221,6 +259,22 @@ export function GuardPortalPage() {
       setBusy('');
     }
   }
+
+  // Mantener el ref apuntando a la última versión del handler (evita closures stale en startCamera)
+  onQrScannedRef.current = (token: string) => {
+    setQrToken(token);
+    validateQrWithToken(token);
+  };
+
+  useEffect(() => {
+    if (!authChecked) return;
+    if (activeView === 'list' && hasScanner) {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+    return () => stopCamera();
+  }, [activeView, authChecked, hasScanner, startCamera, stopCamera]);
 
   const filtered = visits.filter(v => {
     if (!search) return true;
@@ -510,10 +564,30 @@ export function GuardPortalPage() {
                 <span>Validar QR / Código</span>
               </div>
               <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {hasScanner && !cameraError && (
+                  <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', background: '#000', aspectRatio: '4/3' }}>
+                    <video
+                      ref={videoRef}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                      autoPlay
+                      playsInline
+                      muted
+                    />
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '4px 8px', background: 'rgba(0,0,0,0.55)', textAlign: 'center', fontSize: 11, color: '#fff' }}>
+                      Apuntá la cámara al QR del visitante
+                    </div>
+                  </div>
+                )}
+                {!hasScanner && (
+                  <div style={{ fontSize: 12, color: 'var(--warn)' }}>El scanner de cámara no está disponible en este dispositivo.</div>
+                )}
+                {cameraError && (
+                  <div style={{ fontSize: 12, color: 'var(--warn)' }}>{cameraError}</div>
+                )}
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input
                     type="text"
-                    placeholder="Token o código QR"
+                    placeholder="O ingresá el código manualmente"
                     value={qrToken}
                     onChange={e => { setQrToken(e.target.value); setQrVisit(null); setQrError(''); }}
                     onKeyDown={e => e.key === 'Enter' && validateQr()}
