@@ -196,6 +196,128 @@ export function AdminOwnersUnitsSection({ ctx }: { ctx: any }) {
               ]} />
             </Panel>
 
+            {editingOwner && (() => {
+              const selectedUnitIds = ownerUnitIds(editingOwner);
+              return (
+                <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) setEditingOwner(null); }}>
+                  <div className="form-modal form-modal--wide">
+                    <div className="form-modal-head">
+                      <div className="form-modal-title"><Users size={16} />Editar propietario</div>
+                      <button className="icon-btn" onClick={() => setEditingOwner(null)}><X size={16} /></button>
+                    </div>
+                    <form className="admin-form" onSubmit={submitOwnerEdit}>
+                      <p className="form-section-label">Datos personales</p>
+                      <Field label="Nombre completo" name="name" required defaultValue={editingOwner.name || ''} />
+                      <label className="admin-field">
+                        <span>Email</span>
+                        <input value={editingOwner.email || ''} disabled readOnly />
+                      </label>
+                      <Field label="Teléfono" name="phone" defaultValue={editingOwner.phone || ''} />
+                      <p className="form-section-label">Configuración</p>
+                      <Field label="Inicio de cobro" name="startBillingPeriod" type="month" defaultValue={editingOwner.startBillingPeriod || ''} />
+                      <label className="admin-field">
+                        <span>Porcentaje</span>
+                        <input name="percentage" type="number" step="0.01" defaultValue={editingOwner.percentage ?? ''} />
+                      </label>
+                      <label className="admin-field">
+                        <span>Saldo anterior ($)</span>
+                        <input name="balance" type="number" step="0.01" defaultValue={editingOwner.balance ?? ''} />
+                      </label>
+                      <div className="admin-field full">
+                        <span>Unidades asignadas</span>
+                        <div className="unit-picker-list">
+                          {ownerAssignableUnits.length ? ownerAssignableUnits.map((unit: any) => {
+                            const unitId = idOf(unit);
+                            return (
+                              <label className="unit-option" key={unitId}>
+                                <input type="checkbox" name="unitIds" value={unitId} defaultChecked={selectedUnitIds.has(unitId) || refId(unit.owner) === idOf(editingOwner)} />
+                                <span>{unit.name}</span>
+                              </label>
+                            );
+                          }) : <Empty text="No hay unidades disponibles para asignar." />}
+                        </div>
+                      </div>
+                      <div className="form-modal-foot">
+                        <button type="button" className="btn btn-ghost" onClick={() => setEditingOwner(null)}>Cancelar</button>
+                        <button className="btn btn-primary" disabled={busy === `owner-edit-${idOf(editingOwner)}`}>Guardar cambios</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {paymentOwner && (
+              <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) closePaymentModal(); }}>
+                <div className="form-modal form-modal--wide">
+                  <div className="form-modal-head">
+                    <div className="form-modal-title"><WalletCards size={16} />Registrar pago</div>
+                    <button className="icon-btn" onClick={closePaymentModal}><X size={16} /></button>
+                  </div>
+                  <form className="admin-form" onSubmit={submitRegisterPayment}>
+                    <label className="admin-field full">
+                      <span>Propietario</span>
+                      <input value={`${paymentOwner.name || 'Sin nombre'} - ${unitLabel(paymentOwner)}`} disabled readOnly />
+                    </label>
+                    <div className="admin-field full">
+                      <span>Conceptos disponibles</span>
+                      <div className="unit-picker-list">
+                        {paymentLoading && <Empty text="Cargando conceptos..." />}
+                        {!paymentLoading && (() => {
+                          const balance = Math.max(0, debtAmount(paymentOwner));
+                          const periods = paymentAvailable?.periods || [];
+                          const extras = paymentAvailable?.extraordinary || [];
+                          const debtItems = paymentAvailable?.debtItems || [];
+                          const hasConcepts = balance > 0 || periods.length || extras.length || debtItems.length;
+                          if (!hasConcepts) return <Empty text="Este propietario no tiene conceptos pendientes." />;
+                          return (
+                            <>
+                              {balance > 0 && (
+                                <label className="unit-option">
+                                  <input type="checkbox" name="concepts" value="balance" data-type="balance" data-amount={balance} />
+                                  <span>Saldo anterior - {money(balance)}</span>
+                                </label>
+                              )}
+                              {periods.map((period: string, index: number) => (
+                                <label className="unit-option" key={period}>
+                                  <input type="checkbox" name="concepts" value={period} data-type="period" defaultChecked={index === 0 && balance <= 0} />
+                                  <span>Expensa {period}</span>
+                                </label>
+                              ))}
+                              {extras.map((extra: any) => (
+                                <label className="unit-option" key={extra.id || extra._id}>
+                                  <input type="checkbox" name="concepts" value={extra.id || extra._id} data-type="extra" />
+                                  <span>{extra.title || extra.description || 'Extraordinario'} - {money(extra.amount)}</span>
+                                </label>
+                              ))}
+                              {debtItems.map((item: any) => (
+                                <label className="unit-option" key={item.id || item._id}>
+                                  <input type="checkbox" name="concepts" value={item.id || item._id} data-type="debtItem" />
+                                  <span>{item.description || 'Ajuste pendiente'} - {money(item.amount)}</span>
+                                </label>
+                              ))}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                    <label className="admin-field full">
+                      <span>Comprobante opcional</span>
+                      <input type="file" accept=".pdf,application/pdf,image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" onChange={(event) => setPaymentFile(event.target.files?.[0] || null)} />
+                    </label>
+                    <label className="admin-field full">
+                      <span>Nota</span>
+                      <textarea name="ownerNote" rows={3} placeholder="Ej: Pago recibido en efectivo" />
+                    </label>
+                    <div className="form-modal-foot">
+                      <button type="button" className="btn btn-ghost" onClick={closePaymentModal}>Cancelar</button>
+                      <button className="btn btn-primary" disabled={paymentLoading || busy === `owner-payment-${idOf(paymentOwner)}`}>Registrar pago</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
             {showOwnerModal && (() => {
               const closeOwnerModal = () => {
                 setShowOwnerModal(false);
