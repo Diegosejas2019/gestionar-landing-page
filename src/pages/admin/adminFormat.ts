@@ -12,7 +12,16 @@ export const shortMonth = (value: string) => {
 export const idOf = (row: any) => String(row?._id || row?.id || '');
 export const person = (row: any) => row?.owner?.name || row?.user?.name || row?.name || 'Sin nombre';
 export const debtAmount = (row: any) => Number(row?.balanceOwed ?? row?.totalOwed ?? Math.max(0, -Number(row?.balance || 0)));
-export const hasDebt = (row: any) => debtAmount(row) > 0 || !!row?.isDebtor;
+export const hasDebt = (row: any) => {
+  if (row?.isDebtor === true) return true;
+  if (Number(row?.overdueOwed || 0) > 0) return true;
+  if (Number(row?.daysOverdue || 0) > 0) return true;
+  if (row?.status || row?.state) {
+    const state = String(row.status || row.state);
+    return state !== 'al_dia' && state !== 'up_to_date' && state !== 'clear';
+  }
+  return false;
+};
 export const unitNames = (row: any) => {
   const units = row?.owner?.units || row?.units;
   if (Array.isArray(units) && units.length) {
