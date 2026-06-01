@@ -10,8 +10,8 @@ export const Metric = memo(function Metric({ loading, label, value, hint, icon: 
       <div className={`metric-card metric-card-row ${loading ? 'skeleton' : ''}`}>
         <div className="metric-icon"><Icon size={16} /></div>
         <div className="metric-row-copy">
-          <span className="metric-label">{label}</span>
-          {hint && !loading && <span className="metric-hint">{hint}</span>}
+          <span className="metric-label" title={label}>{label}</span>
+          {hint && !loading && <span className="metric-hint" title={hint}>{hint}</span>}
         </div>
         {loading ? <div className="skeleton-val" /> : <span className="metric-value">{value}</span>}
       </div>
@@ -21,9 +21,9 @@ export const Metric = memo(function Metric({ loading, label, value, hint, icon: 
     <div className={`metric-card ${loading ? 'skeleton' : ''}`}>
       <div className="metric-icon"><Icon size={18} /></div>
       <div className="metric-body">
-        <div className="metric-label">{label}</div>
+        <div className="metric-label" title={label}>{label}</div>
         {loading ? <div className="skeleton-val" /> : <div className="metric-value">{value}</div>}
-        {hint && !loading && <div className="metric-hint">{hint}</div>}
+        {hint && !loading && <div className="metric-hint" title={hint}>{hint}</div>}
         {delta && !loading && <div className={`metric-delta ${delta.trend}`}>{delta.text}</div>}
       </div>
     </div>
