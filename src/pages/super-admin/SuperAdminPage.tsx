@@ -1,9 +1,9 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
-import { Activity, AlertTriangle, BarChart3, Building2, Check, CreditCard, FileText, KeyRound, LayoutDashboard, LifeBuoy, LogOut, Megaphone, MessageSquare, RefreshCw, Shield, Upload, Users } from 'lucide-react';
+import { Activity, AlertTriangle, BarChart3, Building2, Check, CreditCard, FileText, KeyRound, LayoutDashboard, LifeBuoy, LogOut, Megaphone, MessageSquare, RefreshCw, Shield, Upload, Users, Eye } from 'lucide-react';
 import { superAdminApi } from '../../services/adminService';
 import { isSuperAdminRole } from '../../services/authService';
 import { Table } from '../../components/Table';
-import { clearAuthToken, getAuthToken, goAdmin, goHome, goLogin } from '../../services/navigationService';
+import { clearAuthToken, getAuthToken, goAdmin, goGuard, goHome, goLogin, goOwnerDashboard, saveSuperAdminToken, setAuthToken } from '../../services/navigationService';
 import type { ApiRecord, FeatureFlags, SessionUser } from '../../types/api';
 
 type Notice = { type: 'ok' | 'error'; text: string } | null;
@@ -103,6 +103,13 @@ export function SuperAdminPage() {
   const [customRange, setCustomRange] = useState(initialRange);
   const [statusModal, setStatusModal] = useState<StatusModal | null>(null);
   const [statusReason, setStatusReason] = useState('');
+  const [impEmail, setImpEmail] = useState('');
+  const [impResults, setImpResults] = useState<any[]>([]);
+  const [impSelected, setImpSelected] = useState<any | null>(null);
+  const [impOrgId, setImpOrgId] = useState('');
+  const [impReason, setImpReason] = useState('');
+  const [impBusy, setImpBusy] = useState(false);
+  const [impError, setImpError] = useState('');
 
   const selectedOrg = useMemo(
     () => organizations.find((org) => idOf(org) === selectedOrgId),
@@ -306,6 +313,44 @@ export function SuperAdminPage() {
     if (now - last <= 7 * 24 * 60 * 60 * 1000) return 'Activa';
     if (now - last <= 30 * 24 * 60 * 60 * 1000) return 'Baja actividad';
     return 'Sin actividad';
+  }
+
+  async function handleImpersonationSearch() {
+    if (impEmail.trim().length < 2) return;
+    setImpBusy(true);
+    setImpError('');
+    setImpResults([]);
+    setImpSelected(null);
+    try {
+      const res = await superAdminApi.impersonation.searchUsers(impEmail.trim());
+      const users: any[] = (res as any)?.data?.users || [];
+      setImpResults(users);
+      if (users.length === 0) setImpError('No se encontró ningún usuario con ese email.');
+    } catch (err: any) {
+      setImpError(err?.message || 'Error al buscar usuario.');
+    } finally {
+      setImpBusy(false);
+    }
+  }
+
+  async function startImpersonation() {
+    if (!impSelected || !impOrgId || !impReason.trim()) return;
+    setImpBusy(true);
+    setImpError('');
+    try {
+      const res = await superAdminApi.impersonation.startSession(impSelected.userId, impOrgId, impReason.trim());
+      const data: any = (res as any)?.data;
+      const currentToken = getAuthToken();
+      if (currentToken) saveSuperAdminToken(currentToken);
+      setAuthToken(data.token);
+      const { accessType, adminRole } = data.impersonatedUser;
+      if (accessType === 'owner') goOwnerDashboard();
+      else if (adminRole === 'security_guard') goGuard();
+      else goAdmin();
+    } catch (err: any) {
+      setImpError(err?.message || 'No se pudo iniciar el modo soporte.');
+      setImpBusy(false);
+    }
   }
 
   return (
@@ -550,6 +595,87 @@ export function SuperAdminPage() {
                 )]
               ]}
             />
+          </Panel>
+
+          <Panel title="Ver como usuario" icon={Eye}>
+            <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ padding: '10px 14px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 8, fontSize: 13, color: 'var(--warn, #f59e0b)' }}>
+                ⚠ Esta acción será auditada. Solo usar con motivo de soporte legítimo.
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  type="email"
+                  placeholder="Email del usuario a buscar"
+                  value={impEmail}
+                  onChange={e => setImpEmail(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleImpersonationSearch()}
+                  style={{ flex: 1, padding: '9px 12px', borderRadius: 8, background: 'var(--bg-2, #1a2520)', border: '1px solid var(--line-1, rgba(255,255,255,0.1))', color: 'var(--ink-0, #eef1ed)', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
+                />
+                <button className="btn btn-ghost" onClick={handleImpersonationSearch} disabled={impBusy || impEmail.trim().length < 2} style={{ minHeight: 40, padding: '0 14px' }}>
+                  {impBusy ? '…' : 'Buscar'}
+                </button>
+              </div>
+
+              {impResults.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <small style={{ color: 'var(--ink-3, #6b7870)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Resultados</small>
+                  {impResults.map((u: any) => (
+                    <div
+                      key={u.userId}
+                      onClick={() => { setImpSelected(u); setImpOrgId(u.organizations?.[0]?.organizationId || ''); }}
+                      style={{
+                        padding: '10px 14px', borderRadius: 8, cursor: 'pointer',
+                        border: `1px solid ${impSelected?.userId === u.userId ? 'var(--accent, #9cf27b)' : 'var(--line-1, rgba(255,255,255,0.1))'}`,
+                        background: impSelected?.userId === u.userId ? 'rgba(156,242,123,0.06)' : 'var(--bg-2, #1a2520)',
+                      }}
+                    >
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-0, #eef1ed)' }}>{u.name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--ink-3, #6b7870)' }}>{u.email} · {u.organizations?.length || 0} org(s)</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {impSelected && (
+                <>
+                  {impSelected.organizations?.length > 1 && (
+                    <div>
+                      <small style={{ color: 'var(--ink-3, #6b7870)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Organización</small>
+                      <select
+                        value={impOrgId}
+                        onChange={e => setImpOrgId(e.target.value)}
+                        style={{ width: '100%', padding: '9px 12px', borderRadius: 8, background: 'var(--bg-2, #1a2520)', border: '1px solid var(--line-1, rgba(255,255,255,0.1))', color: 'var(--ink-0, #eef1ed)', fontSize: 13 }}
+                      >
+                        {impSelected.organizations.map((org: any) => (
+                          <option key={org.organizationId} value={org.organizationId}>{org.organizationName} ({org.role})</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  <div>
+                    <small style={{ color: 'var(--ink-3, #6b7870)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Motivo de soporte *</small>
+                    <textarea
+                      placeholder="Describe el problema de soporte que justifica esta acción…"
+                      value={impReason}
+                      onChange={e => setImpReason(e.target.value)}
+                      maxLength={500}
+                      rows={3}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 8, background: 'var(--bg-2, #1a2520)', border: '1px solid var(--line-1, rgba(255,255,255,0.1))', color: 'var(--ink-0, #eef1ed)', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <button
+                    className="btn btn-primary"
+                    style={{ minHeight: 44 }}
+                    onClick={startImpersonation}
+                    disabled={impBusy || !impReason.trim() || !impOrgId}
+                  >
+                    {impBusy ? '…' : '▶ Iniciar modo soporte'}
+                  </button>
+                </>
+              )}
+
+              {impError && <div style={{ fontSize: 13, color: 'var(--neg, #f87171)', padding: '8px 12px', background: 'rgba(248,113,113,0.08)', borderRadius: 6 }}>{impError}</div>}
+            </div>
           </Panel>
         </div>
       </section>

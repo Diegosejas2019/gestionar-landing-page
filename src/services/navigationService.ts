@@ -1,4 +1,38 @@
-export const TOKEN_KEY = 'gestionar_token';
+export const TOKEN_KEY           = 'gestionar_token';
+export const SUPERADMIN_TOKEN_KEY = 'gestionar_superadmin_token';
+
+export function getSuperAdminToken() {
+  return sessionStorage.getItem(SUPERADMIN_TOKEN_KEY);
+}
+export function saveSuperAdminToken(token: string) {
+  sessionStorage.setItem(SUPERADMIN_TOKEN_KEY, token);
+}
+export function clearSuperAdminToken() {
+  sessionStorage.removeItem(SUPERADMIN_TOKEN_KEY);
+}
+
+function decodeJwtPayload(token: string): Record<string, any> | null {
+  try {
+    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(base64));
+  } catch {
+    return null;
+  }
+}
+
+export function isImpersonating(): boolean {
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (!token) return false;
+  const payload = decodeJwtPayload(token);
+  return payload?.impersonation?.active === true;
+}
+
+export function getImpersonationContext(): Record<string, any> | null {
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (!token) return null;
+  const payload = decodeJwtPayload(token);
+  return payload?.impersonation || null;
+}
 export const PWA_URL = 'https://gestionar-it.vercel.app/';
 
 export function getAuthToken() {

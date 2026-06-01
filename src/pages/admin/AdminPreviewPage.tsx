@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
 import { isSuperAdminRole } from '../../services/authService';
-import { clearAuthToken, getAuthToken, goGuard, goHome, goLogin, goOwnerApp, goOwnerDashboard, goSuperAdmin } from '../../services/navigationService';
+import { clearAuthToken, getAuthToken, goGuard, goHome, goLogin, goOwnerApp, goOwnerDashboard, goSuperAdmin, isImpersonating } from '../../services/navigationService';
 import { useAdminStore } from '../../stores/adminStore';
 import { Table, type GridFilter } from '../../components/Table';
 import {
@@ -246,6 +246,7 @@ const tabCrumbs: Record<string, string[]> = {
 };
 
 export function AdminPreviewPage() {
+  const readOnly = isImpersonating();
   const [tab, setTab] = useState<TabKey>(getInitialTab);
   useEffect(() => {
     const onHash = () => {
@@ -1731,8 +1732,8 @@ export function AdminPreviewPage() {
             <PendingReceiptsSection
               payments={payments.filter((p: any) => p.status === 'pending').slice(0, 5)}
               loading={loading}
-              onApprove={(id) => run(id, () => adminApi.payments.approve(id), 'Pago aprobado.')}
-              onReject={(id) => {
+              onApprove={readOnly ? () => setNotice({ type: 'error', text: 'No disponible en modo soporte.' }) : (id) => run(id, () => adminApi.payments.approve(id), 'Pago aprobado.')}
+              onReject={readOnly ? () => setNotice({ type: 'error', text: 'No disponible en modo soporte.' }) : (id) => {
                 const note = window.prompt('Motivo de rechazo') || 'Rechazado';
                 run(id, () => adminApi.payments.reject(id, note), 'Pago rechazado.');
               }}

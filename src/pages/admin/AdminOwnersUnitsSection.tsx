@@ -1,4 +1,5 @@
-import { Building2, CreditCard, RefreshCw, ShieldCheck, Users, X } from 'lucide-react';
+import { useState } from 'react';
+import { Building2, CreditCard, RefreshCw, ShieldCheck, Users, WalletCards, X } from 'lucide-react';
 import { adminApi } from '../../services/adminService';
 import { Table } from '../../components/Table';
 import { Actions, Empty, Field, Metric, Panel, Status } from './adminComponents';
@@ -13,6 +14,100 @@ export function AdminOwnersUnitsSection({ ctx }: { ctx: any }) {
     setOwnerUnitFilter, selectedOwnerUnits, toggleOwnerUnit, filteredOwnerUnits, ownerSelectedUnitIds,
     availableOwnerUnits, busy, showUnitModal, submitUnitBulk
   } = ctx;
+  const [editingOwner, setEditingOwner] = useState<any>(null);
+  const [paymentOwner, setPaymentOwner] = useState<any>(null);
+  const [paymentAvailable, setPaymentAvailable] = useState<any>(null);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentFile, setPaymentFile] = useState<File | null>(null);
+
+  const ownerUnitIds = (owner: any) => new Set(
+    (owner?.units || [])
+      .map((unit: any) => idOf(unit) || String(unit?.unitId || unit?.id || ''))
+      .filter(Boolean)
+  );
+
+  const ownerAssignableUnits = editingOwner
+    ? [
+        ...(units || []).filter((unit: any) => idOf(unit.owner) === idOf(editingOwner)),
+        ...(availableOwnerUnits || [])
+      ].filter((unit: any, index: number, arr: any[]) => arr.findIndex((item) => idOf(item) === idOf(unit)) === index)
+    : [];
+
+  const closePaymentModal = () => {
+    setPaymentOwner(null);
+    setPaymentAvailable(null);
+    setPaymentFile(null);
+  };
+
+  async function openRegisterPayment(owner: any) {
+    setPaymentOwner(owner);
+    setPaymentAvailable(null);
+    setPaymentFile(null);
+    setPaymentLoading(true);
+    try {
+      const response = await adminApi.payments.availableItems({ ownerId: idOf(owner) });
+      setPaymentAvailable(response?.data || {});
+    } catch {
+      setPaymentAvailable({ periods: [], extraordinary: [], debtItems: [] });
+    } finally {
+      setPaymentLoading(false);
+    }
+  }
+
+  function submitOwnerEdit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editingOwner) return;
+    const form = event.currentTarget;
+    const data = Object.fromEntries(new FormData(form).entries()) as Record<string, any>;
+    const unitIds = Array.from(form.querySelectorAll<HTMLInputElement>('input[name="unitIds"]:checked')).map((input) => input.value);
+    const payload: Record<string, unknown> = {
+      name: String(data.name || '').trim(),
+      phone: String(data.phone || '').trim(),
+      startBillingPeriod: data.startBillingPeriod || undefined,
+      unitIds
+    };
+    if (data.percentage !== '') payload.percentage = Number(data.percentage);
+    if (data.balance !== '') payload.balance = Number(data.balance);
+    run(`owner-edit-${idOf(editingOwner)}`, () => adminApi.owners.update(idOf(editingOwner), payload), 'Propietario actualizado.')
+      .then((ok: boolean) => { if (ok) setEditingOwner(null); });
+  }
+
+  function submitRegisterPayment(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!paymentOwner) return;
+    const form = event.currentTarget;
+    const selectedConcepts = Array.from(form.querySelectorAll<HTMLInputElement>('input[name="concepts"]:checked'));
+    const selectedPeriods = selectedConcepts.filter((input) => input.dataset.type === 'period').map((input) => input.value);
+    const selectedExtras = selectedConcepts.filter((input) => input.dataset.type === 'extra').map((input) => input.value);
+    const selectedDebtItems = selectedConcepts.filter((input) => input.dataset.type === 'debtItem').map((input) => input.value);
+    const selectedBalance = selectedConcepts.find((input) => input.dataset.type === 'balance');
+    const note = (form.elements.namedItem('ownerNote') as HTMLTextAreaElement | null)?.value?.trim();
+
+    if (!selectedConcepts.length) {
+      window.alert('Selecciona al menos un concepto para registrar.');
+      return;
+    }
+    if (selectedBalance && selectedConcepts.length > 1) {
+      window.alert('El saldo anterior debe registrarse en un pago separado.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('ownerId', idOf(paymentOwner));
+    if (selectedBalance) {
+      formData.append('balanceAmount', selectedBalance.dataset.amount || selectedBalance.value);
+    } else {
+      selectedPeriods.forEach((period) => formData.append('periods', period));
+      if (selectedPeriods.length === 1) formData.append('month', selectedPeriods[0]);
+      selectedExtras.forEach((extraId) => formData.append('extraordinaryIds', extraId));
+      selectedDebtItems.forEach((itemId) => formData.append('debtItemIds', itemId));
+    }
+    if (note) formData.append('ownerNote', note);
+    if (paymentFile) formData.append('receipt', paymentFile);
+
+    run(`owner-payment-${idOf(paymentOwner)}`, () => adminApi.payments.create(formData), 'Pago registrado correctamente.')
+      .then((ok: boolean) => { if (ok) closePaymentModal(); });
+  }
 
   return (
           <>

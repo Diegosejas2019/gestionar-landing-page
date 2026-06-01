@@ -1,4 +1,4 @@
-import { clearAuthToken, getAuthToken, goLogin } from './navigationService';
+import { clearAuthToken, clearSuperAdminToken, getAuthToken, getSuperAdminToken, goLogin, goSuperAdmin, isImpersonating, setAuthToken } from './navigationService';
 
 type RequestOptions = RequestInit & {
   auth?: boolean;
@@ -36,6 +36,18 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
 
   if (!response.ok) {
     if (response.status === 401) {
+      if (isImpersonating()) {
+        const original = getSuperAdminToken();
+        clearSuperAdminToken();
+        if (original) {
+          setAuthToken(original);
+          goSuperAdmin();
+        } else {
+          clearAuthToken();
+          goLogin();
+        }
+        throw new Error('La sesión de soporte expiró. Tu sesión fue restaurada.');
+      }
       clearAuthToken();
       goLogin();
     }

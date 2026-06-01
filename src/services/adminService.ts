@@ -410,6 +410,19 @@ export const superAdminApi = {
     delete: (id: string) => { invalidateList('support:list'); return apiClient<ApiEnvelope>(`/support-tickets/${id}`, { method: 'DELETE', auth: true }); }
   },
 
+  impersonation: {
+    searchUsers: (email: string) =>
+      apiClient<ApiEnvelope>(`/super-admin/impersonation/users?email=${encodeURIComponent(email)}`, { auth: true }),
+    startSession: (userId: string, organizationId: string, reason: string) =>
+      apiClient<ApiEnvelope>('/super-admin/impersonation/start', {
+        method: 'POST', auth: true, body: JSON.stringify({ userId, organizationId, reason }),
+      }),
+    stopSession: () =>
+      apiClient<ApiEnvelope>('/super-admin/impersonation/stop', { method: 'POST', auth: true }),
+    listSessions: (params?: Params) =>
+      apiClient<ApiEnvelope>(`/super-admin/impersonation/sessions${qs(params)}`, { auth: true }),
+  },
+
   organizations: {
     list: () => cachedApiCall('organizations:list', () => apiClient<ApiEnvelope>('/organizations', { auth: true })),
     create: (data: Payload) => { invalidateList('organizations:list'); return apiClient<ApiEnvelope>('/organizations', { method: 'POST', auth: true, body: body(data) }); },
