@@ -195,7 +195,7 @@ export function AdminFinanceSection({ ctx }: AdminFinanceSectionProps) {
                     <button className="btn btn-ghost" onClick={() => exportRenditionCsv('morosidad')}>CSV morosidad</button>
                   </div>
                   {renditionPreview ? (
-                    <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+                    <div className="metric-grid">
                       <Metric row label="Ingresos" value={money(renditionPreview.totalIncome || renditionPreview.income || 0)} hint="Período" icon={CreditCard} />
                       <Metric row label="Gastos" value={money(renditionPreview.totalExpenses || renditionPreview.expenses || 0)} hint="Período" icon={FileText} />
                       <Metric row label="Saldo" value={money(renditionPreview.balance || 0)} hint="Resultado" icon={Landmark} />
@@ -242,7 +242,7 @@ export function AdminFinanceSection({ ctx }: AdminFinanceSectionProps) {
                     const moneyFmt = (n: number) => money(n ?? 0);
                     return (
                       <>
-                        <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 12 }}>
+                        <div className="metric-grid" style={{ marginBottom: 12 }}>
                           <Metric row label="Recaudación total" value={moneyFmt(totals.income)} hint={`Prom. ${moneyFmt(totals.averageMonthlyIncome)}/mes`} icon={TrendingUp} />
                           <Metric row label="Egresos totales"   value={moneyFmt(totals.expTotal)} hint={`Prom. ${moneyFmt(totals.averageMonthlyExpenses)}/mes`} icon={FileText} />
                           <Metric row label="Saldo final"       value={moneyFmt(totals.resultado)} hint={`${totals.monthsWithRendition ?? 0}/12 meses cerrados`} icon={Landmark} />
@@ -352,7 +352,7 @@ export function AdminFinanceSection({ ctx }: AdminFinanceSectionProps) {
 
             {finSubTab === 'noIdentificados' && (
               <>
-                <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 16 }}>
+                <div className="metric-grid" style={{ marginBottom: 16 }}>
                   <Metric row loading={unidentifiedPaymentsLoading} label="Pendientes" value={unidentifiedPaymentsSummary?.pendingCount || 0} hint={money(unidentifiedPaymentsSummary?.pendingTotal || 0)} icon={CreditCard} />
                   <Metric row loading={unidentifiedPaymentsLoading} label="Asociados este mes" value={unidentifiedPaymentsSummary?.associatedThisMonthCount || 0} hint={money(unidentifiedPaymentsSummary?.associatedThisMonthTotal || 0)} icon={CheckCircle2} />
                   <Metric row loading={unidentifiedPaymentsLoading} label="Rechazados/Archivados" value={unidentifiedPaymentsSummary?.rejectedArchivedCount || 0} hint="Sin acción requerida" icon={X} />

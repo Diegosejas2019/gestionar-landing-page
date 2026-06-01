@@ -38,7 +38,7 @@ export function AdminVotesSection({ ctx }: { ctx: any }) {
                 </div>
               </div>
 
-              <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: 20 }}>
+              <div className="metric-grid" style={{ marginBottom: 20 }}>
                 <Metric row loading={loading} label="Abiertas" value={open.length} hint="En curso" icon={Vote} />
                 <Metric row loading={loading} label="Con cierre programado" value={open.filter((v: any) => v.endsAt).length} hint="Con fecha límite" icon={AlertTriangle} />
                 <Metric row loading={loading} label="Cerradas" value={closed.length} hint="Finalizadas" icon={CheckCircle2} />

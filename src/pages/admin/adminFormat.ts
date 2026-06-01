@@ -1,7 +1,7 @@
 import type { FormEvent } from 'react';
 
 export const todayMonth = () => new Date().toISOString().slice(0, 7);
-export const formatARS = (value: unknown) => `ARS ${Number(value || 0).toLocaleString('es-AR')}`;
+export const formatARS = (value: unknown) => `$${Number(value || 0).toLocaleString('es-AR')}`;
 export const money = formatARS;
 export const formatDate = (value: unknown) => value ? new Date(String(value)).toLocaleDateString('es-AR') : '-';
 export const formatDateTime = (value: unknown) => value ? new Date(String(value)).toLocaleString('es-AR') : '-';

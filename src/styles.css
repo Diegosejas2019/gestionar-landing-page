@@ -2844,7 +2844,7 @@ footer {
 }
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 18px;
 }
@@ -2942,7 +2942,7 @@ footer {
   font-size: 18px;
 }
 .finance-metric-grid {
-  grid-template-columns: repeat(5, minmax(188px, 1fr));
+  grid-template-columns: repeat(3, minmax(188px, 1fr));
 }
 .metric-delta {
   display: inline-flex;
@@ -4195,12 +4195,6 @@ footer {
   flex-shrink: 0;
 }
 
-@media (max-width: 1400px) {
-  .metric-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-@media (max-width: 1300px) {
-  .finance-metric-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
 @media (max-width: 1120px) {
   .join-page {
     grid-template-columns: 1fr minmax(390px, 38vw);
@@ -4248,10 +4242,6 @@ footer {
   .admin-nav-group-label,
   .admin-sidebar-foot { display: none; }
   .admin-topbar-logout { display: flex; }
-  .metric-grid,
-  .metric-grid.compact {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
   .finance-metric-grid,
   .admin-grid,
   .admin-grid.two {

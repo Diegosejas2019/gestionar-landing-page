@@ -31,8 +31,8 @@ function DelinquencySection({ ctx }: { ctx: any }) {
               </div>
             </div>
 
-            <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
-              <Metric row loading={loading} label="Deuda vencida" value={money(delinquencySummary.totalDebt)} hint="ARS" icon={AlertTriangle} />
+            <div className="metric-grid">
+              <Metric row loading={loading} label="Deuda vencida" value={money(delinquencySummary.totalDebt)} icon={AlertTriangle} />
               <Metric row loading={loading} label="Morosos" value={delinquencySummary.delinquentOwners || 0} hint={`${delinquencySummary.delinquencyRate || 0}% de la comunidad`} icon={Users} />
               <Metric row loading={loading} label="Unidades" value={delinquencySummary.delinquentUnits || 0} hint="Con deuda" icon={Building2} />
               <Metric row loading={loading} label="Promedio" value={money(delinquencySummary.averageDebt)} hint="Por moroso" icon={TrendingUp} />
@@ -42,7 +42,7 @@ function DelinquencySection({ ctx }: { ctx: any }) {
 
             <div className="admin-panel">
               <div className="panel-head"><h2><CalendarDays size={14} />Antigüedad de deuda</h2></div>
-              <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+              <div className="metric-grid">
                 {delinquencyAging.map((bucket: any) => (
                   <Metric key={bucket.key} row loading={loading} label={bucket.label} value={money(bucket.amount)} hint={`${bucket.owners || 0} propietario${bucket.owners === 1 ? '' : 's'}`} icon={AlertTriangle} />
                 ))}
@@ -135,7 +135,7 @@ function PaymentPlansSection({ ctx }: { ctx: any }) {
             <div className="metric-grid">
               <Metric row loading={paymentPlansLoading || loading} label="Solicitados" value={paymentPlans.filter((p: any) => p.status === 'requested').length} hint="Esperan revisión" icon={Inbox} />
               <Metric row loading={paymentPlansLoading || loading} label="Activos" value={paymentPlans.filter((p: any) => p.status === 'active' || p.status === 'approved').length} hint="En curso" icon={WalletCards} />
-              <Metric row loading={paymentPlansLoading || loading} label="Capital" value={money(paymentPlans.reduce((sum: number, p: any) => sum + Number(p.totalAmount || p.originalDebtAmount || 0), 0))} hint="ARS" icon={CreditCard} />
+              <Metric row loading={paymentPlansLoading || loading} label="Capital" value={money(paymentPlans.reduce((sum: number, p: any) => sum + Number(p.totalAmount || p.originalDebtAmount || 0), 0))} icon={CreditCard} />
               <Metric row loading={paymentPlansLoading || loading} label="Finalizados" value={paymentPlans.filter((p: any) => p.status === 'completed').length} hint="Completados" icon={CheckCircle2} />
             </div>
             <div className="admin-panel">

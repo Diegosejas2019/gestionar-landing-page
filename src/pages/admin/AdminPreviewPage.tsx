@@ -2572,8 +2572,8 @@ export function AdminPreviewPage() {
                 <button className="icon-btn" onClick={() => setDelinquencyDetail(null)}><X size={16} /></button>
               </div>
               <div className="admin-page-sub">{delinquencyDetail.owner?.name} · {(delinquencyDetail.units || []).map((u: any) => u.name).join(', ') || 'Sin unidad'}</div>
-              <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', margin: '1rem 0' }}>
-                <Metric row loading={false} label="Deuda total" value={money(delinquencyDetail.summary?.totalOwed)} hint="ARS" icon={AlertTriangle} />
+              <div className="metric-grid" style={{ margin: '1rem 0' }}>
+                <Metric row loading={false} label="Deuda total" value={money(delinquencyDetail.summary?.totalOwed)} icon={AlertTriangle} />
                 <Metric row loading={false} label="Períodos" value={delinquencyDetail.summary?.periodsCount || 0} hint={(delinquencyDetail.summary?.unpaidPeriods || []).join(', ') || '-'} icon={CalendarDays} />
                 <Metric row loading={false} label="Atraso" value={`${delinquencyDetail.summary?.daysOverdue || 0} días`} hint={delinquencyDetail.summary?.oldestPeriod || '-'} icon={Bell} />
               </div>
