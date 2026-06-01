@@ -19,6 +19,7 @@ export function AdminOwnersUnitsSection({ ctx }: { ctx: any }) {
   const [paymentAvailable, setPaymentAvailable] = useState<any>(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentFile, setPaymentFile] = useState<File | null>(null);
+  const refId = (value: any) => typeof value === 'string' ? value : idOf(value);
 
   const ownerUnitIds = (owner: any) => new Set(
     (owner?.units || [])
@@ -28,7 +29,7 @@ export function AdminOwnersUnitsSection({ ctx }: { ctx: any }) {
 
   const ownerAssignableUnits = editingOwner
     ? [
-        ...(units || []).filter((unit: any) => idOf(unit.owner) === idOf(editingOwner)),
+        ...(units || []).filter((unit: any) => refId(unit.owner) === idOf(editingOwner)),
         ...(availableOwnerUnits || [])
       ].filter((unit: any, index: number, arr: any[]) => arr.findIndex((item) => idOf(item) === idOf(unit)) === index)
     : [];
@@ -165,6 +166,8 @@ export function AdminOwnersUnitsSection({ ctx }: { ctx: any }) {
                 )],
                 ['', (o: any) => <Actions>
                   <button onClick={() => openDelinquencyDetail(idOf(o))}>Detalle</button>
+                  <button onClick={() => setEditingOwner(o)}>Editar</button>
+                  <button onClick={() => openRegisterPayment(o)}>Registrar pago</button>
                   <button onClick={() => notifyOwner(o)}>Avisar</button>
                   <button onClick={() => openWhatsApp(o.phone, `Hola ${o.name || ''}, te contactamos desde la administración de ${config?.consortiumName || 'GestionAr'}.`)}>WhatsApp</button>
                   <button onClick={() => run(idOf(o), () => adminApi.owners.delete(idOf(o)), 'Propietario eliminado.')}>Eliminar</button>
