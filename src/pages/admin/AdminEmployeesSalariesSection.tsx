@@ -342,7 +342,7 @@ function SalariesSection({ ctx }: { ctx: any }) {
               <Metric row loading={loading} label="Sueldos pagados" value={money(salaries.reduce((sum: number, s: any) => sum + salaryPaidAmount(s), 0))} hint="Período visible" icon={ShieldCheck} />
               <Metric row loading={loading} label="Liquidaciones" value={salaries.length || 0} hint="Período visible" icon={FileText} />
             </div>
-            <div className="admin-grid">
+            <div className="admin-grid full">
             <Panel
               title="Sueldos"
               icon={WalletCards}
