@@ -30,7 +30,28 @@ export function AttentionHero({ payments, claims, loading, onFinanzas, onComunid
     });
   }
 
-  if (loading || items.length === 0) return null;
+  if (loading) return (
+    <div className="attention-hero">
+      <div className="attention-hero-head">
+        <div className="skeleton-line short" style={{ width: '28%', marginBottom: 10 }} />
+        <div className="skeleton-line big" style={{ marginBottom: 8 }} />
+        <div className="skeleton-line" style={{ width: '52%' }} />
+      </div>
+      <div className="attention-items">
+        {[0, 1].map(i => (
+          <div key={i} className="attention-item">
+            <div className="skeleton-box" style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="skeleton-line" style={{ marginBottom: 6 }} />
+              <div className="skeleton-line short" />
+            </div>
+            <div className="skeleton-pill" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+  if (items.length === 0) return null;
 
   return (
     <div className="attention-hero">
@@ -218,7 +239,32 @@ export function PendingReceiptsSection({ payments, loading, onApprove, onReject,
   onReject: (id: string) => void;
   onViewAll: () => void;
 }) {
-  if (loading || payments.length === 0) return null;
+  if (loading) return (
+    <div className="pending-receipts-section">
+      <div className="pending-receipts-head">
+        <div>
+          <div className="skeleton-line" style={{ width: 180, marginBottom: 6 }} />
+          <div className="skeleton-line short" style={{ width: 110 }} />
+        </div>
+      </div>
+      <div className="pending-receipts-list">
+        {[0, 1, 2].map(i => (
+          <div key={i} className="pending-receipt-row">
+            <div className="skeleton-box" style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="skeleton-line" style={{ width: '50%', marginBottom: 6 }} />
+              <div className="skeleton-line short" style={{ width: '38%' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <div className="skeleton-pill" />
+              <div className="skeleton-pill" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+  if (payments.length === 0) return null;
   return (
     <div className="pending-receipts-section">
       <div className="pending-receipts-head">
@@ -317,7 +363,28 @@ export function PendingCollectionSection({ rows, loading, onViewAll }: {
 export function OpenClaimsSection({ claims, loading, onNavigate }: {
   claims: any[]; loading: boolean; onNavigate: () => void;
 }) {
-  if (loading || claims.length === 0) return null;
+  if (loading) return (
+    <div className="open-claims-section card">
+      <div className="card-h">
+        <div>
+          <div className="skeleton-line" style={{ width: 140, marginBottom: 6 }} />
+          <div className="skeleton-line short" style={{ width: 80 }} />
+        </div>
+      </div>
+      <div className="card-body">
+        {[0, 1, 2].map(i => (
+          <div key={i} className="open-claim-row">
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="skeleton-line" style={{ width: '58%', marginBottom: 6 }} />
+              <div className="skeleton-line short" style={{ width: '40%' }} />
+            </div>
+            <div className="skeleton-pill" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+  if (claims.length === 0) return null;
   const claimCatLabel: Record<string, string> = {
     infrastructure: 'Infraestructura', security: 'Seguridad', noise: 'Ruido',
     cleaning: 'Limpieza', billing: 'Facturación', other: 'Otro'

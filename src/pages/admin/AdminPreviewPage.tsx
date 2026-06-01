@@ -1,4 +1,4 @@
-﻿import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+﻿import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle, Bell, Building2, CalendarCheck, CalendarClock, CalendarDays, CheckCircle2, ChevronDown,
   CreditCard, Download, FileText, HelpCircle, Home, Inbox, Landmark, LogIn, LogOut, Mail, Megaphone, MessageSquare,
@@ -259,6 +259,8 @@ export function AdminPreviewPage() {
   const [finSubTab, setFinSubTab] = useState<'cobranza' | 'egresos' | 'noIdentificados'>('cobranza');
   const [dashPeriod, setDashPeriod] = useState<'mes' | 'trimestre' | 'año' | 'todo'>('año');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const loadedTabs = useRef<Set<TabKey>>(new Set());
   const [authChecked, setAuthChecked] = useState(false);
   const [busy, setBusy] = useState('');
   const [notice, setNotice] = useState<Notice>(null);
@@ -646,8 +648,15 @@ export function AdminPreviewPage() {
     return next;
   }
 
-  async function refresh(target: TabKey = tab) {
-    setLoading(true);
+  async function refresh(target: TabKey = tab, silent = false) {
+    const isFirstVisit = !loadedTabs.current.has(target);
+    if (silent) {
+      // no visual indicator
+    } else if (isFirstVisit) {
+      setLoading(true);
+    } else {
+      setRefreshing(true);
+    }
     try {
       const session = await fetchSession();
       const user = session.me?.data?.user;
@@ -691,7 +700,9 @@ export function AdminPreviewPage() {
     } catch (error) {
       setNotice({ type: 'error', text: error instanceof Error ? error.message : 'No se pudo cargar el dashboard.' });
     } finally {
+      loadedTabs.current.add(target);
       setLoading(false);
+      setRefreshing(false);
     }
   }
 
@@ -749,7 +760,7 @@ export function AdminPreviewPage() {
     try {
       await action();
       setNotice({ type: 'ok', text: success });
-      await refresh(tab);
+      await refresh(tab, true);
       return true;
     } catch (error) {
       setNotice({ type: 'error', text: error instanceof Error ? error.message : 'No pudimos completar la acción.' });
@@ -1575,6 +1586,7 @@ export function AdminPreviewPage() {
 
   return (
     <main className={`admin-shell${busy ? ' is-busy' : ''}`}>
+      {(loading || refreshing) && <div className="page-loading-bar" />}
       <aside className="admin-sidebar">
         <a className="logo admin-logo" href="/">
           <span className="logo-mark" /> Gestion<span className="ar">ar</span>
