@@ -152,7 +152,12 @@ export function AdminOwnersUnitsSection({ ctx }: { ctx: any }) {
                 )],
                 ['Unidades', (o: any) => <span style={{ fontSize: 12 }}>{unitLabel(o)}</span>],
                 ['Teléfono', (o: any) => <span style={{ fontSize: 11.5, color: 'var(--muted)', fontFamily: 'monospace' }}>{o.phone || '—'}</span>],
-                ['Estado', (o: any) => <Status value={hasDebt(o) ? 'pending' : 'approved'} />],
+                ['Estado', (o: any) => (
+                  <span className={`pill ${hasDebt(o) ? 'neg' : 'pos'}`}>
+                    <span className="d" />
+                    {hasDebt(o) ? 'Moroso' : 'Al día'}
+                  </span>
+                )],
                 ['Saldo', (o: any) => (
                   <span style={{ fontFamily: 'monospace', fontSize: 12.5, color: debtAmount(o) > 0 ? 'var(--neg)' : 'var(--muted)' }}>
                     {debtAmount(o) > 0 ? money(debtAmount(o)) : '—'}
