@@ -95,6 +95,7 @@ export function GuardPortalPage() {
   const onQrScannedRef  = useRef<((token: string) => void) | null>(null);
   const [hasScanner]    = useState(() => 'BarcodeDetector' in window);
   const [cameraError, setCameraError] = useState('');
+  const [cameraActive, setCameraActive] = useState(false);
 
   useEffect(() => {
     if (!getAuthToken()) {
@@ -234,14 +235,26 @@ export function GuardPortalPage() {
           const codes = await detector.detect(videoRef.current);
           if (codes.length > 0) {
             stopCamera();
+            setCameraActive(false);
             onQrScannedRef.current?.(codes[0].rawValue);
           }
         } catch { /* ignorar errores de frame */ }
       }, 300);
     } catch {
+      setCameraActive(false);
       setCameraError('No se pudo acceder a la cámara. Ingresá el código manualmente.');
     }
   }, [hasScanner, stopCamera]);
+
+  const toggleCamera = useCallback(() => {
+    if (cameraActive) {
+      stopCamera();
+      setCameraActive(false);
+    } else {
+      setCameraActive(true);
+      startCamera();
+    }
+  }, [cameraActive, startCamera, stopCamera]);
 
   async function checkInByQr() {
     if (!qrVisit) return;
@@ -266,15 +279,7 @@ export function GuardPortalPage() {
     validateQrWithToken(token);
   };
 
-  useEffect(() => {
-    if (!authChecked) return;
-    if (activeView === 'list' && hasScanner) {
-      startCamera();
-    } else {
-      stopCamera();
-    }
-    return () => stopCamera();
-  }, [activeView, authChecked, hasScanner, startCamera, stopCamera]);
+  useEffect(() => () => stopCamera(), [stopCamera]);
 
   const filtered = visits.filter(v => {
     if (!search) return true;
@@ -564,7 +569,22 @@ export function GuardPortalPage() {
                 <span>Validar QR / Código</span>
               </div>
               <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {hasScanner && !cameraError && (
+                {hasScanner && (
+                  <button
+                    onClick={toggleCamera}
+                    style={{
+                      width: '100%', padding: '10px 12px', borderRadius: 8, cursor: 'pointer',
+                      background: cameraActive ? 'var(--bg-2)' : 'var(--accent)',
+                      color: cameraActive ? 'var(--ink-0)' : '#0a1209',
+                      border: '1px solid var(--line-1)', fontSize: 13, fontWeight: 600,
+                      fontFamily: 'inherit', display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', gap: 6,
+                    }}
+                  >
+                    {cameraActive ? '■ Detener cámara' : '📷 Escanear QR'}
+                  </button>
+                )}
+                {cameraActive && !cameraError && (
                   <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', background: '#000', aspectRatio: '4/3' }}>
                     <video
                       ref={videoRef}
@@ -577,9 +597,6 @@ export function GuardPortalPage() {
                       Apuntá la cámara al QR del visitante
                     </div>
                   </div>
-                )}
-                {!hasScanner && (
-                  <div style={{ fontSize: 12, color: 'var(--warn)' }}>El scanner de cámara no está disponible en este dispositivo.</div>
                 )}
                 {cameraError && (
                   <div style={{ fontSize: 12, color: 'var(--warn)' }}>{cameraError}</div>
