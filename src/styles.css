@@ -3035,6 +3035,70 @@ footer {
   font: 14px var(--font);
   transition: border-color .18s, box-shadow .18s;
 }
+.admin-date-field input,
+.admin-field input[type="date"],
+.admin-field input[type="month"],
+.period-controls input[type="date"],
+.period-controls input[type="month"],
+.usage-range input[type="date"],
+.usage-range input[type="month"] {
+  min-height: 44px;
+  color: var(--text-bright);
+  color-scheme: dark;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)),
+    var(--surface-2);
+  border-color: rgba(156, 242, 123, .22);
+  font-weight: 600;
+  padding-right: 12px;
+}
+.admin-date-field input:hover,
+.admin-field input[type="date"]:hover,
+.admin-field input[type="month"]:hover,
+.period-controls input[type="date"]:hover,
+.period-controls input[type="month"]:hover,
+.usage-range input[type="date"]:hover,
+.usage-range input[type="month"]:hover {
+  border-color: rgba(156, 242, 123, .38);
+}
+.admin-date-field input:focus,
+.admin-field input[type="date"]:focus,
+.admin-field input[type="month"]:focus,
+.period-controls input[type="date"]:focus,
+.period-controls input[type="month"]:focus,
+.usage-range input[type="date"]:focus,
+.usage-range input[type="month"]:focus {
+  outline: 2px solid transparent;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(156,242,123,0.12);
+}
+.admin-date-field input::-webkit-calendar-picker-indicator,
+.admin-field input[type="date"]::-webkit-calendar-picker-indicator,
+.admin-field input[type="month"]::-webkit-calendar-picker-indicator,
+.period-controls input[type="date"]::-webkit-calendar-picker-indicator,
+.period-controls input[type="month"]::-webkit-calendar-picker-indicator,
+.usage-range input[type="date"]::-webkit-calendar-picker-indicator,
+.usage-range input[type="month"]::-webkit-calendar-picker-indicator {
+  width: 18px;
+  height: 18px;
+  margin-left: 8px;
+  padding: 5px;
+  border-radius: 7px;
+  cursor: pointer;
+  opacity: .9;
+  filter: invert(93%) sepia(34%) saturate(637%) hue-rotate(45deg) brightness(104%) contrast(95%);
+  background-color: rgba(156, 242, 123, .1);
+}
+.admin-date-field input::-webkit-calendar-picker-indicator:hover,
+.admin-field input[type="date"]::-webkit-calendar-picker-indicator:hover,
+.admin-field input[type="month"]::-webkit-calendar-picker-indicator:hover,
+.period-controls input[type="date"]::-webkit-calendar-picker-indicator:hover,
+.period-controls input[type="month"]::-webkit-calendar-picker-indicator:hover,
+.usage-range input[type="date"]::-webkit-calendar-picker-indicator:hover,
+.usage-range input[type="month"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+  background-color: rgba(156, 242, 123, .18);
+}
 .admin-field textarea { resize: vertical; min-height: 80px; }
 .admin-form-note {
   grid-column: 1 / -1;
@@ -3649,7 +3713,7 @@ footer {
   padding: 8px 9px;
 }
 .period-controls input[type="month"] {
-  width: 142px;
+  width: 168px;
 }
 .feature-list {
   display: grid;

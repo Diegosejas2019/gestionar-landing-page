@@ -64,8 +64,9 @@ export const PaymentChannel = memo(function PaymentChannel({ payment }: { paymen
 });
 
 export const Field = memo(function Field(props: { label: string; name?: string; type?: string; placeholder?: string; defaultValue?: unknown; value?: unknown; required?: boolean; onChange?: (event: any) => void }) {
+  const isDateField = props.type === 'date' || props.type === 'month';
   return (
-    <label className="admin-field">
+    <label className={`admin-field${isDateField ? ' admin-date-field' : ''}`}>
       <span>{props.label}</span>
       <input name={props.name} type={props.type || 'text'} placeholder={props.placeholder} defaultValue={props.value === undefined ? String(props.defaultValue ?? '') : undefined} value={props.value === undefined ? undefined : String(props.value ?? '')} required={props.required} onChange={props.onChange} />
     </label>
