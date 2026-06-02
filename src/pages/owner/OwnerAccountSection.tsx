@@ -119,7 +119,7 @@ export function OwnerAccountSection() {
                 {[1, 2].map(i => <div key={i} className="skeleton-box" style={{ height: 52, borderRadius: 8, marginBottom: 8 }} />)}
               </div>
             ) : (
-              <div style={{ display: 'grid', gap: 8 }}>
+              <div className="owner-units-grid">
                 {units.map((u) => (
                   <div key={u._id || u.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border)' }}>
                     <Building2 size={16} color="var(--text-faint)" style={{ flexShrink: 0 }} />

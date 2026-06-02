@@ -96,7 +96,7 @@ export function OwnerDocumentsSection() {
           ) : filtered.length === 0 ? (
             <Empty text="Sin documentos disponibles." />
           ) : (
-            <div style={{ display: 'grid', gap: 8 }}>
+            <div className="owner-doc-grid">
               {filtered.map((doc) => (
                 <div key={doc._id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border)' }}>
                   <FileText size={18} color="var(--green)" style={{ flexShrink: 0 }} />

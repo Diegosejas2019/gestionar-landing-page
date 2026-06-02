@@ -119,65 +119,67 @@ export function OwnerHomeSection({ user, features }: Props) {
         <div className="admin-notice error" style={{ marginBottom: 16 }}>{error}</div>
       )}
 
-      {/* Recent notices */}
-      {(features.notices !== false) && (
-        <section className="card" style={{ marginBottom: 16 }}>
+      <div className="owner-2col">
+        {/* Left: Recent payments */}
+        <section className="card">
           <div className="card-h">
-            <div><h3>Últimos avisos</h3></div>
+            <div><h3>Últimos pagos</h3></div>
           </div>
           <div className="card-body">
             {loading ? (
               <div>
-                {[1, 2, 3].map(i => <div key={i} className="skeleton-box" style={{ height: 44, borderRadius: 8, marginBottom: 8 }} />)}
+                {[1, 2].map(i => <div key={i} className="skeleton-box" style={{ height: 44, borderRadius: 8, marginBottom: 8 }} />)}
               </div>
-            ) : notices.length === 0 ? (
-              <Empty text="Sin avisos recientes." />
+            ) : payments.length === 0 ? (
+              <Empty text="Sin pagos registrados." />
             ) : (
               <div style={{ display: 'grid', gap: 8 }}>
-                {notices.slice(0, 5).map((n: any) => (
-                  <div key={n._id} className="list-item">
-                    <Bell size={15} color="var(--green)" style={{ flexShrink: 0 }} />
+                {payments.slice(0, 5).map((p: any) => (
+                  <div key={p._id} className="list-item">
+                    <MessageSquare size={15} color="var(--ink-3)" style={{ flexShrink: 0 }} />
                     <div className="list-item-body">
-                      <div className="list-item-title">{n.title || n.subject}</div>
-                      <div className="list-item-sub">{dateLabel(n.createdAt || n.sentAt)}</div>
+                      <div className="list-item-title">{money(p.amount)} — {p.month || '-'}</div>
+                      <div className="list-item-sub">{dateLabel(p.createdAt)}</div>
                     </div>
-                    {!n.isRead && <span className="pill warn"><span className="d" />Nuevo</span>}
+                    <Status value={p.status} />
                   </div>
                 ))}
               </div>
             )}
           </div>
         </section>
-      )}
 
-      {/* Recent payments */}
-      <section className="card">
-        <div className="card-h">
-          <div><h3>Últimos pagos</h3></div>
-        </div>
-        <div className="card-body">
-          {loading ? (
-            <div>
-              {[1, 2].map(i => <div key={i} className="skeleton-box" style={{ height: 44, borderRadius: 8, marginBottom: 8 }} />)}
+        {/* Right: Recent notices */}
+        {(features.notices !== false) && (
+          <section className="card">
+            <div className="card-h">
+              <div><h3>Últimos avisos</h3></div>
             </div>
-          ) : payments.length === 0 ? (
-            <Empty text="Sin pagos registrados." />
-          ) : (
-            <div style={{ display: 'grid', gap: 8 }}>
-              {payments.slice(0, 5).map((p: any) => (
-                <div key={p._id} className="list-item">
-                  <MessageSquare size={15} color="var(--ink-3)" style={{ flexShrink: 0 }} />
-                  <div className="list-item-body">
-                    <div className="list-item-title">{money(p.amount)} — {p.month || '-'}</div>
-                    <div className="list-item-sub">{dateLabel(p.createdAt)}</div>
-                  </div>
-                  <Status value={p.status} />
+            <div className="card-body">
+              {loading ? (
+                <div>
+                  {[1, 2, 3].map(i => <div key={i} className="skeleton-box" style={{ height: 44, borderRadius: 8, marginBottom: 8 }} />)}
                 </div>
-              ))}
+              ) : notices.length === 0 ? (
+                <Empty text="Sin avisos recientes." />
+              ) : (
+                <div style={{ display: 'grid', gap: 8 }}>
+                  {notices.slice(0, 5).map((n: any) => (
+                    <div key={n._id} className="list-item">
+                      <Bell size={15} color="var(--green)" style={{ flexShrink: 0 }} />
+                      <div className="list-item-body">
+                        <div className="list-item-title">{n.title || n.subject}</div>
+                        <div className="list-item-sub">{dateLabel(n.createdAt || n.sentAt)}</div>
+                      </div>
+                      {!n.isRead && <span className="pill warn"><span className="d" />Nuevo</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </section>
+          </section>
+        )}
+      </div>
     </div>
   );
 }
