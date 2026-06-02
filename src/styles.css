@@ -3043,13 +3043,13 @@ footer {
 .usage-range input[type="date"],
 .usage-range input[type="month"] {
   min-height: 44px;
-  color: var(--text-bright);
-  color-scheme: dark;
+  color: #0e1512;
+  color-scheme: light;
   background:
-    linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)),
-    var(--surface-2);
-  border-color: rgba(156, 242, 123, .22);
-  font-weight: 600;
+    linear-gradient(180deg, #f7ffe9 0%, #eaffd9 100%);
+  border-color: rgba(156, 242, 123, .82);
+  box-shadow: inset 0 0 0 1px rgba(14, 21, 18, .06);
+  font-weight: 700;
   padding-right: 12px;
 }
 .admin-date-field input:hover,
@@ -3059,7 +3059,12 @@ footer {
 .period-controls input[type="month"]:hover,
 .usage-range input[type="date"]:hover,
 .usage-range input[type="month"]:hover {
-  border-color: rgba(156, 242, 123, .38);
+  border-color: var(--accent);
+  background:
+    linear-gradient(180deg, #fbfff2 0%, #efffdf 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(14, 21, 18, .08),
+    0 0 0 3px rgba(156, 242, 123, .1);
 }
 .admin-date-field input:focus,
 .admin-field input[type="date"]:focus,
@@ -3070,7 +3075,28 @@ footer {
 .usage-range input[type="month"]:focus {
   outline: 2px solid transparent;
   border-color: var(--green);
-  box-shadow: 0 0 0 3px rgba(156,242,123,0.12);
+  box-shadow:
+    inset 0 0 0 1px rgba(14, 21, 18, .08),
+    0 0 0 3px rgba(156,242,123,0.24);
+}
+.admin-date-field input::-webkit-datetime-edit,
+.admin-field input[type="date"]::-webkit-datetime-edit,
+.admin-field input[type="month"]::-webkit-datetime-edit,
+.period-controls input[type="date"]::-webkit-datetime-edit,
+.period-controls input[type="month"]::-webkit-datetime-edit,
+.usage-range input[type="date"]::-webkit-datetime-edit,
+.usage-range input[type="month"]::-webkit-datetime-edit {
+  color: #0e1512;
+  font-weight: 700;
+}
+.admin-date-field input::-webkit-datetime-edit-fields-wrapper,
+.admin-field input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+.admin-field input[type="month"]::-webkit-datetime-edit-fields-wrapper,
+.period-controls input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+.period-controls input[type="month"]::-webkit-datetime-edit-fields-wrapper,
+.usage-range input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+.usage-range input[type="month"]::-webkit-datetime-edit-fields-wrapper {
+  color: #0e1512;
 }
 .admin-date-field input::-webkit-calendar-picker-indicator,
 .admin-field input[type="date"]::-webkit-calendar-picker-indicator,
@@ -3085,9 +3111,9 @@ footer {
   padding: 5px;
   border-radius: 7px;
   cursor: pointer;
-  opacity: .9;
-  filter: invert(93%) sepia(34%) saturate(637%) hue-rotate(45deg) brightness(104%) contrast(95%);
-  background-color: rgba(156, 242, 123, .1);
+  opacity: 1;
+  filter: none;
+  background-color: rgba(14, 21, 18, .14);
 }
 .admin-date-field input::-webkit-calendar-picker-indicator:hover,
 .admin-field input[type="date"]::-webkit-calendar-picker-indicator:hover,
@@ -3097,7 +3123,7 @@ footer {
 .usage-range input[type="date"]::-webkit-calendar-picker-indicator:hover,
 .usage-range input[type="month"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
-  background-color: rgba(156, 242, 123, .18);
+  background-color: rgba(14, 21, 18, .22);
 }
 .admin-field textarea { resize: vertical; min-height: 80px; }
 .admin-form-note {
