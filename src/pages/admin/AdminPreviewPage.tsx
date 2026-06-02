@@ -58,6 +58,7 @@ import { AdminVisitsSection } from './AdminVisitsSection';
 import { AdminReservationsSection } from './AdminReservationsSection';
 import { AdminClaimsSection } from './sections/AdminClaimsSection';
 import { AdminSupportSection } from './sections/AdminSupportSection';
+import { AdminPayrollSection } from './AdminPayrollSection';
 import { Actions, BusyBanner, Empty, Field, Metric, Panel, PaymentChannel, SelectField, Status } from './adminComponents';
 import {
   AttentionHero,
@@ -76,7 +77,7 @@ import {
 type Notice = { type: 'ok' | 'error'; text: string } | null;
 type AdminInviteMode = 'new_user' | 'existing_owner';
 
-const VALID_TABS: TabKey[] = ['agenda', 'inicio', 'finanzas', 'morosidad', 'planes', 'empleados', 'sueldos', 'propietarios', 'solicitudes', 'comunicados', 'reclamos', 'votaciones', 'reservas', 'visitas', 'proveedores', 'documentos', 'config', 'soporte'];
+const VALID_TABS: TabKey[] = ['agenda', 'inicio', 'finanzas', 'morosidad', 'planes', 'empleados', 'sueldos', 'liquidacion', 'propietarios', 'solicitudes', 'comunicados', 'reclamos', 'votaciones', 'reservas', 'visitas', 'proveedores', 'documentos', 'config', 'soporte'];
 const getInitialTab = (): TabKey => {
   const hash = window.location.hash.replace('#', '');
   return VALID_TABS.includes(hash as TabKey) ? (hash as TabKey) : 'inicio';
@@ -94,6 +95,7 @@ const nav = [
   { key: 'planes', label: 'Planes de pago', icon: WalletCards },
   { key: 'empleados', label: 'Empleados', icon: UserRoundCog },
   { key: 'sueldos', label: 'Sueldos', icon: WalletCards },
+  { key: 'liquidacion', label: 'Liquidación', icon: FileText },
   { key: 'propietarios', label: 'Comunidad', icon: Users },
   { key: 'solicitudes', label: 'Registro autónomo', icon: Inbox },
   { key: 'comunicados', label: 'Comunicados', icon: Megaphone },
@@ -388,6 +390,7 @@ export function AdminPreviewPage() {
     if (item.key === 'visitas') return moduleEnabled('visits');
     if (item.key === 'proveedores') return moduleEnabled('providers');
     if (item.key === 'documentos') return moduleEnabled('documents');
+    if (item.key === 'liquidacion') return moduleEnabled('legalPayroll');
     return canSeeTab(item.key);
   });
 
@@ -1789,6 +1792,10 @@ export function AdminPreviewPage() {
             editingEmployee, empModalRole, empIsOnLeave, submitEmployee,
             employeeFiles, downloadEmployeeDocument, deleteEmployeeDocument, busy
           }} />
+        )}
+
+        {tab === 'liquidacion' && (
+          <AdminPayrollSection ctx={{ run, refresh, tab }} />
         )}
 
         {tab === 'sueldos' && (

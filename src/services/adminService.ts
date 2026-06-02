@@ -209,6 +209,31 @@ export const adminApi = {
     delete: (id: string) => { invalidateList('salaries:list'); return apiClient<ApiEnvelope>(`/salaries/${id}`, { method: 'DELETE', auth: true }); }
   },
 
+  payroll: {
+    getSettings: () => cachedApiCall('payroll:settings', () => apiClient<ApiEnvelope>('/payroll/settings', { auth: true })),
+    upsertSettings: (data: Payload) => { cacheDelete('payroll:settings'); return apiClient<ApiEnvelope>('/payroll/settings', { method: 'PUT', auth: true, body: body(data) }); },
+
+    listProfiles: (params?: Params) => cachedApiCall(cacheKey('payroll:profiles', params), () => apiClient<ApiEnvelope>(`/payroll/employee-profiles${qs(params)}`, { auth: true })),
+    getProfile: (id: string) => apiClient<ApiEnvelope>(`/payroll/employee-profiles/${id}`, { auth: true }),
+    createProfile: (data: Payload) => { invalidateList('payroll:profiles'); return apiClient<ApiEnvelope>('/payroll/employee-profiles', { method: 'POST', auth: true, body: body(data) }); },
+    updateProfile: (id: string, data: Payload) => { invalidateList('payroll:profiles'); return apiClient<ApiEnvelope>(`/payroll/employee-profiles/${id}`, { method: 'PATCH', auth: true, body: body(data) }); },
+    deactivateProfile: (id: string) => { invalidateList('payroll:profiles'); return apiClient<ApiEnvelope>(`/payroll/employee-profiles/${id}/deactivate`, { method: 'PATCH', auth: true, body: '{}' }); },
+
+    listLiquidations: (params?: Params) => cachedApiCall(cacheKey('payroll:liquidations', params), () => apiClient<ApiEnvelope>(`/payroll/liquidations${qs(params)}`, { auth: true })),
+    getLiquidation: (id: string) => apiClient<ApiEnvelope>(`/payroll/liquidations/${id}`, { auth: true }),
+    createDraft: (data: Payload) => { invalidateList('payroll:liquidations'); return apiClient<ApiEnvelope>('/payroll/liquidations', { method: 'POST', auth: true, body: body(data) }); },
+    addItem: (id: string, data: Payload) => { invalidateList('payroll:liquidations'); return apiClient<ApiEnvelope>(`/payroll/liquidations/${id}/items`, { method: 'POST', auth: true, body: body(data) }); },
+    deleteItem: (id: string, idx: number) => { invalidateList('payroll:liquidations'); return apiClient<ApiEnvelope>(`/payroll/liquidations/${id}/items/${idx}`, { method: 'DELETE', auth: true }); },
+    calculate: (id: string, data?: Payload) => { invalidateList('payroll:liquidations'); return apiClient<ApiEnvelope>(`/payroll/liquidations/${id}/calculate`, { method: 'POST', auth: true, body: body(data || {}) }); },
+    approve: (id: string, data?: Payload) => { invalidateList('payroll:liquidations'); return apiClient<ApiEnvelope>(`/payroll/liquidations/${id}/approve`, { method: 'POST', auth: true, body: body(data || {}) }); },
+    cancel: (id: string) => { invalidateList('payroll:liquidations'); return apiClient<ApiEnvelope>(`/payroll/liquidations/${id}`, { method: 'DELETE', auth: true }); },
+    markPaid: (id: string) => { invalidateList('payroll:liquidations'); return apiClient<ApiEnvelope>(`/payroll/liquidations/${id}/mark-paid`, { method: 'POST', auth: true, body: '{}' }); },
+    importAdvances: (id: string, data: Payload) => { invalidateList('payroll:liquidations'); return apiClient<ApiEnvelope>(`/payroll/liquidations/${id}/import-advances`, { method: 'POST', auth: true, body: body(data) }); },
+    generateReceiptPdf: (id: string) => apiClient<ApiEnvelope>(`/payroll/liquidations/${id}/receipt-pdf`, { method: 'POST', auth: true, body: '{}' }),
+
+    listRuleVersions: () => cachedApiCall('payroll:rules', () => apiClient<ApiEnvelope>('/payroll/rules', { auth: true })),
+  },
+
   salaryPayments: {
     list: (params?: Params) => cachedApiCall(
       cacheKey('salary-payments:list', params),

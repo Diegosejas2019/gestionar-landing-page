@@ -1,5 +1,5 @@
-export type TabKey = 'agenda' | 'inicio' | 'finanzas' | 'morosidad' | 'planes' | 'empleados' | 'sueldos' | 'propietarios' | 'solicitudes' | 'comunicados' | 'reclamos' | 'votaciones' | 'reservas' | 'visitas' | 'proveedores' | 'documentos' | 'config' | 'soporte';
-export type FeatureKey = 'visits' | 'reservations' | 'votes' | 'claims' | 'notices' | 'expenses' | 'providers' | 'documents';
+export type TabKey = 'agenda' | 'inicio' | 'finanzas' | 'morosidad' | 'planes' | 'empleados' | 'sueldos' | 'liquidacion' | 'propietarios' | 'solicitudes' | 'comunicados' | 'reclamos' | 'votaciones' | 'reservas' | 'visitas' | 'proveedores' | 'documentos' | 'config' | 'soporte';
+export type FeatureKey = 'visits' | 'reservations' | 'votes' | 'claims' | 'notices' | 'expenses' | 'providers' | 'documents' | 'legalPayroll';
 export type AdminRoleKey = 'owner_admin' | 'read_only' | 'billing_manager' | 'communications_manager' | 'security_guard';
 
 export const tabPermissions: Record<TabKey, string> = {
@@ -10,6 +10,7 @@ export const tabPermissions: Record<TabKey, string> = {
   planes: 'paymentPlans.read',
   empleados: 'employees.read',
   sueldos: 'salaries.read',
+  liquidacion: 'payroll.read',
   propietarios: 'owners.read',
   solicitudes: 'owners.create',
   comunicados: 'notices.read',
@@ -31,7 +32,8 @@ export const defaultFeatures: Record<FeatureKey, boolean> = {
   notices: true,
   expenses: true,
   providers: true,
-  documents: true
+  documents: true,
+  legalPayroll: false,
 };
 
 export const permissionDisplay: Record<string, { module: string; label: string }> = {
@@ -82,6 +84,12 @@ export const permissionDisplay: Record<string, { module: string; label: string }
   'salaries.create': { module: 'Sueldos', label: 'Crear' },
   'salaries.update': { module: 'Sueldos', label: 'Editar' },
   'salaries.delete': { module: 'Sueldos', label: 'Eliminar' },
+  'payroll.read': { module: 'Liquidación', label: 'Ver' },
+  'payroll.create': { module: 'Liquidación', label: 'Crear' },
+  'payroll.update': { module: 'Liquidación', label: 'Editar' },
+  'payroll.delete': { module: 'Liquidación', label: 'Cancelar' },
+  'payroll.approve': { module: 'Liquidación', label: 'Aprobar' },
+  'payroll.receipt': { module: 'Liquidación', label: 'Generar recibo' },
   'visits.read': { module: 'Visitas', label: 'Ver' },
   'visits.create': { module: 'Visitas', label: 'Crear' },
   'visits.update': { module: 'Visitas', label: 'Editar' },
