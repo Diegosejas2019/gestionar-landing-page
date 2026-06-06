@@ -197,8 +197,8 @@ export function OwnerPaymentsSection({ features = {} }: { features?: FeatureFlag
                   {selectedPeriod && (
                     <button
                       type="button"
-                      className="btn-secondary"
-                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center', fontSize: 13 }}
+                      className="btn btn-ghost"
+                      style={{ width: '100%' }}
                       disabled={pdfLoading}
                       onClick={async () => {
                         setPdfLoading(true);
@@ -261,7 +261,7 @@ export function OwnerPaymentsSection({ features = {} }: { features?: FeatureFlag
                   <button
                     type="submit"
                     disabled={submitting || !file || !selectedPeriod}
-                    className="btn-primary"
+                    className="btn btn-primary"
                     style={{ width: '100%' }}
                   >
                     {submitting ? 'Enviando…' : 'Enviar comprobante'}
