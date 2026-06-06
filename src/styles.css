@@ -2546,6 +2546,7 @@ footer {
   box-shadow: 0 0 8px rgba(156,242,123,0.5);
 }
 .admin-workspace {
+  width: 100%;
   min-width: 0;
   padding: 26px;
   max-width: 1600px;
