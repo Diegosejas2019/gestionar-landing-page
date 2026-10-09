@@ -31,7 +31,11 @@ const featureLabels: Record<string, string> = {
   claims: 'Reclamos',
   notices: 'Comunicados',
   expenses: 'Gastos',
-  providers: 'Proveedores'
+  providers: 'Proveedores',
+  documents: 'Documentos',
+  legalPayroll: 'Sueldos legales',
+  paymentPlans: 'Planes de pago',
+  'paymentPlans.allowOwnerRequests': 'Propietarios pueden pedir planes'
 };
 const ticketStatusLabels: Record<string, string> = {
   open: 'Abierto',
