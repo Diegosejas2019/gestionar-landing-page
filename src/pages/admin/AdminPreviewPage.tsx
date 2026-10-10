@@ -391,6 +391,7 @@ export function AdminPreviewPage() {
     if (item.key === 'proveedores') return moduleEnabled('providers');
     if (item.key === 'documentos') return moduleEnabled('documents');
     if (item.key === 'liquidacion') return moduleEnabled('legalPayroll');
+    if (item.key === 'planes') return moduleEnabled('paymentPlans');
     return canSeeTab(item.key);
   });
 
@@ -560,6 +561,10 @@ export function AdminPreviewPage() {
     }
 
     if (target === 'planes') {
+      if (!isEnabled('paymentPlans')) {
+        setPaymentPlans([]);
+        return;
+      }
       setPaymentPlansLoading(true);
       try {
         const params = paymentPlanStatus === 'all' ? { limit: 200 } : { limit: 200, status: paymentPlanStatus };
@@ -749,6 +754,7 @@ export function AdminPreviewPage() {
     if (tab === 'visitas' && !moduleEnabled('visits')) setTab('inicio');
     if (tab === 'proveedores' && !moduleEnabled('providers')) setTab('inicio');
     if (tab === 'documentos' && !moduleEnabled('documents')) setTab('inicio');
+    if (tab === 'planes' && !moduleEnabled('paymentPlans')) setTab('inicio');
   }, [tab, hasOperations, features]);
 
   // Sync payment-plan toggles from loaded config

@@ -1,5 +1,5 @@
 export type TabKey = 'agenda' | 'inicio' | 'finanzas' | 'morosidad' | 'planes' | 'empleados' | 'sueldos' | 'liquidacion' | 'propietarios' | 'solicitudes' | 'comunicados' | 'reclamos' | 'votaciones' | 'reservas' | 'visitas' | 'proveedores' | 'documentos' | 'config' | 'soporte';
-export type FeatureKey = 'visits' | 'reservations' | 'votes' | 'claims' | 'notices' | 'expenses' | 'providers' | 'documents' | 'legalPayroll';
+export type FeatureKey = 'visits' | 'reservations' | 'votes' | 'claims' | 'notices' | 'expenses' | 'providers' | 'documents' | 'legalPayroll' | 'paymentPlans';
 export type AdminRoleKey = 'owner_admin' | 'read_only' | 'billing_manager' | 'communications_manager' | 'security_guard';
 
 export const tabPermissions: Record<TabKey, string> = {
@@ -34,6 +34,7 @@ export const defaultFeatures: Record<FeatureKey, boolean> = {
   providers: true,
   documents: true,
   legalPayroll: false,
+  paymentPlans: true,
 };
 
 export const permissionDisplay: Record<string, { module: string; label: string }> = {
